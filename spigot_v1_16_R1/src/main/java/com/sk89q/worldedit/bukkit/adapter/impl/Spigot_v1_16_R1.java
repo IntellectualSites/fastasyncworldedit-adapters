@@ -202,7 +202,7 @@ public final class Spigot_v1_16_R1 implements BukkitImplAdapter {
         CraftServer.class.cast(Bukkit.getServer());
 
 
-        if (getDataVersion() != 2567) throw new UnsupportedClassVersionError("Not 1.16.1!");
+        if (CraftMagicNumbers.INSTANCE.getDataVersion() != 2567) throw new UnsupportedClassVersionError("Not 1.16.1!");
 
         // The list of tags on an NBTTagList
         nbtListTagListField = NBTTagList.class.getDeclaredField("list");
@@ -218,7 +218,7 @@ public final class Spigot_v1_16_R1 implements BukkitImplAdapter {
         chunkProviderExecutorField = ChunkProviderServer.class.getDeclaredField("serverThreadQueue");
         chunkProviderExecutorField.setAccessible(true);
 
-        new DataConverters_1_16_R1(getDataVersion(), this).build(ForkJoinPool.commonPool());
+        new DataConverters_1_16_R1(CraftMagicNumbers.INSTANCE.getDataVersion(), this).build(ForkJoinPool.commonPool());
 
         Watchdog watchdog;
         try {
@@ -237,11 +237,6 @@ public final class Spigot_v1_16_R1 implements BukkitImplAdapter {
             Class.forName("org.spigotmc.SpigotConfig");
             SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
         } catch (ClassNotFoundException ignored) {}
-    }
-
-    @Override
-    public int getDataVersion() {
-        return CraftMagicNumbers.INSTANCE.getDataVersion();
     }
 
     @Override
@@ -566,6 +561,13 @@ public final class Spigot_v1_16_R1 implements BukkitImplAdapter {
         }
 
         return result == EnumInteractionResult.SUCCESS;
+    }
+
+    @Override
+    public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
+        int internalId = BlockStateIdAccess.getBlockStateId(blockState);
+        IBlockData blockData = Block.getByCombinedId(internalId);
+        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
     }
 
     @Override
