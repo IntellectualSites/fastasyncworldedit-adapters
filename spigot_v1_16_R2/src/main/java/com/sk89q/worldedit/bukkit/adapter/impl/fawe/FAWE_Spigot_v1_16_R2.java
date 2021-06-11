@@ -34,7 +34,7 @@ import com.sk89q.worldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.sk89q.worldedit.bukkit.adapter.IDelegateBukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.Spigot_v1_16_R2;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_16_2;
-import com.sk89q.worldedit.bukkit.adapter.impl.regen.Regen_v1_16_R2;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_16_R2;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.LazyBaseEntity;
 import com.sk89q.worldedit.extent.Extent;
