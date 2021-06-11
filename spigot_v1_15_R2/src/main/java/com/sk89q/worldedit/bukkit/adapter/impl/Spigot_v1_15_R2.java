@@ -693,7 +693,7 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter {
      * @param foreign structure to convert
      * @return non-native structure
      */
-    NBTBase fromNative(Tag foreign) {
+    public NBTBase fromNative(Tag foreign) {
         if (foreign == null) {
             return null;
         }
@@ -806,6 +806,11 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter {
 
         @Override
         public void b() {
+        }
+
+        @Override
+        public void setChunkRadius(int i) {
+
         }
     }
 }

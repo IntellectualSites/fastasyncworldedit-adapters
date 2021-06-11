@@ -860,7 +860,7 @@ public final class Spigot_v1_16_R2 implements BukkitImplAdapter {
      * @param foreign structure to convert
      * @return non-native structure
      */
-    NBTBase fromNative(Tag foreign) {
+    public NBTBase fromNative(Tag foreign) {
         if (foreign == null) {
             return null;
         }

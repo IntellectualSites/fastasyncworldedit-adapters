@@ -33,23 +33,27 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url = uri("https://maven.enginehub.org/repo/") }
+        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
+        maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
+        maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
     }
 
     dependencies {
-        implementation("com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT")
+        implementation("com.intellectualsites.fawe:FAWE-Bukkit:1.16-687")
+        compileOnly("io.papermc:paperlib:1.0.6")
     }
 
 }
 
 mapOf(
-    "spigot_v1_15_R2" to "1.15.2",
-    "spigot_v1_16_R1" to "1.16.1",
-    "spigot_v1_16_R2" to "1.16.3",
-    "spigot_v1_16_R3" to "1.16.5"
-).forEach { (projectName, ver) ->
+    "spigot_v1_15_R2" to "1_15_r1",
+    "spigot_v1_16_R1" to "1_16_r1",
+    "spigot_v1_16_R2" to "1_16_r2",
+    "spigot_v1_16_R3" to "1_16_r3"
+).forEach { (projectName, dep) ->
     project(":$projectName") {
-        dependencies.implementation("org.spigotmc", "spigot", "${ver}-R0.1-SNAPSHOT")
+        dependencies.compileOnly("com.destroystokyo.paperv$dep:paperv$dep:$dep")
+        dependencies.compileOnly("org.spigotmcv$dep:spigotmcv$dep:$dep")
     }
 }
 
