@@ -26,20 +26,19 @@ subprojects {
     version = "1.0"
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        toolchain.languageVersion.set(JavaLanguageVersion.of(16))
     }
 
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
+        maven { url = uri("https://mvn.intellectualsites.com/content/repositories/releases/") }
         maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
         maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
     }
 
     dependencies {
-        implementation("com.intellectualsites.fawe:FAWE-Bukkit:1.16-687")
+        implementation("com.intellectualsites.fawe:FAWE-Bukkit:1.16-725")
         compileOnly("io.papermc:paperlib:1.0.6")
     }
 
@@ -49,7 +48,8 @@ mapOf(
     "spigot_v1_15_R2" to "1_15_r1",
     "spigot_v1_16_R1" to "1_16_r1",
     "spigot_v1_16_R2" to "1_16_r2",
-    "spigot_v1_16_R3" to "1_16_r3"
+    "spigot_v1_16_R3" to "1_16_r3",
+    "spigot_v1_17_R1" to "1_17_r1"
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
         dependencies.compileOnly("com.destroystokyo.paperv$dep:paperv$dep:$dep")
