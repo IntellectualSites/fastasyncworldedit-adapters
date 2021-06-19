@@ -37,15 +37,13 @@ subprojects {
     }
 
     dependencies {
-        implementation("com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT")
+        implementation("com.sk89q.worldedit:worldedit-bukkit:7.3.0-SNAPSHOT")
     }
 
 }
 
 mapOf(
     "spigot_v1_15_R2" to "1.15.2",
-    "spigot_v1_16_R1" to "1.16.1",
-    "spigot_v1_16_R2" to "1.16.3",
     "spigot_v1_16_R3" to "1.16.5"
 ).forEach { (projectName, ver) ->
     project(":$projectName") {
