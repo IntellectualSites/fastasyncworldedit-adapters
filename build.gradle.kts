@@ -46,8 +46,6 @@ subprojects {
 
 mapOf(
     "spigot_v1_15_R2" to "1_15_r1",
-    "spigot_v1_16_R1" to "1_16_r1",
-    "spigot_v1_16_R2" to "1_16_r2",
     "spigot_v1_16_R3" to "1_16_r3",
     "spigot_v1_17_R1" to "1_17_r1"
 ).forEach { (projectName, dep) ->

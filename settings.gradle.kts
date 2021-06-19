@@ -23,8 +23,6 @@ data class Ver(val minor: Int, val rel: String)
 
 listOf(
     Ver(15, "2"),
-    Ver(16, "1"),
-    Ver(16, "2"),
     Ver(16, "3"),
     Ver(17, "1")
 )
