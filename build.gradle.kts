@@ -44,13 +44,22 @@ subprojects {
 
 }
 
+// Paper 1.16 and below has a different classpath
 mapOf(
     "spigot_v1_15_R2" to "1_15_r1",
-    "spigot_v1_16_R3" to "1_16_r3",
-    "spigot_v1_17_R1" to "1_17_r1"
+    "spigot_v1_16_R3" to "1_16_r3"
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
         dependencies.compileOnly("com.destroystokyo.paperv$dep:paperv$dep:$dep")
+        dependencies.compileOnly("org.spigotmcv$dep:spigotmcv$dep:$dep")
+    }
+}
+
+mapOf(
+        "spigot_v1_17_R1" to "1_17_r1"
+).forEach { (projectName, dep) ->
+    project(":$projectName") {
+        dependencies.compileOnly("io.papermc.paperv$dep:paperv$dep:$dep")
         dependencies.compileOnly("org.spigotmcv$dep:spigotmcv$dep:$dep")
     }
 }
