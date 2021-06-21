@@ -1,6 +1,6 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-import com.boydti.fawe.bukkit.adapter.MapChunkUtil;
+import com.fastasyncworldedit.bukkit.adapter.MapChunkUtil;
 import net.minecraft.server.v1_15_R1.PacketPlayOutMapChunk;
 
 public class MapChunkUtil_1_15_2 extends MapChunkUtil<PacketPlayOutMapChunk> {

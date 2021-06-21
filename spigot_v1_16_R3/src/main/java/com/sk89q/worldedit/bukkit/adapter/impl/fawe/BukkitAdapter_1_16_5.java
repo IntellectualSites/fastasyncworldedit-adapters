@@ -1,14 +1,14 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-import com.boydti.fawe.Fawe;
-import com.boydti.fawe.FaweCache;
-import com.boydti.fawe.bukkit.adapter.DelegateLock;
-import com.boydti.fawe.bukkit.adapter.NMSAdapter;
-import com.boydti.fawe.config.Settings;
-import com.boydti.fawe.object.collection.BitArrayUnstretched;
-import com.boydti.fawe.util.MathMan;
-import com.boydti.fawe.util.TaskManager;
-import com.boydti.fawe.util.UnsafeUtility;
+import com.fastasyncworldedit.bukkit.adapter.DelegateLock;
+import com.fastasyncworldedit.bukkit.adapter.NMSAdapter;
+import com.fastasyncworldedit.core.Fawe;
+import com.fastasyncworldedit.core.FaweCache;
+import com.fastasyncworldedit.core.configuration.Settings;
+import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
+import com.fastasyncworldedit.core.util.MathMan;
+import com.fastasyncworldedit.core.util.TaskManager;
+import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.block.BlockState;

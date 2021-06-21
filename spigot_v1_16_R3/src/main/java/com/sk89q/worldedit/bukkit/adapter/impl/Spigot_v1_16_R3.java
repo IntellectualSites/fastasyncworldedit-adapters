@@ -566,13 +566,6 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter {
     }
 
     @Override
-    public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
-        int internalId = BlockStateIdAccess.getBlockStateId(blockState);
-        IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
-    }
-
-    @Override
     public boolean regenerate(org.bukkit.World bukkitWorld, Region region, Extent extent, RegenOptions options) {
         try {
             doRegen(bukkitWorld, region, extent, options);
@@ -860,7 +853,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter {
      * @param foreign structure to convert
      * @return non-native structure
      */
-    public NBTBase fromNative(Tag foreign) {
+    public NBTBase fromNative(BinaryTag foreign) {
         if (foreign == null) {
             return null;
         }
@@ -972,6 +965,11 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter {
 
         @Override
         public void b() {
+        }
+
+        @Override
+        public void setChunkRadius(int i) {
+
         }
     }
 }

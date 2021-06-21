@@ -1,11 +1,10 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-
-import com.boydti.fawe.FaweCache;
-import com.boydti.fawe.beta.IBlocks;
-import com.boydti.fawe.beta.IChunkGet;
-import com.boydti.fawe.beta.IChunkSet;
-import com.boydti.fawe.beta.implementation.lighting.HeightMapType;
+import com.fastasyncworldedit.core.FaweCache;
+import com.fastasyncworldedit.core.beta.IBlocks;
+import com.fastasyncworldedit.core.beta.IChunkGet;
+import com.fastasyncworldedit.core.beta.IChunkSet;
+import com.fastasyncworldedit.core.beta.implementation.lighting.HeightMapType;
 import com.google.common.base.Suppliers;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;

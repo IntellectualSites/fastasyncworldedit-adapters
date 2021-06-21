@@ -532,13 +532,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter {
     }
 
     @Override
-    public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
-        int internalId = BlockStateIdAccess.getBlockStateId(blockState);
-        IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
-    }
-
-    @Override
     public boolean regenerate(org.bukkit.World bukkitWorld, Region region, Extent extent, RegenOptions options) {
         WorldServer originalWorld = ((CraftWorld) bukkitWorld).getHandle();
 
@@ -692,7 +685,7 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter {
      * @param foreign structure to convert
      * @return non-native structure
      */
-    public NBTBase fromNative(Tag foreign) {
+    public NBTBase fromNative(BinaryTag foreign) {
         if (foreign == null) {
             return null;
         }

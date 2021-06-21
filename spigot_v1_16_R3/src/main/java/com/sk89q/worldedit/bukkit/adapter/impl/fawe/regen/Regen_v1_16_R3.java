@@ -1,15 +1,15 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen;
 
-import com.boydti.fawe.Fawe;
-import com.boydti.fawe.beta.IChunkCache;
-import com.boydti.fawe.beta.IChunkGet;
-import com.boydti.fawe.bukkit.adapter.mc1_16_5.BukkitGetBlocks_1_16_5;
+import com.fastasyncworldedit.bukkit.adapter.Regenerator;
+import com.fastasyncworldedit.core.Fawe;
+import com.fastasyncworldedit.core.beta.IChunkCache;
+import com.fastasyncworldedit.core.beta.IChunkGet;
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
-import com.sk89q.worldedit.bukkit.adapter.Regenerator;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.BukkitGetBlocks_1_16_5;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.util.io.file.SafeFiles;

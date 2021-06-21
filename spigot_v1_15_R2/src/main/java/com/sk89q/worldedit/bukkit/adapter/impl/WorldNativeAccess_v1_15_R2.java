@@ -161,4 +161,9 @@ public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlo
     public void onBlockStateChange(BlockPosition pos, IBlockData oldState, IBlockData newState) {
         getWorld().a(pos, oldState, newState);
     }
+
+    @Override
+    public void flush() {
+
+    }
 }
