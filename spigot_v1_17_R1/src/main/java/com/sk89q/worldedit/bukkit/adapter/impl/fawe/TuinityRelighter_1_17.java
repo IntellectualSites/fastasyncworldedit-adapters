@@ -1,11 +1,9 @@
-/*
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
 import com.fastasyncworldedit.core.beta.IQueueChunk;
 import com.fastasyncworldedit.core.beta.IQueueExtent;
 import com.fastasyncworldedit.core.beta.implementation.lighting.NMSRelighter;
 import com.fastasyncworldedit.core.beta.implementation.lighting.Relighter;
-import com.fastasyncworldedit.bukkit.adapter.mc1_16_5.BukkitAdapter_1_16_5;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.util.MathMan;
 import com.fastasyncworldedit.core.util.TaskManager;
@@ -14,13 +12,13 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.server.v1_16_R3.ChunkCoordIntPair;
-import net.minecraft.server.v1_16_R3.ChunkStatus;
-import net.minecraft.server.v1_16_R3.LightEngineThreaded;
-import net.minecraft.server.v1_16_R3.MCUtil;
-import net.minecraft.server.v1_16_R3.TicketType;
-import net.minecraft.server.v1_16_R3.Unit;
-import net.minecraft.server.v1_16_R3.WorldServer;
+import net.minecraft.server.MCUtil;
+import net.minecraft.server.level.LightEngineThreaded;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.server.level.WorldServer;
+import net.minecraft.util.Unit;
+import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.invoke.MethodHandle;
@@ -35,19 +33,17 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-// TODO TODO TODO
-
 public class TuinityRelighter_1_17 implements Relighter {
 
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
-    private static final MethodHandle RELIGHT;
+    public static final MethodHandle RELIGHT;
 
     private static final int CHUNKS_PER_BATCH = 1024; // 32 * 32
     private static final int CHUNKS_PER_BATCH_SQRT_LOG2 = 5; // for shifting
 
     private static final TicketType<Unit> FAWE_TICKET = TicketType.a("fawe_ticket", (a, b) -> 0);
-    private static final int LIGHT_LEVEL = MCUtil.getTicketLevelFor(ChunkStatus.LIGHT);
+    private static final int LIGHT_LEVEL = MCUtil.getTicketLevelFor(ChunkStatus.j);
 
     private final WorldServer world;
     private final ReentrantLock lock = new ReentrantLock();
@@ -77,6 +73,10 @@ public class TuinityRelighter_1_17 implements Relighter {
         }
         RELIGHT = tmp;
     }
+    public static boolean isUsable() {
+        return RELIGHT != null;
+    }
+
 
     public TuinityRelighter_1_17(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
@@ -107,7 +107,6 @@ public class TuinityRelighter_1_17 implements Relighter {
      * from the regions linked map. This way, chunks are loaded in batches to avoid
      * OOMEs.
      */
-/*
     @Override
     public void fixLightingSafe(boolean sky) {
         this.areaLock.lock();
@@ -125,7 +124,6 @@ public class TuinityRelighter_1_17 implements Relighter {
      * The action is run async, the chunks are partly processed on the main thread
      * (as required by the server).
      */
-/*
     private void fixLighting(LongSet chunks, Runnable andThen) {
         // convert from long keys to ChunkCoordIntPairs
         Set<ChunkCoordIntPair> coords = new HashSet<>();
@@ -137,12 +135,12 @@ public class TuinityRelighter_1_17 implements Relighter {
             // trigger chunk load and apply ticket on main thread
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ChunkCoordIntPair pos : coords) {
-                futures.add(world.getWorld().getChunkAtAsync(pos.x, pos.z)
+                futures.add(world.getWorld().getChunkAtAsync(pos.b, pos.c)
                         .thenAccept(c -> world.getChunkProvider().addTicketAtLevel(
                                 FAWE_TICKET,
                                 pos,
                                 LIGHT_LEVEL,
-                                Unit.INSTANCE))
+                                Unit.a))
                 );
             }
             // collect futures and trigger relight once all chunks are loaded
@@ -180,16 +178,15 @@ public class TuinityRelighter_1_17 implements Relighter {
      * Allow the server to unload the chunks again.
      * Also, if chunk packets are sent delayed, we need to do that here
      */
-/*
     private void postProcessChunks(Set<ChunkCoordIntPair> coords) {
         boolean delay = Settings.IMP.LIGHTING.DELAY_PACKET_SENDING;
         for (ChunkCoordIntPair pos : coords) {
-            int x = pos.x;
-            int z = pos.z;
+            int x = pos.b;
+            int z = pos.c;
             if (delay) { // we still need to send the block changes of that chunk
-                BukkitAdapter_1_16_5.sendChunk(world, x, z, false);
+                BukkitAdapter_1_17.sendChunk(world, x, z, false);
             }
-            world.getChunkProvider().removeTicketAtLevel(FAWE_TICKET, pos, LIGHT_LEVEL, Unit.INSTANCE);
+            world.getChunkProvider().removeTicketAtLevel(FAWE_TICKET, pos, LIGHT_LEVEL, Unit.a);
         }
     }
 
@@ -233,4 +230,3 @@ public class TuinityRelighter_1_17 implements Relighter {
         fixLightingSafe(true);
     }
 }
-*/

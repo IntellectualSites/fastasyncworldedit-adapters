@@ -21,8 +21,10 @@ package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
 import com.fastasyncworldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.fastasyncworldedit.bukkit.adapter.IDelegateBukkitImplAdapter;
+import com.fastasyncworldedit.bukkit.adapter.NMSRelighterFactory;
 import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.beta.IChunkGet;
+import com.fastasyncworldedit.core.beta.implementation.lighting.RelighterFactory;
 import com.fastasyncworldedit.core.beta.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
 import com.sk89q.jnbt.CompoundTag;
@@ -447,5 +449,20 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     public int getInternalBiomeId(BiomeType biome) {
         BiomeBase base = CraftBlock.biomeToBiomeBase(MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO), BukkitAdapter.adapt(biome));
         return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO).getId(base);
+    }
+
+    @Override
+    public RelighterFactory getRelighterFactory() {
+        try {
+            Class.forName("com.tuinity.tuinity.config.TuinityConfig");
+            if (TuinityRelighter_1_17.isUsable()) {
+                return new TuinityRelighterFactory_1_17();
+            }
+        } catch (ThreadDeath td) {
+            throw td;
+        } catch (Throwable ignored) {
+
+        }
+        return new NMSRelighterFactory();
     }
 }
