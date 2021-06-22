@@ -38,7 +38,7 @@ subprojects {
     }
 
     dependencies {
-        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-1")
+        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-6")
         compileOnly("io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT")
         compileOnly("io.papermc:paperlib:1.0.6")
     }
@@ -47,8 +47,8 @@ subprojects {
 
 // Paper 1.16 and below has a different classpath
 mapOf(
-    "spigot_v1_15_R2" to "1_15_r1",
-    "spigot_v1_16_R3" to "1_16_r3"
+        "spigot_v1_15_R2" to "1_15_r1",
+        "spigot_v1_16_R3" to "1_16_r3"
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
         dependencies.compileOnly("com.destroystokyo.paperv$dep:paperv$dep:$dep")
