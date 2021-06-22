@@ -186,9 +186,8 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         ChunkCoordIntPair chunkCoordIntPair = new ChunkCoordIntPair(chunkX, chunkZ);
         // UNLOADED_CHUNK
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.c)).left();
-        Chunk chunk = optional/*.orElseGet(() ->
-                nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ));*/
-                .orElse(null); // TODO make use of paper but keep spigot compat
+        Chunk chunk = optional.orElseGet(() ->
+                nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ));
         if (chunk == null)  {
             return;
         }

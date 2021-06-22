@@ -22,6 +22,7 @@ import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
+import com.sk89q.worldedit.bukkit.paperlib.PaperLib;
 import com.sk89q.worldedit.internal.Constants;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -148,8 +149,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     public void setHeightmapToGet(HeightMapType type, int[] data) {
         BitArrayUnstretched bitArray = new BitArrayUnstretched(9, 256);
         bitArray.fromRaw(data);
-        // TODO set raw bits to DataBits
-        // getChunk().j.get(HeightMap.Type.valueOf(type.name())).a(bitArray.getData());
+        HeightMap.Type nativeType = HeightMap.Type.valueOf(type.name());
+        HeightMap heightMap = getChunk().j.get(nativeType);
+        heightMap.a(getChunk(), nativeType, bitArray.getData());
     }
 
     public int getChunkZ() {
@@ -180,10 +182,10 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         if (nibble != null) {
             lightUpdate = true;
             synchronized (nibble) {
-                byte[] bytes = /* TODO Paper PaperLib.isPaper() ? nibble.getIfSet() :*/ nibble.asBytes();
-                // TODO PAPER if (!PaperLib.isPaper() || bytes != NibbleArray.EMPTY_NIBBLE) {
+                byte[] bytes = PaperLib.isPaper() ? nibble.getIfSet() : nibble.asBytes();
+                if (!PaperLib.isPaper() || bytes != NibbleArray.EMPTY_NIBBLE) {
                     Arrays.fill(bytes, (byte) 0);
-                // TODO PAPER }
+                }
             }
         }
         if (sky) {
@@ -192,10 +194,10 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             if (nibbleSky != null) {
                 lightUpdate = true;
                 synchronized (nibbleSky) {
-                    byte[] bytes = /* TODO Paper PaperLib.isPaper() ? nibbleSky.getIfSet() :*/ nibbleSky.asBytes();
-                    // TODO Paper if (!PaperLib.isPaper() || bytes != NibbleArray.EMPTY_NIBBLE) {
+                    byte[] bytes = PaperLib.isPaper() ? nibbleSky.getIfSet() : nibbleSky.asBytes();
+                    if (!PaperLib.isPaper() || bytes != NibbleArray.EMPTY_NIBBLE) {
                         Arrays.fill(bytes, (byte) 0);
-                    // TODO Paper }
+                    }
                 }
             }
         }

@@ -103,7 +103,7 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
 
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
-    private final BukkitImplAdapter<NBTBase> parent; // TODO
+    private final BukkitImplAdapter<NBTBase> parent;
     private char[] ibdToStateOrdinal;
     private int[] ordinalToIbdID;
 
