@@ -970,5 +970,10 @@ public final class Spigot_v1_17_R1 implements BukkitImplAdapter {
         @Override
         public void b() {
         }
+
+        // TODO Paper only? @Override
+        public void setChunkRadius(int i) {
+
+        }
     }
 }
