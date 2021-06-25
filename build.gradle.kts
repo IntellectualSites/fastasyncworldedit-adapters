@@ -38,7 +38,7 @@ subprojects {
     }
 
     dependencies {
-        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-6")
+        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-12")
         compileOnly("io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT")
         compileOnly("io.papermc:paperlib:1.0.6")
     }

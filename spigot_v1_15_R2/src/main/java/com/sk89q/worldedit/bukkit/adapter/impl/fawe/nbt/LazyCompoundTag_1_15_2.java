@@ -1,6 +1,7 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt;
 
 import com.sk89q.jnbt.CompoundTag;
+import com.sk89q.jnbt.LazyCompoundTag;
 import com.sk89q.jnbt.ListTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class LazyCompoundTag_1_15_2 extends CompoundTag {
+public class LazyCompoundTag_1_15_2 extends LazyCompoundTag {
 
     private final Supplier<NBTTagCompound> nmsTag;
     private CompoundTag cachedValue;
