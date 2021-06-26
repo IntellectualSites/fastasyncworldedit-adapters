@@ -85,21 +85,21 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
     }
 
     private CompoundBinaryTag fixChunk(CompoundBinaryTag originalChunk, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(originalChunk);
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(originalChunk);
         NBTTagCompound fixed = convert(LegacyType.CHUNK, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
     private CompoundBinaryTag fixBlockEntity(CompoundBinaryTag origTileEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origTileEnt);
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origTileEnt);
         NBTTagCompound fixed = convert(LegacyType.BLOCK_ENTITY, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
     private CompoundBinaryTag fixEntity(CompoundBinaryTag origEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origEnt);
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origEnt);
         NBTTagCompound fixed = convert(LegacyType.ENTITY, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
     private String fixBlockState(String blockState, int srcVer) {

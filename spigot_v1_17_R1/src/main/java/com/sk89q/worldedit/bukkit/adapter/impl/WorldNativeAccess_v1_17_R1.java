@@ -94,7 +94,7 @@ public class WorldNativeAccess_v1_17_R1 implements WorldNativeAccess<Chunk, IBlo
         if (tileEntity == null) {
             return false;
         }
-        NBTBase nativeTag = adapter.fromNative(tag);
+        NBTBase nativeTag = adapter.fromNativeBinary(tag);
         Spigot_v1_17_R1.readTagIntoTileEntity((NBTTagCompound) nativeTag, tileEntity);
         return true;
     }

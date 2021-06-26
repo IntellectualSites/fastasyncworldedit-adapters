@@ -6,6 +6,7 @@ import com.sk89q.jnbt.ListTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import net.minecraft.server.v1_16_R3.NBTBase;
 import net.minecraft.server.v1_16_R3.NBTNumber;
 import net.minecraft.server.v1_16_R3.NBTTagCompound;
@@ -42,6 +43,12 @@ public class LazyCompoundTag_1_16_5 extends LazyCompoundTag {
             cachedValue = (CompoundTag) WorldEditPlugin.getInstance().getBukkitImplAdapter().toNative(nmsTag.get());
         }
         return cachedValue.getValue();
+    }
+
+    @Override
+    public CompoundBinaryTag asBinaryTag() {
+        getValue();
+        return cachedValue.asBinaryTag();
     }
 
     public boolean containsKey(String key) {
