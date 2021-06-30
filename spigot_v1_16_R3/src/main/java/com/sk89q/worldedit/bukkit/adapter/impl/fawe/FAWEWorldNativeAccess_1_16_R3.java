@@ -11,6 +11,7 @@ import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
 import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import com.sk89q.worldedit.world.block.BlockState;
+import com.sk89q.worldedit.world.storage.ChunkStore;
 import net.minecraft.server.v1_16_R3.Block;
 import net.minecraft.server.v1_16_R3.BlockPosition;
 import net.minecraft.server.v1_16_R3.Chunk;
@@ -131,8 +132,10 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
     }
 
     @Override
-    public void notifyBlockUpdate(BlockPosition position, IBlockData oldState, IBlockData newState) {
-        getWorld().notify(position, oldState, newState, UPDATE | NOTIFY);
+    public void notifyBlockUpdate(Chunk chunk, BlockPosition position, IBlockData oldState, IBlockData newState) {
+        if (chunk.getSections()[position.getY() >> ChunkStore.CHUNK_SHIFTS] != null) {
+            getWorld().notify(position, oldState, newState, UPDATE | NOTIFY);
+        }
     }
 
     @Override
@@ -141,8 +144,10 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
     }
 
     @Override
-    public void markBlockChanged(BlockPosition position) {
-        ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
+    public void markBlockChanged(Chunk chunk, BlockPosition position) {
+        if (chunk.getSections()[position.getY() >> ChunkStore.CHUNK_SHIFTS] != null) {
+            ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
+        }
     }
 
     private static final EnumDirection[] NEIGHBOUR_ORDER = {
