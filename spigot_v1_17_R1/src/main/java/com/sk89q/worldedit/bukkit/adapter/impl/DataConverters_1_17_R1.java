@@ -13,25 +13,25 @@ import com.google.gson.JsonParseException;
 import com.mojang.datafixers.DSL.TypeReference;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.DataFixerBuilder;
-import com.mojang.datafixers.Dynamic;
 import com.mojang.datafixers.schemas.Schema;
+import com.mojang.serialization.Dynamic;
 import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
-import net.minecraft.server.v1_15_R1.ChatComponentText;
-import net.minecraft.server.v1_15_R1.ChatDeserializer;
-import net.minecraft.server.v1_15_R1.DataConverterRegistry;
-import net.minecraft.server.v1_15_R1.DataConverterTypes;
-import net.minecraft.server.v1_15_R1.DataFixTypes;
-import net.minecraft.server.v1_15_R1.DynamicOpsNBT;
-import net.minecraft.server.v1_15_R1.EnumColor;
-import net.minecraft.server.v1_15_R1.EnumDirection;
-import net.minecraft.server.v1_15_R1.IChatBaseComponent;
-import net.minecraft.server.v1_15_R1.MinecraftKey;
-import net.minecraft.server.v1_15_R1.NBTBase;
-import net.minecraft.server.v1_15_R1.NBTTagCompound;
-import net.minecraft.server.v1_15_R1.NBTTagFloat;
-import net.minecraft.server.v1_15_R1.NBTTagList;
-import net.minecraft.server.v1_15_R1.NBTTagString;
-import net.minecraft.server.v1_15_R1.UtilColor;
+import net.minecraft.core.EnumDirection;
+import net.minecraft.nbt.DynamicOpsNBT;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagFloat;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
+import net.minecraft.network.chat.ChatComponentText;
+import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.network.chat.IChatMutableComponent;
+import net.minecraft.resources.MinecraftKey;
+import net.minecraft.util.ChatDeserializer;
+import net.minecraft.util.UtilColor;
+import net.minecraft.util.datafix.DataConverterRegistry;
+import net.minecraft.util.datafix.fixes.DataConverterTypes;
+import net.minecraft.world.item.EnumColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,13 +62,13 @@ import java.util.stream.Collectors;
  * receive the source version in the compound
  */
 @SuppressWarnings("UnnecessarilyQualifiedStaticUsage")
-class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.worldedit.world.DataFixer {
+class DataConverters_1_17_R1 extends DataFixerBuilder implements com.sk89q.worldedit.world.DataFixer {
 
     private static final DynamicOpsNBT OPS_NBT = DynamicOpsNBT.a;
     private static final int LEGACY_VERSION = 1343;
     private static final Map<String, LegacyType> DFU_TO_LEGACY = new HashMap<>();
     private static final Map<String, MinecraftKey> OLD_ID_TO_KEY_MAP = new HashMap<>();
-    static DataConverters_1_15_R2 INSTANCE;
+    static DataConverters_1_17_R1 INSTANCE;
     private static int DATA_VERSION;
 
     static {
@@ -183,13 +183,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         map.put("TileEntityBed", new MinecraftKey("bed"));
     }
 
-    private final Spigot_v1_15_R2 adapter;
+    private final Spigot_v1_17_R1 adapter;
     private final Map<LegacyType, List<DataConverter>> converters = new EnumMap<>(LegacyType.class);
     private final Map<LegacyType, List<DataInspector>> inspectors = new EnumMap<>(LegacyType.class);
     // Set on build
     private DataFixer fixer;
 
-    DataConverters_1_15_R2(int dataVersion, Spigot_v1_15_R2 adapter) {
+    DataConverters_1_17_R1(int dataVersion, Spigot_v1_17_R1 adapter) {
         super(dataVersion);
         DATA_VERSION = dataVersion;
         INSTANCE = this;
@@ -319,7 +319,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     private String fixBlockState(String blockState, int srcVer) {
         NBTTagCompound stateNBT = stateToNBT(blockState);
         Dynamic<NBTBase> dynamic = new Dynamic<>(OPS_NBT, stateNBT);
-        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(DataConverterTypes.BLOCK_STATE, dynamic, srcVer, DATA_VERSION).getValue();
+        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(DataConverterTypes.n, dynamic, srcVer, DATA_VERSION).getValue();
         return nbtToState(fixed);
     }
 
@@ -336,11 +336,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     }
 
     private String fixBiome(String key, int srcVer) {
-        return fixName(key, srcVer, DataConverterTypes.BIOME);
+        return fixName(key, srcVer, DataConverterTypes.y);
     }
 
     private String fixItemType(String key, int srcVer) {
-        return fixName(key, srcVer, DataConverterTypes.ITEM_NAME);
+        return fixName(key, srcVer, DataConverterTypes.s);
     }
 
     // Called after fixers are built and ready for FIXING
@@ -502,14 +502,14 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     }
 
     public enum LegacyType {
-        LEVEL(DataFixTypes.LEVEL.a()),
-        PLAYER(DataFixTypes.PLAYER.a()),
-        CHUNK(DataFixTypes.CHUNK.a()),
-        BLOCK_ENTITY(DataConverterTypes.BLOCK_ENTITY),
-        ENTITY(DataConverterTypes.ENTITY),
-        ITEM_INSTANCE(DataConverterTypes.ITEM_STACK),
-        OPTIONS(DataFixTypes.OPTIONS.a()),
-        STRUCTURE(DataFixTypes.STRUCTURE.a());
+        LEVEL(DataConverterTypes.a),
+        PLAYER(DataConverterTypes.b),
+        CHUNK(DataConverterTypes.c),
+        BLOCK_ENTITY(DataConverterTypes.l),
+        ENTITY(DataConverterTypes.q),
+        ITEM_INSTANCE(DataConverterTypes.m),
+        OPTIONS(DataConverterTypes.e),
+        STRUCTURE(DataConverterTypes.f);
 
         private final TypeReference type;
 
@@ -735,7 +735,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataInspectorEntity implements DataInspector {
 
-        private static final Logger a = LogManager.getLogger(DataConverters_1_15_R2.class);
+        private static final Logger a = LogManager.getLogger(DataConverters_1_17_R1.class);
 
         DataInspectorEntity() {
         }
@@ -808,7 +808,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         NBTTagCompound inspectChecked(NBTTagCompound nbttagcompound, int sourceVer, int targetVer) {
             for (String s : this.keys) {
-                DataConverters_1_15_R2.convertItems(nbttagcompound, s, sourceVer, targetVer);
+                DataConverters_1_17_R1.convertItems(nbttagcompound, s, sourceVer, targetVer);
             }
 
             return nbttagcompound;
@@ -826,7 +826,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         NBTTagCompound inspectChecked(NBTTagCompound nbttagcompound, int sourceVer, int targetVer) {
             for (String key : this.keys) {
-                DataConverters_1_15_R2.convertItem(nbttagcompound, key, sourceVer, targetVer);
+                DataConverters_1_17_R1.convertItem(nbttagcompound, key, sourceVer, targetVer);
             }
 
             return nbttagcompound;
@@ -2350,7 +2350,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterBedBlock implements DataConverter {
 
-        private static final Logger a = LogManager.getLogger(DataConverters_1_15_R2.class);
+        private static final Logger a = LogManager.getLogger(DataConverters_1_17_R1.class);
 
         DataConverterBedBlock() {
         }
@@ -2408,7 +2408,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         public NBTTagCompound convert(NBTTagCompound cmp) {
             if ("minecraft:bed".equals(cmp.getString("id")) && cmp.getShort("Damage") == 0) {
-                cmp.setShort("Damage", (short) EnumColor.RED.getColorIndex());
+                cmp.setShort("Damage", (short) EnumColor.o.getColorIndex());
             }
 
             return cmp;
@@ -2418,15 +2418,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     private static class DataConverterSignText implements DataConverter {
 
         public static final Gson a = new GsonBuilder().registerTypeAdapter(IChatBaseComponent.class, new JsonDeserializer() {
-            IChatBaseComponent a(JsonElement jsonelement, Type type, JsonDeserializationContext jsondeserializationcontext) throws JsonParseException {
+            IChatMutableComponent a(JsonElement jsonelement, Type type, JsonDeserializationContext jsondeserializationcontext) throws JsonParseException {
                 if (jsonelement.isJsonPrimitive()) {
                     return new ChatComponentText(jsonelement.getAsString());
                 } else if (jsonelement.isJsonArray()) {
                     JsonArray jsonarray = jsonelement.getAsJsonArray();
-                    IChatBaseComponent ichatbasecomponent = null;
+                    IChatMutableComponent ichatbasecomponent = null;
 
                     for (JsonElement jsonelement1 : jsonarray) {
-                        IChatBaseComponent ichatbasecomponent1 = this.a(jsonelement1, jsonelement1.getClass(), jsondeserializationcontext);
+                        IChatMutableComponent ichatbasecomponent1 = this.a(jsonelement1, jsonelement1.getClass(), jsondeserializationcontext);
 
                         if (ichatbasecomponent == null) {
                             ichatbasecomponent = ichatbasecomponent1;
@@ -2729,7 +2729,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         }
 
         private NBTTagCompound convert(LegacyType type, NBTTagCompound cmp, int sourceVer, int desiredVersion) {
-            List<DataConverter> converters = DataConverters_1_15_R2.this.converters.get(type);
+            List<DataConverter> converters = DataConverters_1_17_R1.this.converters.get(type);
             if (converters != null && !converters.isEmpty()) {
                 for (DataConverter converter : converters) {
                     int dataVersion = converter.getDataVersion();
@@ -2739,7 +2739,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                 }
             }
 
-            List<DataInspector> inspectors = DataConverters_1_15_R2.this.inspectors.get(type);
+            List<DataInspector> inspectors = DataConverters_1_17_R1.this.inspectors.get(type);
             if (inspectors != null && !inspectors.isEmpty()) {
                 for (DataInspector inspector : inspectors) {
                     cmp = inspector.inspect(cmp, sourceVer, desiredVersion);

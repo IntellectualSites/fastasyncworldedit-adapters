@@ -35,6 +35,7 @@ import net.minecraft.server.v1_16_R3.UtilColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -48,77 +49,153 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 /**
  * Handles converting all Pre 1.13.2 data using the Legacy DataFix System (ported to 1.13.2)
- *
+ * <p>
  * We register a DFU Fixer per Legacy Data Version and apply the fixes using legacy strategy
  * which is safer, faster and cleaner code.
- *
+ * <p>
  * The pre DFU code did not fail when the Source version was unknown.
- *
+ * <p>
  * This class also provides util methods for converting compounds to wrap the update call to
  * receive the source version in the compound
- *
  */
 @SuppressWarnings("UnnecessarilyQualifiedStaticUsage")
 class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.worldedit.world.DataFixer {
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T fixUp(FixType<T> type, T original, int srcVer) {
-        if (type == FixTypes.CHUNK) {
-            return (T) fixChunk((CompoundBinaryTag) original, srcVer);
-        } else if (type == FixTypes.BLOCK_ENTITY) {
-            return (T) fixBlockEntity((CompoundBinaryTag) original, srcVer);
-        } else if (type == FixTypes.ENTITY) {
-            return (T) fixEntity((CompoundBinaryTag) original, srcVer);
-        } else if (type == FixTypes.BLOCK_STATE) {
-            return (T) fixBlockState((String) original, srcVer);
-        } else if (type == FixTypes.ITEM_TYPE) {
-            return (T) fixItemType((String) original, srcVer);
-        } else if (type == FixTypes.BIOME) {
-            return (T) fixBiome((String) original, srcVer);
-        }
-        return original;
+    private static final DynamicOpsNBT OPS_NBT = DynamicOpsNBT.a;
+    private static final int LEGACY_VERSION = 1343;
+    private static final Map<String, LegacyType> DFU_TO_LEGACY = new HashMap<>();
+    private static final Map<String, MinecraftKey> OLD_ID_TO_KEY_MAP = new HashMap<>();
+    static DataConverters_1_16_R3 INSTANCE;
+    private static int DATA_VERSION;
+
+    static {
+        final Map<String, MinecraftKey> map = OLD_ID_TO_KEY_MAP;
+        map.put("EntityItem", new MinecraftKey("item"));
+        map.put("EntityExperienceOrb", new MinecraftKey("xp_orb"));
+        map.put("EntityAreaEffectCloud", new MinecraftKey("area_effect_cloud"));
+        map.put("EntityGuardianElder", new MinecraftKey("elder_guardian"));
+        map.put("EntitySkeletonWither", new MinecraftKey("wither_skeleton"));
+        map.put("EntitySkeletonStray", new MinecraftKey("stray"));
+        map.put("EntityEgg", new MinecraftKey("egg"));
+        map.put("EntityLeash", new MinecraftKey("leash_knot"));
+        map.put("EntityPainting", new MinecraftKey("painting"));
+        map.put("EntityTippedArrow", new MinecraftKey("arrow"));
+        map.put("EntitySnowball", new MinecraftKey("snowball"));
+        map.put("EntityLargeFireball", new MinecraftKey("fireball"));
+        map.put("EntitySmallFireball", new MinecraftKey("small_fireball"));
+        map.put("EntityEnderPearl", new MinecraftKey("ender_pearl"));
+        map.put("EntityEnderSignal", new MinecraftKey("eye_of_ender_signal"));
+        map.put("EntityPotion", new MinecraftKey("potion"));
+        map.put("EntityThrownExpBottle", new MinecraftKey("xp_bottle"));
+        map.put("EntityItemFrame", new MinecraftKey("item_frame"));
+        map.put("EntityWitherSkull", new MinecraftKey("wither_skull"));
+        map.put("EntityTNTPrimed", new MinecraftKey("tnt"));
+        map.put("EntityFallingBlock", new MinecraftKey("falling_block"));
+        map.put("EntityFireworks", new MinecraftKey("fireworks_rocket"));
+        map.put("EntityZombieHusk", new MinecraftKey("husk"));
+        map.put("EntitySpectralArrow", new MinecraftKey("spectral_arrow"));
+        map.put("EntityShulkerBullet", new MinecraftKey("shulker_bullet"));
+        map.put("EntityDragonFireball", new MinecraftKey("dragon_fireball"));
+        map.put("EntityZombieVillager", new MinecraftKey("zombie_villager"));
+        map.put("EntityHorseSkeleton", new MinecraftKey("skeleton_horse"));
+        map.put("EntityHorseZombie", new MinecraftKey("zombie_horse"));
+        map.put("EntityArmorStand", new MinecraftKey("armor_stand"));
+        map.put("EntityHorseDonkey", new MinecraftKey("donkey"));
+        map.put("EntityHorseMule", new MinecraftKey("mule"));
+        map.put("EntityEvokerFangs", new MinecraftKey("evocation_fangs"));
+        map.put("EntityEvoker", new MinecraftKey("evocation_illager"));
+        map.put("EntityVex", new MinecraftKey("vex"));
+        map.put("EntityVindicator", new MinecraftKey("vindication_illager"));
+        map.put("EntityIllagerIllusioner", new MinecraftKey("illusion_illager"));
+        map.put("EntityMinecartCommandBlock", new MinecraftKey("commandblock_minecart"));
+        map.put("EntityBoat", new MinecraftKey("boat"));
+        map.put("EntityMinecartRideable", new MinecraftKey("minecart"));
+        map.put("EntityMinecartChest", new MinecraftKey("chest_minecart"));
+        map.put("EntityMinecartFurnace", new MinecraftKey("furnace_minecart"));
+        map.put("EntityMinecartTNT", new MinecraftKey("tnt_minecart"));
+        map.put("EntityMinecartHopper", new MinecraftKey("hopper_minecart"));
+        map.put("EntityMinecartMobSpawner", new MinecraftKey("spawner_minecart"));
+        map.put("EntityCreeper", new MinecraftKey("creeper"));
+        map.put("EntitySkeleton", new MinecraftKey("skeleton"));
+        map.put("EntitySpider", new MinecraftKey("spider"));
+        map.put("EntityGiantZombie", new MinecraftKey("giant"));
+        map.put("EntityZombie", new MinecraftKey("zombie"));
+        map.put("EntitySlime", new MinecraftKey("slime"));
+        map.put("EntityGhast", new MinecraftKey("ghast"));
+        map.put("EntityPigZombie", new MinecraftKey("zombie_pigman"));
+        map.put("EntityEnderman", new MinecraftKey("enderman"));
+        map.put("EntityCaveSpider", new MinecraftKey("cave_spider"));
+        map.put("EntitySilverfish", new MinecraftKey("silverfish"));
+        map.put("EntityBlaze", new MinecraftKey("blaze"));
+        map.put("EntityMagmaCube", new MinecraftKey("magma_cube"));
+        map.put("EntityEnderDragon", new MinecraftKey("ender_dragon"));
+        map.put("EntityWither", new MinecraftKey("wither"));
+        map.put("EntityBat", new MinecraftKey("bat"));
+        map.put("EntityWitch", new MinecraftKey("witch"));
+        map.put("EntityEndermite", new MinecraftKey("endermite"));
+        map.put("EntityGuardian", new MinecraftKey("guardian"));
+        map.put("EntityShulker", new MinecraftKey("shulker"));
+        map.put("EntityPig", new MinecraftKey("pig"));
+        map.put("EntitySheep", new MinecraftKey("sheep"));
+        map.put("EntityCow", new MinecraftKey("cow"));
+        map.put("EntityChicken", new MinecraftKey("chicken"));
+        map.put("EntitySquid", new MinecraftKey("squid"));
+        map.put("EntityWolf", new MinecraftKey("wolf"));
+        map.put("EntityMushroomCow", new MinecraftKey("mooshroom"));
+        map.put("EntitySnowman", new MinecraftKey("snowman"));
+        map.put("EntityOcelot", new MinecraftKey("ocelot"));
+        map.put("EntityIronGolem", new MinecraftKey("villager_golem"));
+        map.put("EntityHorse", new MinecraftKey("horse"));
+        map.put("EntityRabbit", new MinecraftKey("rabbit"));
+        map.put("EntityPolarBear", new MinecraftKey("polar_bear"));
+        map.put("EntityLlama", new MinecraftKey("llama"));
+        map.put("EntityLlamaSpit", new MinecraftKey("llama_spit"));
+        map.put("EntityParrot", new MinecraftKey("parrot"));
+        map.put("EntityVillager", new MinecraftKey("villager"));
+        map.put("EntityEnderCrystal", new MinecraftKey("ender_crystal"));
+        map.put("TileEntityFurnace", new MinecraftKey("furnace"));
+        map.put("TileEntityChest", new MinecraftKey("chest"));
+        map.put("TileEntityEnderChest", new MinecraftKey("ender_chest"));
+        map.put("TileEntityRecordPlayer", new MinecraftKey("jukebox"));
+        map.put("TileEntityDispenser", new MinecraftKey("dispenser"));
+        map.put("TileEntityDropper", new MinecraftKey("dropper"));
+        map.put("TileEntitySign", new MinecraftKey("sign"));
+        map.put("TileEntityMobSpawner", new MinecraftKey("mob_spawner"));
+        map.put("TileEntityNote", new MinecraftKey("noteblock"));
+        map.put("TileEntityPiston", new MinecraftKey("piston"));
+        map.put("TileEntityBrewingStand", new MinecraftKey("brewing_stand"));
+        map.put("TileEntityEnchantTable", new MinecraftKey("enchanting_table"));
+        map.put("TileEntityEnderPortal", new MinecraftKey("end_portal"));
+        map.put("TileEntityBeacon", new MinecraftKey("beacon"));
+        map.put("TileEntitySkull", new MinecraftKey("skull"));
+        map.put("TileEntityLightDetector", new MinecraftKey("daylight_detector"));
+        map.put("TileEntityHopper", new MinecraftKey("hopper"));
+        map.put("TileEntityComparator", new MinecraftKey("comparator"));
+        map.put("TileEntityFlowerPot", new MinecraftKey("flower_pot"));
+        map.put("TileEntityBanner", new MinecraftKey("banner"));
+        map.put("TileEntityStructure", new MinecraftKey("structure_block"));
+        map.put("TileEntityEndGateway", new MinecraftKey("end_gateway"));
+        map.put("TileEntityCommand", new MinecraftKey("command_block"));
+        map.put("TileEntityShulkerBox", new MinecraftKey("shulker_box"));
+        map.put("TileEntityBed", new MinecraftKey("bed"));
     }
 
-    private CompoundBinaryTag fixChunk(CompoundBinaryTag originalChunk, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(originalChunk);
-        NBTTagCompound fixed = convert(LegacyType.CHUNK, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
-    }
+    private final Spigot_v1_16_R3 adapter;
+    private final Map<LegacyType, List<DataConverter>> converters = new EnumMap<>(LegacyType.class);
+    private final Map<LegacyType, List<DataInspector>> inspectors = new EnumMap<>(LegacyType.class);
+    // Set on build
+    private DataFixer fixer;
 
-    private CompoundBinaryTag fixBlockEntity(CompoundBinaryTag origTileEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origTileEnt);
-        NBTTagCompound fixed = convert(LegacyType.BLOCK_ENTITY, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
-    }
-
-    private CompoundBinaryTag fixEntity(CompoundBinaryTag origEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origEnt);
-        NBTTagCompound fixed = convert(LegacyType.ENTITY, tag, srcVer);
-        return (CompoundBinaryTag) adapter.toNative(fixed);
-    }
-
-    private String fixBlockState(String blockState, int srcVer) {
-        NBTTagCompound stateNBT = stateToNBT(blockState);
-        Dynamic<NBTBase> dynamic = new Dynamic<>(OPS_NBT, stateNBT);
-        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(DataConverterTypes.BLOCK_STATE, dynamic, srcVer, DATA_VERSION).getValue();
-        return nbtToState(fixed);
-    }
-
-    private String nbtToState(NBTTagCompound tagCompound) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(tagCompound.getString("Name"));
-        if (tagCompound.hasKeyOfType("Properties", 10)) {
-            sb.append('[');
-            NBTTagCompound props = tagCompound.getCompound("Properties");
-            sb.append(props.getKeys().stream().map(k -> k + "=" + props.getString(k).replace("\"", "")).collect(Collectors.joining(",")));
-            sb.append(']');
-        }
-        return sb.toString();
+    DataConverters_1_16_R3(int dataVersion, Spigot_v1_16_R3 adapter) {
+        super(dataVersion);
+        DATA_VERSION = dataVersion;
+        INSTANCE = this;
+        this.adapter = adapter;
+        registerConverters();
+        registerInspectors();
     }
 
     private static NBTTagCompound stateToNBT(String blockState) {
@@ -140,117 +217,9 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
         return tag;
     }
 
-    private String fixBiome(String key, int srcVer) {
-        return fixName(key, srcVer, DataConverterTypes.BIOME);
-    }
-
-    private String fixItemType(String key, int srcVer) {
-        return fixName(key, srcVer, DataConverterTypes.ITEM_NAME);
-    }
-
     private static String fixName(String key, int srcVer, TypeReference type) {
         return INSTANCE.fixer.update(type, new Dynamic<>(OPS_NBT, NBTTagString.a(key)), srcVer, DATA_VERSION)
-            .getValue().asString();
-    }
-
-    private final Spigot_v1_16_R3 adapter;
-
-    private static final DynamicOpsNBT OPS_NBT = DynamicOpsNBT.a;
-    private static final int LEGACY_VERSION = 1343;
-    private static int DATA_VERSION;
-    static DataConverters_1_16_R3 INSTANCE;
-
-    private final Map<LegacyType, List<DataConverter>> converters = new EnumMap<>(LegacyType.class);
-    private final Map<LegacyType, List<DataInspector>> inspectors = new EnumMap<>(LegacyType.class);
-
-    // Set on build
-    private DataFixer fixer;
-    private static final Map<String, LegacyType> DFU_TO_LEGACY = new HashMap<>();
-
-    public enum LegacyType {
-        LEVEL(DataConverterTypes.LEVEL),
-        PLAYER(DataConverterTypes.PLAYER),
-        CHUNK(DataConverterTypes.CHUNK),
-        BLOCK_ENTITY(DataConverterTypes.BLOCK_ENTITY),
-        ENTITY(DataConverterTypes.ENTITY),
-        ITEM_INSTANCE(DataConverterTypes.ITEM_STACK),
-        OPTIONS(DataConverterTypes.OPTIONS),
-        STRUCTURE(DataConverterTypes.STRUCTURE);
-
-        private final TypeReference type;
-
-        LegacyType(TypeReference type) {
-            this.type = type;
-            DFU_TO_LEGACY.put(type.typeName(), this);
-        }
-
-        public TypeReference getDFUType() {
-            return type;
-        }
-    }
-
-    DataConverters_1_16_R3(int dataVersion, Spigot_v1_16_R3 adapter) {
-        super(dataVersion);
-        DATA_VERSION = dataVersion;
-        INSTANCE = this;
-        this.adapter = adapter;
-        registerConverters();
-        registerInspectors();
-    }
-
-
-    // Called after fixers are built and ready for FIXING
-    @Override
-    public DataFixer build(final Executor executor) {
-        return this.fixer = new WrappedDataFixer(DataConverterRegistry.a());
-    }
-
-    private class WrappedDataFixer implements DataFixer {
-        private final DataFixer realFixer;
-
-        WrappedDataFixer(DataFixer realFixer) {
-            this.realFixer = realFixer;
-        }
-
-        @Override
-        public <T> Dynamic<T> update(TypeReference type, Dynamic<T> dynamic, int sourceVer, int targetVer) {
-            LegacyType legacyType = DFU_TO_LEGACY.get(type.typeName());
-            if (sourceVer < LEGACY_VERSION && legacyType != null) {
-                NBTTagCompound cmp = (NBTTagCompound) dynamic.getValue();
-                int desiredVersion = Math.min(targetVer, LEGACY_VERSION);
-
-                cmp = convert(legacyType, cmp, sourceVer, desiredVersion);
-                sourceVer = desiredVersion;
-                dynamic = new Dynamic(OPS_NBT, cmp);
-            }
-            return realFixer.update(type, dynamic, sourceVer, targetVer);
-        }
-
-        private NBTTagCompound convert(LegacyType type, NBTTagCompound cmp, int sourceVer, int desiredVersion) {
-            List<DataConverter> converters = DataConverters_1_16_R3.this.converters.get(type);
-            if (converters != null && !converters.isEmpty()) {
-                for (DataConverter converter : converters) {
-                    int dataVersion = converter.getDataVersion();
-                    if (dataVersion > sourceVer && dataVersion <= desiredVersion) {
-                        cmp = converter.convert(cmp);
-                    }
-                }
-            }
-
-            List<DataInspector> inspectors = DataConverters_1_16_R3.this.inspectors.get(type);
-            if (inspectors != null && !inspectors.isEmpty()) {
-                for (DataInspector inspector : inspectors) {
-                    cmp = inspector.inspect(cmp, sourceVer, desiredVersion);
-                }
-            }
-
-            return cmp;
-        }
-
-        @Override
-        public Schema getSchema(int i) {
-            return realFixer.getSchema(i);
-        }
+                .getValue().asString();
     }
 
     public static NBTTagCompound convert(LegacyType type, NBTTagCompound cmp) {
@@ -281,18 +250,104 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
         return (NBTTagCompound) INSTANCE.fixer.update(type, new Dynamic<>(OPS_NBT, cmp), sourceVer, targetVer).getValue();
     }
 
-
-    public interface DataInspector {
-        NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer);
+    private static MinecraftKey getKey(String type) {
+        final MinecraftKey key = OLD_ID_TO_KEY_MAP.get(type);
+        if (key == null) {
+            throw new IllegalArgumentException("Unknown mapping for " + type);
+        }
+        return key;
     }
 
-    public interface DataConverter {
-
-        int getDataVersion();
-
-        NBTTagCompound convert(NBTTagCompound cmp);
+    private static void convertCompound(LegacyType type, NBTTagCompound cmp, String key, int sourceVer, int targetVer) {
+        cmp.set(key, convert(type, cmp.getCompound(key), sourceVer, targetVer));
     }
 
+    private static void convertItem(NBTTagCompound nbttagcompound, String key, int sourceVer, int targetVer) {
+        if (nbttagcompound.hasKeyOfType(key, 10)) {
+            convertCompound(LegacyType.ITEM_INSTANCE, nbttagcompound, key, sourceVer, targetVer);
+        }
+    }
+
+    private static void convertItems(NBTTagCompound nbttagcompound, String key, int sourceVer, int targetVer) {
+        if (nbttagcompound.hasKeyOfType(key, 9)) {
+            NBTTagList nbttaglist = nbttagcompound.getList(key, 10);
+
+            for (int j = 0; j < nbttaglist.size(); ++j) {
+                nbttaglist.set(j, convert(LegacyType.ITEM_INSTANCE, nbttaglist.getCompound(j), sourceVer, targetVer));
+            }
+        }
+
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T fixUp(FixType<T> type, T original, int srcVer) {
+        if (type == FixTypes.CHUNK) {
+            return (T) fixChunk((CompoundBinaryTag) original, srcVer);
+        } else if (type == FixTypes.BLOCK_ENTITY) {
+            return (T) fixBlockEntity((CompoundBinaryTag) original, srcVer);
+        } else if (type == FixTypes.ENTITY) {
+            return (T) fixEntity((CompoundBinaryTag) original, srcVer);
+        } else if (type == FixTypes.BLOCK_STATE) {
+            return (T) fixBlockState((String) original, srcVer);
+        } else if (type == FixTypes.ITEM_TYPE) {
+            return (T) fixItemType((String) original, srcVer);
+        } else if (type == FixTypes.BIOME) {
+            return (T) fixBiome((String) original, srcVer);
+        }
+        return original;
+    }
+
+    private CompoundBinaryTag fixChunk(CompoundBinaryTag originalChunk, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(originalChunk);
+        NBTTagCompound fixed = convert(LegacyType.CHUNK, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
+    }
+
+    private CompoundBinaryTag fixBlockEntity(CompoundBinaryTag origTileEnt, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origTileEnt);
+        NBTTagCompound fixed = convert(LegacyType.BLOCK_ENTITY, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
+    }
+
+    private CompoundBinaryTag fixEntity(CompoundBinaryTag origEnt, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origEnt);
+        NBTTagCompound fixed = convert(LegacyType.ENTITY, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
+    }
+
+    private String fixBlockState(String blockState, int srcVer) {
+        NBTTagCompound stateNBT = stateToNBT(blockState);
+        Dynamic<NBTBase> dynamic = new Dynamic<>(OPS_NBT, stateNBT);
+        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(DataConverterTypes.BLOCK_STATE, dynamic, srcVer, DATA_VERSION).getValue();
+        return nbtToState(fixed);
+    }
+
+    private String nbtToState(NBTTagCompound tagCompound) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(tagCompound.getString("Name"));
+        if (tagCompound.hasKeyOfType("Properties", 10)) {
+            sb.append('[');
+            NBTTagCompound props = tagCompound.getCompound("Properties");
+            sb.append(props.getKeys().stream().map(k -> k + "=" + props.getString(k).replace("\"", "")).collect(Collectors.joining(",")));
+            sb.append(']');
+        }
+        return sb.toString();
+    }
+
+    private String fixBiome(String key, int srcVer) {
+        return fixName(key, srcVer, DataConverterTypes.BIOME);
+    }
+
+    private String fixItemType(String key, int srcVer) {
+        return fixName(key, srcVer, DataConverterTypes.ITEM_NAME);
+    }
+
+    // Called after fixers are built and ready for FIXING
+    @Override
+    public DataFixer build(final Executor executor) {
+        return this.fixer = new WrappedDataFixer(DataConverterRegistry.a());
+    }
 
     private void registerInspector(LegacyType type, DataInspector inspector) {
         this.inspectors.computeIfAbsent(type, k -> new ArrayList<>()).add(inspector);
@@ -445,152 +500,44 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
     private void registerEntityItemListEquipment(String type) {
         registerEntityItemList(type, "ArmorItems", "HandItems");
     }
-    private static final Map<String, MinecraftKey> OLD_ID_TO_KEY_MAP = new HashMap<>();
 
-    static {
-        final Map<String, MinecraftKey> map = OLD_ID_TO_KEY_MAP;
-        map.put("EntityItem", new MinecraftKey("item"));
-        map.put("EntityExperienceOrb", new MinecraftKey("xp_orb"));
-        map.put("EntityAreaEffectCloud", new MinecraftKey("area_effect_cloud"));
-        map.put("EntityGuardianElder", new MinecraftKey("elder_guardian"));
-        map.put("EntitySkeletonWither", new MinecraftKey("wither_skeleton"));
-        map.put("EntitySkeletonStray", new MinecraftKey("stray"));
-        map.put("EntityEgg", new MinecraftKey("egg"));
-        map.put("EntityLeash", new MinecraftKey("leash_knot"));
-        map.put("EntityPainting", new MinecraftKey("painting"));
-        map.put("EntityTippedArrow", new MinecraftKey("arrow"));
-        map.put("EntitySnowball", new MinecraftKey("snowball"));
-        map.put("EntityLargeFireball", new MinecraftKey("fireball"));
-        map.put("EntitySmallFireball", new MinecraftKey("small_fireball"));
-        map.put("EntityEnderPearl", new MinecraftKey("ender_pearl"));
-        map.put("EntityEnderSignal", new MinecraftKey("eye_of_ender_signal"));
-        map.put("EntityPotion", new MinecraftKey("potion"));
-        map.put("EntityThrownExpBottle", new MinecraftKey("xp_bottle"));
-        map.put("EntityItemFrame", new MinecraftKey("item_frame"));
-        map.put("EntityWitherSkull", new MinecraftKey("wither_skull"));
-        map.put("EntityTNTPrimed", new MinecraftKey("tnt"));
-        map.put("EntityFallingBlock", new MinecraftKey("falling_block"));
-        map.put("EntityFireworks", new MinecraftKey("fireworks_rocket"));
-        map.put("EntityZombieHusk", new MinecraftKey("husk"));
-        map.put("EntitySpectralArrow", new MinecraftKey("spectral_arrow"));
-        map.put("EntityShulkerBullet", new MinecraftKey("shulker_bullet"));
-        map.put("EntityDragonFireball", new MinecraftKey("dragon_fireball"));
-        map.put("EntityZombieVillager", new MinecraftKey("zombie_villager"));
-        map.put("EntityHorseSkeleton", new MinecraftKey("skeleton_horse"));
-        map.put("EntityHorseZombie", new MinecraftKey("zombie_horse"));
-        map.put("EntityArmorStand", new MinecraftKey("armor_stand"));
-        map.put("EntityHorseDonkey", new MinecraftKey("donkey"));
-        map.put("EntityHorseMule", new MinecraftKey("mule"));
-        map.put("EntityEvokerFangs", new MinecraftKey("evocation_fangs"));
-        map.put("EntityEvoker", new MinecraftKey("evocation_illager"));
-        map.put("EntityVex", new MinecraftKey("vex"));
-        map.put("EntityVindicator", new MinecraftKey("vindication_illager"));
-        map.put("EntityIllagerIllusioner", new MinecraftKey("illusion_illager"));
-        map.put("EntityMinecartCommandBlock", new MinecraftKey("commandblock_minecart"));
-        map.put("EntityBoat", new MinecraftKey("boat"));
-        map.put("EntityMinecartRideable", new MinecraftKey("minecart"));
-        map.put("EntityMinecartChest", new MinecraftKey("chest_minecart"));
-        map.put("EntityMinecartFurnace", new MinecraftKey("furnace_minecart"));
-        map.put("EntityMinecartTNT", new MinecraftKey("tnt_minecart"));
-        map.put("EntityMinecartHopper", new MinecraftKey("hopper_minecart"));
-        map.put("EntityMinecartMobSpawner", new MinecraftKey("spawner_minecart"));
-        map.put("EntityCreeper", new MinecraftKey("creeper"));
-        map.put("EntitySkeleton", new MinecraftKey("skeleton"));
-        map.put("EntitySpider", new MinecraftKey("spider"));
-        map.put("EntityGiantZombie", new MinecraftKey("giant"));
-        map.put("EntityZombie", new MinecraftKey("zombie"));
-        map.put("EntitySlime", new MinecraftKey("slime"));
-        map.put("EntityGhast", new MinecraftKey("ghast"));
-        map.put("EntityPigZombie", new MinecraftKey("zombie_pigman"));
-        map.put("EntityEnderman", new MinecraftKey("enderman"));
-        map.put("EntityCaveSpider", new MinecraftKey("cave_spider"));
-        map.put("EntitySilverfish", new MinecraftKey("silverfish"));
-        map.put("EntityBlaze", new MinecraftKey("blaze"));
-        map.put("EntityMagmaCube", new MinecraftKey("magma_cube"));
-        map.put("EntityEnderDragon", new MinecraftKey("ender_dragon"));
-        map.put("EntityWither", new MinecraftKey("wither"));
-        map.put("EntityBat", new MinecraftKey("bat"));
-        map.put("EntityWitch", new MinecraftKey("witch"));
-        map.put("EntityEndermite", new MinecraftKey("endermite"));
-        map.put("EntityGuardian", new MinecraftKey("guardian"));
-        map.put("EntityShulker", new MinecraftKey("shulker"));
-        map.put("EntityPig", new MinecraftKey("pig"));
-        map.put("EntitySheep", new MinecraftKey("sheep"));
-        map.put("EntityCow", new MinecraftKey("cow"));
-        map.put("EntityChicken", new MinecraftKey("chicken"));
-        map.put("EntitySquid", new MinecraftKey("squid"));
-        map.put("EntityWolf", new MinecraftKey("wolf"));
-        map.put("EntityMushroomCow", new MinecraftKey("mooshroom"));
-        map.put("EntitySnowman", new MinecraftKey("snowman"));
-        map.put("EntityOcelot", new MinecraftKey("ocelot"));
-        map.put("EntityIronGolem", new MinecraftKey("villager_golem"));
-        map.put("EntityHorse", new MinecraftKey("horse"));
-        map.put("EntityRabbit", new MinecraftKey("rabbit"));
-        map.put("EntityPolarBear", new MinecraftKey("polar_bear"));
-        map.put("EntityLlama", new MinecraftKey("llama"));
-        map.put("EntityLlamaSpit", new MinecraftKey("llama_spit"));
-        map.put("EntityParrot", new MinecraftKey("parrot"));
-        map.put("EntityVillager", new MinecraftKey("villager"));
-        map.put("EntityEnderCrystal", new MinecraftKey("ender_crystal"));
-        map.put("TileEntityFurnace", new MinecraftKey("furnace"));
-        map.put("TileEntityChest", new MinecraftKey("chest"));
-        map.put("TileEntityEnderChest", new MinecraftKey("ender_chest"));
-        map.put("TileEntityRecordPlayer", new MinecraftKey("jukebox"));
-        map.put("TileEntityDispenser", new MinecraftKey("dispenser"));
-        map.put("TileEntityDropper", new MinecraftKey("dropper"));
-        map.put("TileEntitySign", new MinecraftKey("sign"));
-        map.put("TileEntityMobSpawner", new MinecraftKey("mob_spawner"));
-        map.put("TileEntityNote", new MinecraftKey("noteblock"));
-        map.put("TileEntityPiston", new MinecraftKey("piston"));
-        map.put("TileEntityBrewingStand", new MinecraftKey("brewing_stand"));
-        map.put("TileEntityEnchantTable", new MinecraftKey("enchanting_table"));
-        map.put("TileEntityEnderPortal", new MinecraftKey("end_portal"));
-        map.put("TileEntityBeacon", new MinecraftKey("beacon"));
-        map.put("TileEntitySkull", new MinecraftKey("skull"));
-        map.put("TileEntityLightDetector", new MinecraftKey("daylight_detector"));
-        map.put("TileEntityHopper", new MinecraftKey("hopper"));
-        map.put("TileEntityComparator", new MinecraftKey("comparator"));
-        map.put("TileEntityFlowerPot", new MinecraftKey("flower_pot"));
-        map.put("TileEntityBanner", new MinecraftKey("banner"));
-        map.put("TileEntityStructure", new MinecraftKey("structure_block"));
-        map.put("TileEntityEndGateway", new MinecraftKey("end_gateway"));
-        map.put("TileEntityCommand", new MinecraftKey("command_block"));
-        map.put("TileEntityShulkerBox", new MinecraftKey("shulker_box"));
-        map.put("TileEntityBed", new MinecraftKey("bed"));
-    }
+    public enum LegacyType {
+        LEVEL(DataConverterTypes.LEVEL),
+        PLAYER(DataConverterTypes.PLAYER),
+        CHUNK(DataConverterTypes.CHUNK),
+        BLOCK_ENTITY(DataConverterTypes.BLOCK_ENTITY),
+        ENTITY(DataConverterTypes.ENTITY),
+        ITEM_INSTANCE(DataConverterTypes.ITEM_STACK),
+        OPTIONS(DataConverterTypes.OPTIONS),
+        STRUCTURE(DataConverterTypes.STRUCTURE);
 
-    private static MinecraftKey getKey(String type) {
-        final MinecraftKey key = OLD_ID_TO_KEY_MAP.get(type);
-        if (key == null) {
-            throw new IllegalArgumentException("Unknown mapping for " + type);
+        private final TypeReference type;
+
+        LegacyType(TypeReference type) {
+            this.type = type;
+            DFU_TO_LEGACY.put(type.typeName(), this);
         }
-        return key;
-    }
 
-    private static void convertCompound(LegacyType type, NBTTagCompound cmp, String key, int sourceVer, int targetVer) {
-        cmp.set(key, convert(type, cmp.getCompound(key), sourceVer, targetVer));
-    }
-
-    private static void convertItem(NBTTagCompound nbttagcompound, String key, int sourceVer, int targetVer) {
-        if (nbttagcompound.hasKeyOfType(key, 10)) {
-            convertCompound(LegacyType.ITEM_INSTANCE, nbttagcompound, key, sourceVer, targetVer);
+        public TypeReference getDFUType() {
+            return type;
         }
     }
 
-    private static void convertItems(NBTTagCompound nbttagcompound, String key, int sourceVer, int targetVer) {
-        if (nbttagcompound.hasKeyOfType(key, 9)) {
-            NBTTagList nbttaglist = nbttagcompound.getList(key, 10);
+    public interface DataInspector {
+        NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer);
+    }
 
-            for (int j = 0; j < nbttaglist.size(); ++j) {
-                nbttaglist.set(j, convert(LegacyType.ITEM_INSTANCE, nbttaglist.getCompound(j), sourceVer, targetVer));
-            }
-        }
+    public interface DataConverter {
 
+        int getDataVersion();
+
+        NBTTagCompound convert(NBTTagCompound cmp);
     }
 
     private static class DataConverterEquipment implements DataConverter {
 
-        DataConverterEquipment() {}
+        DataConverterEquipment() {
+        }
 
         public int getDataVersion() {
             return 100;
@@ -649,51 +596,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
         private static final Map<String, String> b = Maps.newHashMap();
         private static final Map<String, String> c = Maps.newHashMap();
 
-        DataInspectorBlockEntity() {}
-
-        @Nullable
-        private static String convertEntityId(int i, String s) {
-            String key = new MinecraftKey(s).toString();
-            if (i < 515 && DataInspectorBlockEntity.b.containsKey(key)) {
-                return DataInspectorBlockEntity.b.get(key);
-            } else {
-                return DataInspectorBlockEntity.c.get(key);
-            }
-        }
-
-        public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
-            if (!cmp.hasKeyOfType("tag", 10)) {
-                return cmp;
-            } else {
-                NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
-
-                if (nbttagcompound1.hasKeyOfType("BlockEntityTag", 10)) {
-                    NBTTagCompound nbttagcompound2 = nbttagcompound1.getCompound("BlockEntityTag");
-                    String s = cmp.getString("id");
-                    String s1 = convertEntityId(sourceVer, s);
-                    boolean flag;
-
-                    if (s1 == null) {
-                        // CraftBukkit - Remove unnecessary warning (occurs when deserializing a Shulker Box item)
-                        // DataInspectorBlockEntity.a.warn("Unable to resolve BlockEntity for ItemInstance: {}", s);
-                        flag = false;
-                    } else {
-                        flag = !nbttagcompound2.hasKey("id");
-                        nbttagcompound2.setString("id", s1);
-                    }
-
-                    convert(LegacyType.BLOCK_ENTITY, nbttagcompound2, sourceVer, targetVer);
-                    if (flag) {
-                        nbttagcompound2.remove("id");
-                    }
-                }
-
-                return cmp;
-            }
-        }
-
         static {
-            Map map = DataInspectorBlockEntity.b;
+            Map<String, String> map = DataInspectorBlockEntity.b;
 
             map.put("minecraft:furnace", "Furnace");
             map.put("minecraft:lit_furnace", "Furnace");
@@ -783,13 +687,58 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             map.put("minecraft:end_gateway", "minecraft:end_gateway");
             map.put("minecraft:shield", "minecraft:shield");
         }
+
+        DataInspectorBlockEntity() {
+        }
+
+        @Nullable
+        private static String convertEntityId(int i, String s) {
+            String key = new MinecraftKey(s).toString();
+            if (i < 515 && DataInspectorBlockEntity.b.containsKey(key)) {
+                return DataInspectorBlockEntity.b.get(key);
+            } else {
+                return DataInspectorBlockEntity.c.get(key);
+            }
+        }
+
+        public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
+            if (!cmp.hasKeyOfType("tag", 10)) {
+                return cmp;
+            } else {
+                NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
+
+                if (nbttagcompound1.hasKeyOfType("BlockEntityTag", 10)) {
+                    NBTTagCompound nbttagcompound2 = nbttagcompound1.getCompound("BlockEntityTag");
+                    String s = cmp.getString("id");
+                    String s1 = convertEntityId(sourceVer, s);
+                    boolean flag;
+
+                    if (s1 == null) {
+                        // CraftBukkit - Remove unnecessary warning (occurs when deserializing a Shulker Box item)
+                        // DataInspectorBlockEntity.a.warn("Unable to resolve BlockEntity for ItemInstance: {}", s);
+                        flag = false;
+                    } else {
+                        flag = !nbttagcompound2.hasKey("id");
+                        nbttagcompound2.setString("id", s1);
+                    }
+
+                    convert(LegacyType.BLOCK_ENTITY, nbttagcompound2, sourceVer, targetVer);
+                    if (flag) {
+                        nbttagcompound2.remove("id");
+                    }
+                }
+
+                return cmp;
+            }
+        }
     }
 
     private static class DataInspectorEntity implements DataInspector {
 
         private static final Logger a = LogManager.getLogger(DataConverters_1_16_R3.class);
 
-        DataInspectorEntity() {}
+        DataInspectorEntity() {
+        }
 
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
@@ -829,7 +778,6 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
         }
     }
 
-
     private abstract static class DataInspectorTagged implements DataInspector {
 
         private final MinecraftKey key;
@@ -866,6 +814,7 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             return nbttagcompound;
         }
     }
+
     private static class DataInspectorItem extends DataInspectorTagged {
 
         private final String[] keys;
@@ -887,24 +836,6 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
     private static class DataConverterMaterialId implements DataConverter {
 
         private static final String[] materials = new String[2268];
-
-        DataConverterMaterialId() {}
-
-        public int getDataVersion() {
-            return 102;
-        }
-
-        public NBTTagCompound convert(NBTTagCompound cmp) {
-            if (cmp.hasKeyOfType("id", 99)) {
-                short short0 = cmp.getShort("id");
-
-                if (short0 > 0 && short0 < materials.length && materials[short0] != null) {
-                    cmp.setString("id", materials[short0]);
-                }
-            }
-
-            return cmp;
-        }
 
         static {
             materials[1] = "minecraft:stone";
@@ -1263,11 +1194,31 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             materials[453] = "minecraft:knowledge_book";
             // Paper end
         }
+
+        DataConverterMaterialId() {
+        }
+
+        public int getDataVersion() {
+            return 102;
+        }
+
+        public NBTTagCompound convert(NBTTagCompound cmp) {
+            if (cmp.hasKeyOfType("id", 99)) {
+                short short0 = cmp.getShort("id");
+
+                if (short0 > 0 && short0 < materials.length && materials[short0] != null) {
+                    cmp.setString("id", materials[short0]);
+                }
+            }
+
+            return cmp;
+        }
     }
 
     private static class DataConverterArmorStand implements DataConverter {
 
-        DataConverterArmorStand() {}
+        DataConverterArmorStand() {
+        }
 
         public int getDataVersion() {
             return 147;
@@ -1284,7 +1235,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterBanner implements DataConverter {
 
-        DataConverterBanner() {}
+        DataConverterBanner() {
+        }
 
         public int getDataVersion() {
             return 804;
@@ -1330,35 +1282,6 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
     private static class DataConverterPotionId implements DataConverter {
 
         private static final String[] potions = new String[128];
-
-        DataConverterPotionId() {}
-
-        public int getDataVersion() {
-            return 102;
-        }
-
-        public NBTTagCompound convert(NBTTagCompound cmp) {
-            if ("minecraft:potion".equals(cmp.getString("id"))) {
-                NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
-                short short0 = cmp.getShort("Damage");
-
-                if (!nbttagcompound1.hasKeyOfType("Potion", 8)) {
-                    String s = DataConverterPotionId.potions[short0 & 127];
-
-                    nbttagcompound1.setString("Potion", s == null ? "minecraft:water" : s);
-                    cmp.set("tag", nbttagcompound1);
-                    if ((short0 & 16384) == 16384) {
-                        cmp.setString("id", "minecraft:splash_potion");
-                    }
-                }
-
-                if (short0 != 0) {
-                    cmp.setShort("Damage", (short) 0);
-                }
-            }
-
-            return cmp;
-        }
 
         static {
             DataConverterPotionId.potions[0] = "minecraft:water";
@@ -1490,31 +1413,26 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             DataConverterPotionId.potions[126] = "minecraft:long_invisibility";
             DataConverterPotionId.potions[127] = null;
         }
-    }
 
-    private static class DataConverterSpawnEgg implements DataConverter {
-
-        private static final String[] eggs = new String[256];
-
-        DataConverterSpawnEgg() {}
+        DataConverterPotionId() {
+        }
 
         public int getDataVersion() {
-            return 105;
+            return 102;
         }
 
         public NBTTagCompound convert(NBTTagCompound cmp) {
-            if ("minecraft:spawn_egg".equals(cmp.getString("id"))) {
+            if ("minecraft:potion".equals(cmp.getString("id"))) {
                 NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
-                NBTTagCompound nbttagcompound2 = nbttagcompound1.getCompound("EntityTag");
                 short short0 = cmp.getShort("Damage");
 
-                if (!nbttagcompound2.hasKeyOfType("id", 8)) {
-                    String s = DataConverterSpawnEgg.eggs[short0 & 255];
+                if (!nbttagcompound1.hasKeyOfType("Potion", 8)) {
+                    String s = DataConverterPotionId.potions[short0 & 127];
 
-                    if (s != null) {
-                        nbttagcompound2.setString("id", s);
-                        nbttagcompound1.set("EntityTag", nbttagcompound2);
-                        cmp.set("tag", nbttagcompound1);
+                    nbttagcompound1.setString("Potion", s == null ? "minecraft:water" : s);
+                    cmp.set("tag", nbttagcompound1);
+                    if ((short0 & 16384) == 16384) {
+                        cmp.setString("id", "minecraft:splash_potion");
                     }
                 }
 
@@ -1525,6 +1443,11 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+    }
+
+    private static class DataConverterSpawnEgg implements DataConverter {
+
+        private static final String[] eggs = new String[256];
 
         static {
 
@@ -1596,13 +1519,45 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             DataConverterSpawnEgg.eggs[120] = "Villager";
             DataConverterSpawnEgg.eggs[200] = "EnderCrystal";
         }
+
+        DataConverterSpawnEgg() {
+        }
+
+        public int getDataVersion() {
+            return 105;
+        }
+
+        public NBTTagCompound convert(NBTTagCompound cmp) {
+            if ("minecraft:spawn_egg".equals(cmp.getString("id"))) {
+                NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
+                NBTTagCompound nbttagcompound2 = nbttagcompound1.getCompound("EntityTag");
+                short short0 = cmp.getShort("Damage");
+
+                if (!nbttagcompound2.hasKeyOfType("id", 8)) {
+                    String s = DataConverterSpawnEgg.eggs[short0 & 255];
+
+                    if (s != null) {
+                        nbttagcompound2.setString("id", s);
+                        nbttagcompound1.set("EntityTag", nbttagcompound2);
+                        cmp.set("tag", nbttagcompound1);
+                    }
+                }
+
+                if (short0 != 0) {
+                    cmp.setShort("Damage", (short) 0);
+                }
+            }
+
+            return cmp;
+        }
     }
 
     private static class DataConverterMinecart implements DataConverter {
 
-        private static final List<String> a = Lists.newArrayList(new String[] { "MinecartRideable", "MinecartChest", "MinecartFurnace", "MinecartTNT", "MinecartSpawner", "MinecartHopper", "MinecartCommandBlock"});
+        private static final List<String> a = Lists.newArrayList("MinecartRideable", "MinecartChest", "MinecartFurnace", "MinecartTNT", "MinecartSpawner", "MinecartHopper", "MinecartCommandBlock");
 
-        DataConverterMinecart() {}
+        DataConverterMinecart() {
+        }
 
         public int getDataVersion() {
             return 106;
@@ -1627,7 +1582,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterMobSpawner implements DataConverter {
 
-        DataConverterMobSpawner() {}
+        DataConverterMobSpawner() {
+        }
 
         public int getDataVersion() {
             return 107;
@@ -1670,7 +1626,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterUUID implements DataConverter {
 
-        DataConverterUUID() {}
+        DataConverterUUID() {
+        }
 
         public int getDataVersion() {
             return 108;
@@ -1687,9 +1644,10 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterHealth implements DataConverter {
 
-        private static final Set<String> a = Sets.newHashSet(new String[] { "ArmorStand", "Bat", "Blaze", "CaveSpider", "Chicken", "Cow", "Creeper", "EnderDragon", "Enderman", "Endermite", "EntityHorse", "Ghast", "Giant", "Guardian", "LavaSlime", "MushroomCow", "Ozelot", "Pig", "PigZombie", "Rabbit", "Sheep", "Shulker", "Silverfish", "Skeleton", "Slime", "SnowMan", "Spider", "Squid", "Villager", "VillagerGolem", "Witch", "WitherBoss", "Wolf", "Zombie"});
+        private static final Set<String> a = Sets.newHashSet("ArmorStand", "Bat", "Blaze", "CaveSpider", "Chicken", "Cow", "Creeper", "EnderDragon", "Enderman", "Endermite", "EntityHorse", "Ghast", "Giant", "Guardian", "LavaSlime", "MushroomCow", "Ozelot", "Pig", "PigZombie", "Rabbit", "Sheep", "Shulker", "Silverfish", "Skeleton", "Slime", "SnowMan", "Spider", "Squid", "Villager", "VillagerGolem", "Witch", "WitherBoss", "Wolf", "Zombie");
 
-        DataConverterHealth() {}
+        DataConverterHealth() {
+        }
 
         public int getDataVersion() {
             return 109;
@@ -1719,7 +1677,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterSaddle implements DataConverter {
 
-        DataConverterSaddle() {}
+        DataConverterSaddle() {
+        }
 
         public int getDataVersion() {
             return 110;
@@ -1742,7 +1701,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterHanging implements DataConverter {
 
-        DataConverterHanging() {}
+        DataConverterHanging() {
+        }
 
         public int getDataVersion() {
             return 111;
@@ -1779,7 +1739,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterDropChances implements DataConverter {
 
-        DataConverterDropChances() {}
+        DataConverterDropChances() {
+        }
 
         public int getDataVersion() {
             return 113;
@@ -1808,7 +1769,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterRiding implements DataConverter {
 
-        DataConverterRiding() {}
+        DataConverterRiding() {
+        }
 
         public int getDataVersion() {
             return 135;
@@ -1842,7 +1804,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterBook implements DataConverter {
 
-        DataConverterBook() {}
+        DataConverterBook() {
+        }
 
         public int getDataVersion() {
             return 165;
@@ -1868,23 +1831,20 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
                                     if (object == null) {
                                         object = new ChatComponentText("");
                                     }
-                                } catch (JsonParseException jsonparseexception) {
-                                    ;
+                                } catch (JsonParseException ignored) {
                                 }
 
                                 if (object == null) {
                                     try {
                                         object = IChatBaseComponent.ChatSerializer.a(s);
-                                    } catch (JsonParseException jsonparseexception1) {
-                                        ;
+                                    } catch (JsonParseException ignored) {
                                     }
                                 }
 
                                 if (object == null) {
                                     try {
                                         object = IChatBaseComponent.ChatSerializer.b(s);
-                                    } catch (JsonParseException jsonparseexception2) {
-                                        ;
+                                    } catch (JsonParseException ignored) {
                                     }
                                 }
 
@@ -1911,7 +1871,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
         private static final MinecraftKey a = new MinecraftKey("cooked_fished");
 
-        DataConverterCookedFish() {}
+        DataConverterCookedFish() {
+        }
 
         public int getDataVersion() {
             return 502;
@@ -1930,7 +1891,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
         private static final Random a = new Random();
 
-        DataConverterZombie() {}
+        DataConverterZombie() {
+        }
 
         public int getDataVersion() {
             return 502;
@@ -1944,8 +1906,7 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
                     if (cmp.hasKeyOfType("VillagerProfession", 99)) {
                         try {
                             i = this.convert(cmp.getInt("VillagerProfession"));
-                        } catch (RuntimeException runtimeexception) {
-                            ;
+                        } catch (RuntimeException ignored) {
                         }
                     }
 
@@ -1969,7 +1930,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterVBO implements DataConverter {
 
-        DataConverterVBO() {}
+        DataConverterVBO() {
+        }
 
         public int getDataVersion() {
             return 505;
@@ -1983,7 +1945,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterGuardian implements DataConverter {
 
-        DataConverterGuardian() {}
+        DataConverterGuardian() {
+        }
 
         public int getDataVersion() {
             return 700;
@@ -2004,7 +1967,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterSkeleton implements DataConverter {
 
-        DataConverterSkeleton() {}
+        DataConverterSkeleton() {
+        }
 
         public int getDataVersion() {
             return 701;
@@ -2031,7 +1995,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterZombieType implements DataConverter {
 
-        DataConverterZombieType() {}
+        DataConverterZombieType() {
+        }
 
         public int getDataVersion() {
             return 702;
@@ -2068,7 +2033,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterHorse implements DataConverter {
 
-        DataConverterHorse() {}
+        DataConverterHorse() {
+        }
 
         public int getDataVersion() {
             return 703;
@@ -2079,25 +2045,11 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
                 int i = cmp.getInt("Type");
 
                 switch (i) {
-                    case 0:
-                    default:
-                        cmp.setString("id", "Horse");
-                        break;
-
-                    case 1:
-                        cmp.setString("id", "Donkey");
-                        break;
-
-                    case 2:
-                        cmp.setString("id", "Mule");
-                        break;
-
-                    case 3:
-                        cmp.setString("id", "ZombieHorse");
-                        break;
-
-                    case 4:
-                        cmp.setString("id", "SkeletonHorse");
+                    default -> cmp.setString("id", "Horse");
+                    case 1 -> cmp.setString("id", "Donkey");
+                    case 2 -> cmp.setString("id", "Mule");
+                    case 3 -> cmp.setString("id", "ZombieHorse");
+                    case 4 -> cmp.setString("id", "SkeletonHorse");
                 }
 
                 cmp.remove("Type");
@@ -2110,22 +2062,6 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
     private static class DataConverterTileEntity implements DataConverter {
 
         private static final Map<String, String> a = Maps.newHashMap();
-
-        DataConverterTileEntity() {}
-
-        public int getDataVersion() {
-            return 704;
-        }
-
-        public NBTTagCompound convert(NBTTagCompound cmp) {
-            String s = DataConverterTileEntity.a.get(cmp.getString("id"));
-
-            if (s != null) {
-                cmp.setString("id", s);
-            }
-
-            return cmp;
-        }
 
         static {
             DataConverterTileEntity.a.put("Airportal", "minecraft:end_portal");
@@ -2152,20 +2088,16 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             DataConverterTileEntity.a.put("Structure", "minecraft:structure_block");
             DataConverterTileEntity.a.put("Trap", "minecraft:dispenser");
         }
-    }
 
-    private static class DataConverterEntity implements DataConverter {
-
-        private static final Map<String, String> a = Maps.newHashMap();
-
-        DataConverterEntity() {}
+        DataConverterTileEntity() {
+        }
 
         public int getDataVersion() {
             return 704;
         }
 
         public NBTTagCompound convert(NBTTagCompound cmp) {
-            String s = DataConverterEntity.a.get(cmp.getString("id"));
+            String s = DataConverterTileEntity.a.get(cmp.getString("id"));
 
             if (s != null) {
                 cmp.setString("id", s);
@@ -2173,6 +2105,11 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+    }
+
+    private static class DataConverterEntity implements DataConverter {
+
+        private static final Map<String, String> a = Maps.newHashMap();
 
         static {
             DataConverterEntity.a.put("AreaEffectCloud", "minecraft:area_effect_cloud");
@@ -2251,11 +2188,29 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             DataConverterEntity.a.put("ZombieHorse", "minecraft:zombie_horse");
             DataConverterEntity.a.put("ZombieVillager", "minecraft:zombie_villager");
         }
+
+        DataConverterEntity() {
+        }
+
+        public int getDataVersion() {
+            return 704;
+        }
+
+        public NBTTagCompound convert(NBTTagCompound cmp) {
+            String s = DataConverterEntity.a.get(cmp.getString("id"));
+
+            if (s != null) {
+                cmp.setString("id", s);
+            }
+
+            return cmp;
+        }
     }
 
     private static class DataConverterPotionWater implements DataConverter {
 
-        DataConverterPotionWater() {}
+        DataConverterPotionWater() {
+        }
 
         public int getDataVersion() {
             return 806;
@@ -2282,7 +2237,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterShulker implements DataConverter {
 
-        DataConverterShulker() {}
+        DataConverterShulker() {
+        }
 
         public int getDataVersion() {
             return 808;
@@ -2299,9 +2255,10 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterShulkerBoxItem implements DataConverter {
 
-        public static final String[] a = new String[] { "minecraft:white_shulker_box", "minecraft:orange_shulker_box", "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box", "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box", "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box", "minecraft:red_shulker_box", "minecraft:black_shulker_box"};
+        public static final String[] a = new String[]{"minecraft:white_shulker_box", "minecraft:orange_shulker_box", "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box", "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box", "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box", "minecraft:red_shulker_box", "minecraft:black_shulker_box"};
 
-        DataConverterShulkerBoxItem() {}
+        DataConverterShulkerBoxItem() {
+        }
 
         public int getDataVersion() {
             return 813;
@@ -2339,7 +2296,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterShulkerBoxBlock implements DataConverter {
 
-        DataConverterShulkerBoxBlock() {}
+        DataConverterShulkerBoxBlock() {
+        }
 
         public int getDataVersion() {
             return 813;
@@ -2356,7 +2314,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterLang implements DataConverter {
 
-        DataConverterLang() {}
+        DataConverterLang() {
+        }
 
         public int getDataVersion() {
             return 816;
@@ -2373,7 +2332,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterTotem implements DataConverter {
 
-        DataConverterTotem() {}
+        DataConverterTotem() {
+        }
 
         public int getDataVersion() {
             return 820;
@@ -2392,7 +2352,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
         private static final Logger a = LogManager.getLogger(DataConverters_1_16_R3.class);
 
-        DataConverterBedBlock() {}
+        DataConverterBedBlock() {
+        }
 
         public int getDataVersion() {
             return 1125;
@@ -2438,7 +2399,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterBedItem implements DataConverter {
 
-        DataConverterBedItem() {}
+        DataConverterBedItem() {
+        }
 
         public int getDataVersion() {
             return 1125;
@@ -2462,10 +2424,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
                 } else if (jsonelement.isJsonArray()) {
                     JsonArray jsonarray = jsonelement.getAsJsonArray();
                     IChatMutableComponent ichatbasecomponent = null;
-                    Iterator iterator = jsonarray.iterator();
 
-                    while (iterator.hasNext()) {
-                        JsonElement jsonelement1 = (JsonElement) iterator.next();
+                    for (JsonElement jsonelement1 : jsonarray) {
                         IChatMutableComponent ichatbasecomponent1 = this.a(jsonelement1, jsonelement1.getClass(), jsondeserializationcontext);
 
                         if (ichatbasecomponent == null) {
@@ -2477,7 +2437,7 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
 
                     return ichatbasecomponent;
                 } else {
-                    throw new JsonParseException("Don\'t know how to turn " + jsonelement + " into a Component");
+                    throw new JsonParseException("Don't know how to turn " + jsonelement + " into a Component");
                 }
             }
 
@@ -2486,7 +2446,8 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             }
         }).create();
 
-        DataConverterSignText() {}
+        DataConverterSignText() {
+        }
 
         public int getDataVersion() {
             return 101;
@@ -2516,23 +2477,20 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
                         if (object == null) {
                             object = new ChatComponentText("");
                         }
-                    } catch (JsonParseException jsonparseexception) {
-                        ;
+                    } catch (JsonParseException ignored) {
                     }
 
                     if (object == null) {
                         try {
                             object = IChatBaseComponent.ChatSerializer.a(s1);
-                        } catch (JsonParseException jsonparseexception1) {
-                            ;
+                        } catch (JsonParseException ignored) {
                         }
                     }
 
                     if (object == null) {
                         try {
                             object = IChatBaseComponent.ChatSerializer.b(s1);
-                        } catch (JsonParseException jsonparseexception2) {
-                            ;
+                        } catch (JsonParseException ignored) {
                         }
                     }
 
@@ -2746,6 +2704,54 @@ class DataConverters_1_16_R3 extends DataFixerBuilder implements com.sk89q.world
             }
 
             return cmp;
+        }
+    }
+
+    private class WrappedDataFixer implements DataFixer {
+        private final DataFixer realFixer;
+
+        WrappedDataFixer(DataFixer realFixer) {
+            this.realFixer = realFixer;
+        }
+
+        @Override
+        public <T> Dynamic<T> update(TypeReference type, Dynamic<T> dynamic, int sourceVer, int targetVer) {
+            LegacyType legacyType = DFU_TO_LEGACY.get(type.typeName());
+            if (sourceVer < LEGACY_VERSION && legacyType != null) {
+                NBTTagCompound cmp = (NBTTagCompound) dynamic.getValue();
+                int desiredVersion = Math.min(targetVer, LEGACY_VERSION);
+
+                cmp = convert(legacyType, cmp, sourceVer, desiredVersion);
+                sourceVer = desiredVersion;
+                dynamic = new Dynamic(OPS_NBT, cmp);
+            }
+            return realFixer.update(type, dynamic, sourceVer, targetVer);
+        }
+
+        private NBTTagCompound convert(LegacyType type, NBTTagCompound cmp, int sourceVer, int desiredVersion) {
+            List<DataConverter> converters = DataConverters_1_16_R3.this.converters.get(type);
+            if (converters != null && !converters.isEmpty()) {
+                for (DataConverter converter : converters) {
+                    int dataVersion = converter.getDataVersion();
+                    if (dataVersion > sourceVer && dataVersion <= desiredVersion) {
+                        cmp = converter.convert(cmp);
+                    }
+                }
+            }
+
+            List<DataInspector> inspectors = DataConverters_1_16_R3.this.inspectors.get(type);
+            if (inspectors != null && !inspectors.isEmpty()) {
+                for (DataInspector inspector : inspectors) {
+                    cmp = inspector.inspect(cmp, sourceVer, desiredVersion);
+                }
+            }
+
+            return cmp;
+        }
+
+        @Override
+        public Schema getSchema(int i) {
+            return realFixer.getSchema(i);
         }
     }
 }
