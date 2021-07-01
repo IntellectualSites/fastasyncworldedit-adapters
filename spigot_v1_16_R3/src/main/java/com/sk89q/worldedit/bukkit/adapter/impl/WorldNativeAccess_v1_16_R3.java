@@ -24,13 +24,17 @@ import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.block.data.CraftBlockData;
 import org.bukkit.event.block.BlockPhysicsEvent;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 public class WorldNativeAccess_v1_16_R3 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
     private static final int UPDATE = 1, NOTIFY = 2;
-
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.WEST, EnumDirection.EAST,
+            EnumDirection.DOWN, EnumDirection.UP,
+            EnumDirection.NORTH, EnumDirection.SOUTH
+    };
     private final Spigot_v1_16_R3 adapter;
     private final WeakReference<World> world;
     private SideEffectSet sideEffectSet;
@@ -58,8 +62,8 @@ public class WorldNativeAccess_v1_16_R3 implements WorldNativeAccess<Chunk, IBlo
     public IBlockData toNative(BlockState state) {
         int stateId = BlockStateIdAccess.getBlockStateId(state);
         return BlockStateIdAccess.isValidInternalId(stateId)
-            ? Block.getByCombinedId(stateId)
-            : ((CraftBlockData) BukkitAdapter.adapt(state)).getState();
+                ? Block.getByCombinedId(stateId)
+                : ((CraftBlockData) BukkitAdapter.adapt(state)).getState();
     }
 
     @Override
@@ -119,12 +123,6 @@ public class WorldNativeAccess_v1_16_R3 implements WorldNativeAccess<Chunk, IBlo
             ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
         }
     }
-
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-        EnumDirection.WEST, EnumDirection.EAST,
-        EnumDirection.DOWN, EnumDirection.UP,
-        EnumDirection.NORTH, EnumDirection.SOUTH
-    };
 
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {

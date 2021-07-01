@@ -97,9 +97,8 @@ public class LazyCompoundTag_1_16_5 extends LazyCompoundTag {
 
     public List<Tag> getList(String key) {
         NBTBase tag = nmsTag.get().get(key);
-        if (tag instanceof NBTTagList) {
+        if (tag instanceof NBTTagList nbtList) {
             ArrayList<Tag> list = new ArrayList<>();
-            NBTTagList nbtList = (NBTTagList) tag;
             for (NBTBase elem : nbtList) {
                 if (elem instanceof NBTTagCompound) {
                     list.add(new LazyCompoundTag_1_16_5((NBTTagCompound) elem));

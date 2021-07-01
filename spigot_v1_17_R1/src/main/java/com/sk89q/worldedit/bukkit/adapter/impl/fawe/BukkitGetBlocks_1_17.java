@@ -1,5 +1,7 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
+import com.fastasyncworldedit.bukkit.adapter.BukkitGetBlocks;
+import com.fastasyncworldedit.bukkit.adapter.DelegateSemaphore;
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.beta.IChunkGet;
@@ -7,8 +9,6 @@ import com.fastasyncworldedit.core.beta.IChunkSet;
 import com.fastasyncworldedit.core.beta.implementation.blocks.CharGetBlocks;
 import com.fastasyncworldedit.core.beta.implementation.lighting.HeightMapType;
 import com.fastasyncworldedit.core.beta.implementation.queue.QueueHandler;
-import com.fastasyncworldedit.bukkit.adapter.BukkitGetBlocks;
-import com.fastasyncworldedit.bukkit.adapter.DelegateSemaphore;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.object.collection.AdaptedMap;
 import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
@@ -107,13 +107,13 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setCreateCopy(boolean createCopy) {
-        this.createCopy = createCopy;
+    public boolean isCreateCopy() {
+        return createCopy;
     }
 
     @Override
-    public boolean isCreateCopy() {
-        return createCopy;
+    public void setCreateCopy(boolean createCopy) {
+        this.createCopy = createCopy;
     }
 
     @Override
@@ -206,8 +206,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     @Override
     public CompoundTag getTile(int x, int y, int z) {
         TileEntity tileEntity = getChunk().getTileEntity(new BlockPosition((x & 15) + (
-            chunkX << 4), y, (z & 15) + (
-            chunkZ << 4)));
+                chunkX << 4), y, (z & 15) + (
+                chunkZ << 4)));
         if (tileEntity == null) {
             return null;
         }
@@ -449,7 +449,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             existingSection = sections[layer];
                             if (existingSection == null) {
                                 LOGGER.error("Skipping invalid null section. chunk:" + chunkX + ","
-                                              + chunkZ + " layer: " + layer);
+                                        + chunkZ + " layer: " + layer);
                                 continue;
                             }
                         }
@@ -475,9 +475,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                 this.reset(layer);*/
                             }
                             newSection = BukkitAdapter_1_17
-                                .newChunkSection(layer, this::loadPrivately, setArr, fastmode);
+                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode);
                             if (!BukkitAdapter_1_17
-                                .setSectionAtomic(sections, existingSection, newSection, layer)) {
+                                    .setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
                                 updateGet(this, nmsChunk, sections, newSection, setArr, layer);
@@ -572,7 +572,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             if (type != null) {
                                 Entity entity = type.a(nmsWorld);
                                 if (entity != null) {
-                                    BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
+                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     for (final String name : Constants.NO_COPY_ENTITY_NBT_FIELDS) {
                                         tag.remove(name);
@@ -610,7 +610,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                     tileEntity = nmsWorld.getTileEntity(pos);
                                 }
                                 if (tileEntity != null) {
-                                    BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
+                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     tag.set("x", NBTTagInt.a(x));
                                     tag.set("y", NBTTagInt.a(y));
@@ -811,7 +811,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         }
     }
 
-    private final char ordinal(IBlockData ibd, FAWE_Spigot_v1_17_R1 adapter) {
+    private char ordinal(IBlockData ibd, FAWE_Spigot_v1_17_R1 adapter) {
         if (ibd == null) {
             return BlockTypes.AIR.getDefaultState().getOrdinalChar();
         } else {

@@ -39,9 +39,9 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
 
     private final Map<BlockVector3, CompoundTag> tiles = new HashMap<>();
     private final Set<CompoundTag> entities = new HashSet<>();
-    private BiomeStorage biomeStorage;
     private final char[][] blocks = new char[16][];
     private final WorldServer world;
+    private BiomeStorage biomeStorage;
 
     protected BukkitGetBlocks_1_17_Copy(WorldServer world) {
         this.world = world;
@@ -49,7 +49,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
 
     protected void storeTile(TileEntity tile) {
         tiles.put(BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
-            new LazyCompoundTag_1_17(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
+                new LazyCompoundTag_1_17(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
     }
 
     @Override
@@ -96,23 +96,26 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     @Override
-    public void setCreateCopy(boolean createCopy) {
-
-    }
-
-    @Override
     public boolean isCreateCopy() {
         return false;
     }
 
     @Override
-    public void setLightingToGet(char[][] lighting) {}
+    public void setCreateCopy(boolean createCopy) {
+
+    }
 
     @Override
-    public void setSkyLightingToGet(char[][] lighting) {}
+    public void setLightingToGet(char[][] lighting) {
+    }
 
     @Override
-    public void setHeightmapToGet(HeightMapType type, int[] data) {}
+    public void setSkyLightingToGet(char[][] lighting) {
+    }
+
+    @Override
+    public void setHeightmapToGet(HeightMapType type, int[] data) {
+    }
 
     protected void storeBiomes(BiomeStorage biomeStorage) {
         // TODO revisit last parameter, BiomeStorage[] *would* be more efficient
@@ -134,7 +137,8 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     @Override
-    public void removeSectionLighting(int layer, boolean sky) {}
+    public void removeSectionLighting(int layer, boolean sky) {
+    }
 
     @Override
     public boolean trim(boolean aggressive, int layer) {

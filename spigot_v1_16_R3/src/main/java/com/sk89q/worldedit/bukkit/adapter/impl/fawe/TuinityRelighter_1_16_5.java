@@ -45,14 +45,6 @@ public class TuinityRelighter_1_16_5 implements Relighter {
     private static final TicketType<Unit> FAWE_TICKET = TicketType.a("fawe_ticket", (a, b) -> 0);
     private static final int LIGHT_LEVEL = MCUtil.getTicketLevelFor(ChunkStatus.LIGHT);
 
-    private final WorldServer world;
-    private final ReentrantLock lock = new ReentrantLock();
-
-    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
-
-    private final ReentrantLock areaLock = new ReentrantLock();
-    private final NMSRelighter delegate;
-
     static {
         MethodHandle tmp = null;
         try {
@@ -74,13 +66,19 @@ public class TuinityRelighter_1_16_5 implements Relighter {
         RELIGHT = tmp;
     }
 
-    public static boolean isUsable() {
-        return RELIGHT != null;
-    }
+    private final WorldServer world;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
+    private final ReentrantLock areaLock = new ReentrantLock();
+    private final NMSRelighter delegate;
 
     public TuinityRelighter_1_16_5(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
         this.delegate = new NMSRelighter(queue, false);
+    }
+
+    public static boolean isUsable() {
+        return RELIGHT != null;
     }
 
     @Override
@@ -146,7 +144,8 @@ public class TuinityRelighter_1_16_5 implements Relighter {
             // collect futures and trigger relight once all chunks are loaded
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v ->
                     invokeRelight(coords,
-                            c -> { }, // no callback for single chunks required
+                            c -> {
+                            }, // no callback for single chunks required
                             i -> {
                                 if (i != coords.size()) {
                                     LOGGER.warn("Processed " + i + " chunks instead of " + coords.size());

@@ -108,9 +108,20 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
+    private MapChunkUtil_1_15_2 mapUtil = new MapChunkUtil_1_15_2();
 
     public FAWE_Spigot_v1_15_R2() throws NoSuchFieldException, NoSuchMethodException {
         this.parent = new Spigot_v1_15_R2();
+    }
+
+    @Nullable
+    private static String getEntityId(Entity entity) {
+        MinecraftKey minecraftkey = EntityTypes.getName(entity.getEntityType());
+        return minecraftkey == null ? null : minecraftkey.toString();
+    }
+
+    private static void readEntityIntoTag(Entity entity, NBTTagCompound tag) {
+        entity.save(tag);
     }
 
     @Override
@@ -168,7 +179,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
         BlockState state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
         if (state.getBlockType().getMaterial().hasContainer()) {
 
-        // Read the NBT data
+            // Read the NBT data
             TileEntity te = chunk.a(blockPos, Chunk.EnumTileEntityState.CHECK);
             if (te != null) {
                 NBTTagCompound tag = new NBTTagCompound();
@@ -206,7 +217,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
 
         nmsChunk.removeTileEntity(blockPos); // Force delete the old tile entity
 
-        CompoundTag nativeTag = state instanceof BaseBlock ? ((BaseBlock)state).getNbtData() : null;
+        CompoundTag nativeTag = state instanceof BaseBlock ? ((BaseBlock) state).getNbtData() : null;
         if (nativeTag != null || existing instanceof TileEntityBlock) {
             nmsWorld.setTypeAndData(blockPos, blockData, 0);
             // remove tile
@@ -244,16 +255,6 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
         return new FAWEWorldNativeAccess_1_15_2(this,
                 new WeakReference<>(((CraftWorld) world).getHandle()));
-    }
-
-    @Nullable
-    private static String getEntityId(Entity entity) {
-        MinecraftKey minecraftkey = EntityTypes.getName(entity.getEntityType());
-        return minecraftkey == null ? null : minecraftkey.toString();
-    }
-
-    private static void readEntityIntoTag(Entity entity, NBTTagCompound tag) {
-        entity.save(tag);
     }
 
     @Override
@@ -316,8 +317,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     }
 
     /**
-     * @deprecated
-     * Method unused. Use #adaptToChar(IBlockData).
+     * @deprecated Method unused. Use #adaptToChar(IBlockData).
      */
     @Deprecated
     public int adaptToInt(IBlockData ibd) {
@@ -347,6 +347,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
             }
         }
     }
+
     public int ordinalToIbdID(char ordinal) {
         synchronized (this) {
             try {
@@ -364,8 +365,6 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
         return material.getCraftBlockData();
     }
 
-    private MapChunkUtil_1_15_2 mapUtil = new MapChunkUtil_1_15_2();
-
     @Override
     public void sendFakeChunk(org.bukkit.World world, Player player, ChunkPacket packet) {
         WorldServer nmsWorld = ((CraftWorld) world).getHandle();
@@ -381,7 +380,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                         synchronized (packet) {
                             PacketPlayOutMapChunk nmsPacket = (PacketPlayOutMapChunk) packet.getNativePacket();
                             if (nmsPacket == null) {
-                                nmsPacket = mapUtil.create( this, packet);
+                                nmsPacket = mapUtil.create(this, packet);
                                 packet.setNativePacket(nmsPacket);
                             }
                             try {

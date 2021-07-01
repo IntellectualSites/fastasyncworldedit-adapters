@@ -1,9 +1,9 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-import com.fastasyncworldedit.core.Fawe;
-import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.bukkit.adapter.DelegateSemaphore;
 import com.fastasyncworldedit.bukkit.adapter.NMSAdapter;
+import com.fastasyncworldedit.core.Fawe;
+import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
 import com.fastasyncworldedit.core.util.MathMan;
@@ -188,7 +188,7 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.c)).left();
         Chunk chunk = optional.orElseGet(() ->
                 nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ));
-        if (chunk == null)  {
+        if (chunk == null) {
             return;
         }
         PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk);
@@ -232,10 +232,10 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
             int air;
             if (get == null) {
                 air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer,
-                    set, ticking_blocks, fastmode);
+                        set, ticking_blocks, fastmode);
             } else {
                 air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy,
-                    num_palette_buffer, get, set, ticking_blocks, fastmode);
+                        num_palette_buffer, get, set, ticking_blocks, fastmode);
             }
             int num_palette = num_palette_buffer[0];
             // BlockStates
@@ -283,8 +283,8 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
                 setCount(ticking_blocks.size(), 4096 - air, section);
                 if (!fastmode) {
                     ticking_blocks.forEach((pos, ordinal) -> section
-                        .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(),
-                            Block.getByCombinedId(ordinal)));
+                            .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(),
+                                    Block.getByCombinedId(ordinal)));
                 }
             } catch (final IllegalAccessException e) {
                 throw new RuntimeException(e);
