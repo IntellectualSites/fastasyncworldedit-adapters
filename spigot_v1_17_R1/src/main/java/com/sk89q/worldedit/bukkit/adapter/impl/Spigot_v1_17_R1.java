@@ -29,6 +29,20 @@ import com.google.common.util.concurrent.Futures;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
+import com.sk89q.worldedit.util.nbt.BinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
+import com.sk89q.worldedit.util.nbt.DoubleBinaryTag;
+import com.sk89q.worldedit.util.nbt.EndBinaryTag;
+import com.sk89q.worldedit.util.nbt.FloatBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntBinaryTag;
+import com.sk89q.worldedit.util.nbt.ListBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongBinaryTag;
+import com.sk89q.worldedit.util.nbt.ShortBinaryTag;
+import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BaseItemStack;
@@ -54,20 +68,6 @@ import com.sk89q.worldedit.util.concurrency.LazyReference;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
-import com.sk89q.worldedit.util.nbt.BinaryTag;
-import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
-import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
-import com.sk89q.worldedit.util.nbt.DoubleBinaryTag;
-import com.sk89q.worldedit.util.nbt.EndBinaryTag;
-import com.sk89q.worldedit.util.nbt.FloatBinaryTag;
-import com.sk89q.worldedit.util.nbt.IntArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.IntBinaryTag;
-import com.sk89q.worldedit.util.nbt.ListBinaryTag;
-import com.sk89q.worldedit.util.nbt.LongArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.LongBinaryTag;
-import com.sk89q.worldedit.util.nbt.ShortBinaryTag;
-import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.world.DataFixer;
 import com.sk89q.worldedit.world.RegenOptions;
 import com.sk89q.worldedit.world.biome.BiomeType;
@@ -159,7 +159,6 @@ import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotConfig;
 import org.spigotmc.WatchdogThread;
 
-import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -179,32 +178,24 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
-    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
-            SideEffect.NEIGHBORS,
-            SideEffect.LIGHTING,
-            SideEffect.VALIDATION,
-            SideEffect.ENTITY_AI,
-            SideEffect.EVENTS,
-            SideEffect.UPDATE
-    );
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
+
     private final Field nbtListTagListField;
     private final Field serverWorldsField;
     private final Method getChunkFutureMethod;
     private final Field chunkProviderExecutorField;
+    private final Watchdog watchdog;
 
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
-    private final Watchdog watchdog;
-    private final LoadingCache<WorldServer, FakePlayer_v1_17_R1> fakePlayers
-            = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_17_R1::new));
 
     public Spigot_v1_17_R1() throws NoSuchFieldException, NoSuchMethodException {
         // A simple test
@@ -246,15 +237,19 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         try {
             Class.forName("org.spigotmc.SpigotConfig");
             SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
-        } catch (ClassNotFoundException ignored) {
-        }
+        } catch (ClassNotFoundException ignored) {}
+    }
+
+    @Override
+    public DataFixer getDataFixer() {
+        return DataConverters_1_17_R1.INSTANCE;
     }
 
     /**
      * Read the given NBT data into the given tile entity.
      *
      * @param tileEntity the tile entity
-     * @param tag        the tag
+     * @param tag the tag
      */
     static void readTagIntoTileEntity(NBTTagCompound tag, TileEntity tileEntity) {
         tileEntity.load(tag);
@@ -265,7 +260,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the tile entity's NBT data to the given tag.
      *
      * @param tileEntity the tile entity
-     * @param tag        the tag
+     * @param tag the tag
      */
     private static void readTileEntityIntoTag(TileEntity tileEntity, NBTTagCompound tag) {
         tileEntity.save(tag);
@@ -287,7 +282,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     /**
      * Create an entity using the given entity ID.
      *
-     * @param id    the entity ID
+     * @param id the entity ID
      * @param world the world
      * @return an entity or null
      */
@@ -300,7 +295,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the given NBT data into the given entity.
      *
      * @param entity the entity
-     * @param tag    the tag
+     * @param tag the tag
      */
     private static void readTagIntoEntity(NBTTagCompound tag, Entity entity) {
         entity.load(tag);
@@ -310,7 +305,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the entity's NBT data to the given tag.
      *
      * @param entity the entity
-     * @param tag    the tag
+     * @param tag the tag
      */
     private static void readEntityIntoTag(Entity entity, NBTTagCompound tag) {
         entity.save(tag);
@@ -322,22 +317,6 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
     private static Item getItemFromType(ItemType itemType) {
         return IRegistry.Z.get(MinecraftKey.a(itemType.getId()));
-    }
-
-    private static EnumDirection adapt(Direction face) {
-        return switch (face) {
-            case NORTH -> EnumDirection.c;
-            case SOUTH -> EnumDirection.d;
-            case WEST -> EnumDirection.e;
-            case EAST -> EnumDirection.f;
-            case DOWN -> EnumDirection.a;
-            default -> EnumDirection.b;
-        };
-    }
-
-    @Override
-    public DataFixer getDataFixer() {
-        return DataConverters_1_17_R1.INSTANCE;
     }
 
     @Override
@@ -394,6 +373,19 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
                 new WeakReference<>(((CraftWorld) world).getHandle()));
     }
 
+    private static EnumDirection adapt(Direction face) {
+        switch (face) {
+            case NORTH: return EnumDirection.c;
+            case SOUTH: return EnumDirection.d;
+            case WEST: return EnumDirection.e;
+            case EAST: return EnumDirection.f;
+            case DOWN: return EnumDirection.a;
+            case UP:
+            default:
+                return EnumDirection.b;
+        }
+    }
+
     private IBlockData applyProperties(BlockStateList<Block, IBlockData> stateContainer, IBlockData newState, Map<Property<?>, Object> states) {
         for (Map.Entry<Property<?>, Object> state : states.entrySet()) {
             IBlockState<?> property = stateContainer.a(state.getKey().getName());
@@ -404,7 +396,9 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
                 value = adapt(dir);
             } else if (property instanceof BlockStateEnum) {
                 String enumName = (String) value;
-                value = ((BlockStateEnum<?>) property).b((String) value).orElseThrow(() -> new IllegalStateException("Enum property " + property.getName() + " does not contain " + enumName));
+                value = ((BlockStateEnum<?>) property).b((String) value).orElseGet(() -> {
+                    throw new IllegalStateException("Enum property " + property.getName() + " does not contain " + enumName);
+                });
             }
 
             newState = newState.set((IBlockState) property, (Comparable) value);
@@ -532,6 +526,9 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         weStack.setNbt(((CompoundBinaryTag) toNativeBinary(nmsStack.getTag())));
         return weStack;
     }
+
+    private LoadingCache<WorldServer, FakePlayer_v1_17_R1> fakePlayers
+            = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_17_R1::new));
 
     @Override
     public boolean simulateItemUse(org.bukkit.World world, BlockVector3 position, BaseItem item, Direction face) {
@@ -744,12 +741,25 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     }
 
     private ResourceKey<WorldDimension> getWorldDimKey(Environment env) {
-        return switch (env) {
-            case NETHER -> WorldDimension.c;
-            case THE_END -> WorldDimension.d;
-            default -> WorldDimension.b;
-        };
+        switch (env) {
+            case NETHER:
+                return WorldDimension.c;
+            case THE_END:
+                return WorldDimension.d;
+            case NORMAL:
+            default:
+                return WorldDimension.b;
+        }
     }
+
+    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
+            SideEffect.NEIGHBORS,
+            SideEffect.LIGHTING,
+            SideEffect.VALIDATION,
+            SideEffect.ENTITY_AI,
+            SideEffect.EVENTS,
+            SideEffect.UPDATE
+    );
 
     @Override
     public Set<SideEffect> getSupportedSideEffects() {
@@ -820,10 +830,10 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      *
      * @param foreign the foreign tag
      * @return the converted tag
-     * @throws NoSuchFieldException     on error
-     * @throws SecurityException        on error
+     * @throws NoSuchFieldException on error
+     * @throws SecurityException on error
      * @throws IllegalArgumentException on error
-     * @throws IllegalAccessException   on error
+     * @throws IllegalAccessException on error
      */
     private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         ListBinaryTag.Builder values = ListBinaryTag.builder();
@@ -869,8 +879,9 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
             return new NBTTagIntArray(((IntArrayBinaryTag) foreign).value());
         } else if (foreign instanceof LongArrayBinaryTag) {
             return new NBTTagLongArray(((LongArrayBinaryTag) foreign).value());
-        } else if (foreign instanceof ListBinaryTag foreignList) {
+        } else if (foreign instanceof ListBinaryTag) {
             NBTTagList tag = new NBTTagList();
+            ListBinaryTag foreignList = (ListBinaryTag) foreign;
             for (BinaryTag t : foreignList) {
                 tag.add(fromNativeBinary(t));
             }
@@ -896,6 +907,33 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     @Override
     public void tickWatchdog() {
         watchdog.tick();
+    }
+
+    private class SpigotWatchdog implements Watchdog {
+        private final Field instanceField;
+        private final Field lastTickField;
+
+        SpigotWatchdog() throws NoSuchFieldException {
+            Field instanceField = WatchdogThread.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            this.instanceField = instanceField;
+
+            Field lastTickField = WatchdogThread.class.getDeclaredField("lastTick");
+            lastTickField.setAccessible(true);
+            this.lastTickField = lastTickField;
+        }
+
+        @Override
+        public void tick() {
+            try {
+                WatchdogThread instance = (WatchdogThread) this.instanceField.get(null);
+                if ((long) lastTickField.get(instance) != 0) {
+                    WatchdogThread.tick();
+                }
+            } catch (IllegalAccessException e) {
+                logger.log(Level.WARNING, "Failed to tick watchdog", e);
+            }
+        }
     }
 
     private static class MojangWatchdog implements Watchdog {
@@ -938,33 +976,6 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         // TODO Paper only? @Override
         public void setChunkRadius(int i) {
 
-        }
-    }
-
-    private class SpigotWatchdog implements Watchdog {
-        private final Field instanceField;
-        private final Field lastTickField;
-
-        SpigotWatchdog() throws NoSuchFieldException {
-            Field instanceField = WatchdogThread.class.getDeclaredField("instance");
-            instanceField.setAccessible(true);
-            this.instanceField = instanceField;
-
-            Field lastTickField = WatchdogThread.class.getDeclaredField("lastTick");
-            lastTickField.setAccessible(true);
-            this.lastTickField = lastTickField;
-        }
-
-        @Override
-        public void tick() {
-            try {
-                WatchdogThread instance = (WatchdogThread) this.instanceField.get(null);
-                if ((long) lastTickField.get(instance) != 0) {
-                    WatchdogThread.tick();
-                }
-            } catch (IllegalAccessException e) {
-                logger.log(Level.WARNING, "Failed to tick watchdog", e);
-            }
         }
     }
 }

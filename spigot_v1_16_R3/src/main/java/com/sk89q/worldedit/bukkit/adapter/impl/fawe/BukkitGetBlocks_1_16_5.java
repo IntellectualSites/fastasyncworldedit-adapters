@@ -107,13 +107,13 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public boolean isCreateCopy() {
-        return createCopy;
+    public void setCreateCopy(boolean createCopy) {
+        this.createCopy = createCopy;
     }
 
     @Override
-    public void setCreateCopy(boolean createCopy) {
-        this.createCopy = createCopy;
+    public boolean isCreateCopy() {
+        return createCopy;
     }
 
     @Override
@@ -204,8 +204,8 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     @Override
     public CompoundTag getTile(int x, int y, int z) {
         TileEntity tileEntity = getChunk().getTileEntity(new BlockPosition((x & 15) + (
-                chunkX << 4), y, (z & 15) + (
-                chunkZ << 4)));
+            chunkX << 4), y, (z & 15) + (
+            chunkZ << 4)));
         if (tileEntity == null) {
             return null;
         }
@@ -314,9 +314,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
 
             @Override
             public boolean contains(Object get) {
-                if (!(get instanceof CompoundTag getTag)) {
+                if (!(get instanceof CompoundTag)) {
                     return false;
                 }
+                CompoundTag getTag = (CompoundTag) get;
                 Map<String, Tag> value = getTag.getValue();
                 CompoundTag getParts = (CompoundTag) value.get("UUID");
                 UUID getUUID = new UUID(getParts.getLong("Most"), getParts.getLong("Least"));
@@ -446,7 +447,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                             existingSection = sections[layer];
                             if (existingSection == null) {
                                 LOGGER.error("Skipping invalid null section. chunk:" + chunkX + ","
-                                        + chunkZ + " layer: " + layer);
+                                              + chunkZ + " layer: " + layer);
                                 continue;
                             }
                         }
@@ -472,9 +473,9 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                                 this.reset(layer);
                             }
                             newSection = BukkitAdapter_1_16_5
-                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode);
+                                .newChunkSection(layer, this::loadPrivately, setArr, fastmode);
                             if (!BukkitAdapter_1_16_5
-                                    .setSectionAtomic(sections, existingSection, newSection, layer)) {
+                                .setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
                                 updateGet(this, nmsChunk, sections, newSection, setArr, layer);
@@ -569,7 +570,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                             if (type != null) {
                                 Entity entity = type.a(nmsWorld);
                                 if (entity != null) {
-                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
+                                    BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     for (final String name : Constants.NO_COPY_ENTITY_NBT_FIELDS) {
                                         tag.remove(name);
@@ -607,7 +608,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                                     tileEntity = nmsWorld.getTileEntity(pos);
                                 }
                                 if (tileEntity != null) {
-                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
+                                    BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     tag.set("x", NBTTagInt.a(x));
                                     tag.set("y", NBTTagInt.a(y));
@@ -809,7 +810,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         }
     }
 
-    private char ordinal(IBlockData ibd, FAWE_Spigot_v1_16_R3 adapter) {
+    private final char ordinal(IBlockData ibd, FAWE_Spigot_v1_16_R3 adapter) {
         if (ibd == null) {
             return BlockTypes.AIR.getDefaultState().getOrdinalChar();
         } else {
