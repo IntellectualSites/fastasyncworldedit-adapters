@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
+public class FAWEWorldNativeAccess_1_17_R1_2 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
     private static final int UPDATE = 1;
     private static final int NOTIFY = 2;
     private static final EnumDirection[] NEIGHBOUR_ORDER = {
@@ -47,14 +47,14 @@ public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, I
             EnumDirection.c, // NORTH
             EnumDirection.d  // SOUTH
     };
-    private final FAWE_Spigot_v1_17_R1 adapter;
+    private final FAWE_Spigot_v1_17_R1_2 adapter;
     private final WeakReference<World> world;
     private final AtomicInteger lastTick;
     private final Set<CachedChange> cachedChanges = new HashSet<>();
     private final Set<IntPair> cachedChunksToSend = new HashSet<>();
     private SideEffectSet sideEffectSet;
 
-    public FAWEWorldNativeAccess_1_17_R1(FAWE_Spigot_v1_17_R1 adapter, WeakReference<World> world) {
+    public FAWEWorldNativeAccess_1_17_R1_2(FAWE_Spigot_v1_17_R1_2 adapter, WeakReference<World> world) {
         this.adapter = adapter;
         this.world = world;
         // Use the actual tick as minecraft-defined so we don't try to force blocks into the world when the server's already lagging.
@@ -220,7 +220,7 @@ public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, I
                     return;
                 }
                 for (IntPair chunk : toSend) {
-                    BukkitAdapter_1_17.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
+                    BukkitAdapter_1_17_1.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
                 }
             }
         };
@@ -235,7 +235,7 @@ public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, I
                 cachedChanges.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
                         sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
                 for (IntPair chunk : cachedChunksToSend) {
-                    BukkitAdapter_1_17.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
+                    BukkitAdapter_1_17_1.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
                 }
             }
         };
