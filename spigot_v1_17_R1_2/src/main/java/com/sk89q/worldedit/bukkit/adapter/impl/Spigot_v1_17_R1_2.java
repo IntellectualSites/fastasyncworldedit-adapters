@@ -65,6 +65,7 @@ import com.sk89q.worldedit.registry.state.IntegerProperty;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.SideEffect;
+import com.sk89q.worldedit.util.concurrency.LazyReference;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
@@ -197,7 +198,7 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
+public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter<NBTBase> {
 
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
 
@@ -375,7 +376,7 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
         if (te != null) {
             NBTTagCompound tag = new NBTTagCompound();
             readTileEntityIntoTag(te, tag); // Load data
-            return state.toBaseBlock((CompoundTag) toNative(tag));
+            return state.toBaseBlock((CompoundBinaryTag) toNativeBinary(tag));
         }
 
         return state.toBaseBlock();
@@ -432,7 +433,8 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
         if (id != null) {
             NBTTagCompound tag = new NBTTagCompound();
             readEntityIntoTag(mcEntity, tag);
-            return new BaseEntity(com.sk89q.worldedit.world.entity.EntityTypes.get(id), (CompoundTag) toNative(tag));
+            return new BaseEntity(com.sk89q.worldedit.world.entity.EntityTypes.get(id), LazyReference
+                    .from(() -> (CompoundBinaryTag) toNativeBinary(tag)));
         } else {
             return null;
         }
@@ -450,9 +452,9 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
         Entity createdEntity = createEntityFromId(state.getType().getId(), craftWorld.getHandle());
 
         if (createdEntity != null) {
-            CompoundTag nativeTag = state.getNbtData();
+            CompoundBinaryTag nativeTag = state.getNbt();
             if (nativeTag != null) {
-                NBTTagCompound tag = (NBTTagCompound) fromNative(nativeTag);
+                NBTTagCompound tag = (NBTTagCompound) fromNativeBinary(nativeTag);
                 for (String name : Constants.NO_COPY_ENTITY_NBT_FIELDS) {
                     tag.remove(name);
                 }
@@ -529,7 +531,7 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
     @Override
     public org.bukkit.inventory.ItemStack adapt(BaseItemStack item) {
         ItemStack stack = new ItemStack(IRegistry.Z.get(MinecraftKey.a(item.getType().getId())), item.getAmount());
-        stack.setTag(((NBTTagCompound) fromNative(item.getNbtData())));
+        stack.setTag(((NBTTagCompound) fromNativeBinary(item.getNbt())));
         return CraftItemStack.asCraftMirror(stack);
     }
 
@@ -537,7 +539,7 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
     public BaseItemStack adapt(org.bukkit.inventory.ItemStack itemStack) {
         final ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
         final BaseItemStack weStack = new BaseItemStack(BukkitAdapter.asItemType(itemStack.getType()), itemStack.getAmount());
-        weStack.setNbtData(((CompoundTag) toNative(nmsStack.getTag())));
+        weStack.setNbtData(((CompoundTag) toNativeBinary(nmsStack.getTag())));
         return weStack;
     }
 
@@ -719,7 +721,7 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
             if (blockEntity != null) {
                 NBTTagCompound tag = new NBTTagCompound();
                 blockEntity.save(tag);
-                state = state.toBaseBlock(((CompoundTag) toNative(tag)));
+                state = state.toBaseBlock(((CompoundTag) toNativeBinary(tag)));
             }
             extent.setBlock(vec, state.toBaseBlock());
             if (options.shouldRegenBiomes()) {
@@ -791,48 +793,49 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
      * @param foreign non-native NMS NBT structure
      * @return native WorldEdit NBT structure
      */
-    Tag toNative(NBTBase foreign) {
+    @Override
+    public BinaryTag toNativeBinary(NBTBase foreign) {
         if (foreign == null) {
             return null;
         }
         if (foreign instanceof NBTTagCompound) {
-            Map<String, Tag> values = new HashMap<>();
+            Map<String, BinaryTag> values = new HashMap<>();
             Set<String> foreignKeys = ((NBTTagCompound) foreign).getKeys(); // map.keySet
 
             for (String str : foreignKeys) {
                 NBTBase base = ((NBTTagCompound) foreign).get(str);
-                values.put(str, toNative(base));
+                values.put(str, toNativeBinary(base));
             }
-            return new CompoundTag(values);
+            return CompoundBinaryTag.from(values);
         } else if (foreign instanceof NBTTagByte) {
-            return new ByteTag(((NBTTagByte) foreign).asByte());
+            return ByteBinaryTag.of(((NBTTagByte) foreign).asByte());
         } else if (foreign instanceof NBTTagByteArray) {
-            return new ByteArrayTag(((NBTTagByteArray) foreign).getBytes()); // data
+            return ByteArrayBinaryTag.of(((NBTTagByteArray) foreign).getBytes());
         } else if (foreign instanceof NBTTagDouble) {
-            return new DoubleTag(((NBTTagDouble) foreign).asDouble()); // getDouble
+            return DoubleBinaryTag.of(((NBTTagDouble) foreign).asDouble());
         } else if (foreign instanceof NBTTagFloat) {
-            return new FloatTag(((NBTTagFloat) foreign).asFloat());
+            return FloatBinaryTag.of(((NBTTagFloat) foreign).asFloat());
         } else if (foreign instanceof NBTTagInt) {
-            return new IntTag(((NBTTagInt) foreign).asInt());
+            return IntBinaryTag.of(((NBTTagInt) foreign).asInt());
         } else if (foreign instanceof NBTTagIntArray) {
-            return new IntArrayTag(((NBTTagIntArray) foreign).getInts()); // data
+            return IntArrayBinaryTag.of(((NBTTagIntArray) foreign).getInts());
         } else if (foreign instanceof NBTTagLongArray) {
-            return new LongArrayTag(((NBTTagLongArray) foreign).getLongs()); // data
+            return LongArrayBinaryTag.of(((NBTTagLongArray) foreign).getLongs());
         } else if (foreign instanceof NBTTagList) {
             try {
                 return toNativeList((NBTTagList) foreign);
             } catch (Throwable e) {
                 logger.log(Level.WARNING, "Failed to convert NBTTagList", e);
-                return new ListTag(ByteTag.class, new ArrayList<ByteTag>());
+                return ListBinaryTag.empty();
             }
         } else if (foreign instanceof NBTTagLong) {
-            return new LongTag(((NBTTagLong) foreign).asLong());
+            return LongBinaryTag.of(((NBTTagLong) foreign).asLong());
         } else if (foreign instanceof NBTTagShort) {
-            return new ShortTag(((NBTTagShort) foreign).asShort());
+            return ShortBinaryTag.of(((NBTTagShort) foreign).asShort());
         } else if (foreign instanceof NBTTagString) {
-            return new StringTag(foreign.asString());
+            return StringBinaryTag.of(foreign.asString());
         } else if (foreign instanceof NBTTagEnd) {
-            return new EndTag();
+            return EndBinaryTag.get();
         } else {
             throw new IllegalArgumentException("Don't know how to make native " + foreign.getClass().getCanonicalName());
         }
@@ -848,19 +851,17 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
      * @throws IllegalArgumentException on error
      * @throws IllegalAccessException on error
      */
-    private ListTag toNativeList(NBTTagList foreign) throws SecurityException, IllegalArgumentException, IllegalAccessException {
-        List<Tag> values = new ArrayList<>();
-        int type = foreign.e();
+    private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+        ListBinaryTag.Builder values = ListBinaryTag.builder();
 
         List foreignList;
         foreignList = (List) nbtListTagListField.get(foreign);
         for (int i = 0; i < foreign.size(); i++) {
             NBTBase element = (NBTBase) foreignList.get(i);
-            values.add(toNative(element)); // List elements shouldn't have names
+            values.add(toNativeBinary(element)); // List elements shouldn't have names
         }
 
-        Class<? extends Tag> cls = NBTConstants.getClassFromType(type);
-        return new ListTag(cls, values);
+        return values.build();
     }
 
     /**
