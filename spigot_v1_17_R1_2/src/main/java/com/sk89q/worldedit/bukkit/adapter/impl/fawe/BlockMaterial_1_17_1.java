@@ -3,7 +3,7 @@ package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 import com.google.common.base.Suppliers;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.util.ReflectionUtil;
-import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.nbt.NBTTagCompound;
@@ -41,7 +41,7 @@ public class BlockMaterial_1_17_1 implements BlockMaterial {
         this.isTranslucent = !(boolean) ReflectionUtil.getField(BlockBase.Info.class, blockInfo, "n");
         opacity = defaultState.b(BlockAccessAir.a, BlockPosition.b);
         TileEntity tileEntity = !(block instanceof ITileEntity) ? null : ((ITileEntity) block).createTile(BlockPosition.b, defaultState);
-        tile = tileEntity == null ? null : new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+        tile = tileEntity == null ? null : new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
     }
 
     public Block getBlock() {

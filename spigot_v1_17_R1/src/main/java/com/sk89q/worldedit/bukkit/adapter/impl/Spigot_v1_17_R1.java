@@ -942,7 +942,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
         MojangWatchdog(DedicatedServer server) throws NoSuchFieldException {
             this.server = server;
-            Field tickField = MinecraftServer.class.getDeclaredField("nextTick");
+            Field tickField = MinecraftServer.class.getDeclaredField("ao");
             tickField.setAccessible(true);
             this.tickField = tickField;
         }

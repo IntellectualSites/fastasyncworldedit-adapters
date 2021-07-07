@@ -68,6 +68,20 @@ import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
+import com.sk89q.worldedit.util.nbt.BinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
+import com.sk89q.worldedit.util.nbt.DoubleBinaryTag;
+import com.sk89q.worldedit.util.nbt.EndBinaryTag;
+import com.sk89q.worldedit.util.nbt.FloatBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntBinaryTag;
+import com.sk89q.worldedit.util.nbt.ListBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongBinaryTag;
+import com.sk89q.worldedit.util.nbt.ShortBinaryTag;
+import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.world.DataFixer;
 import com.sk89q.worldedit.world.RegenOptions;
 import com.sk89q.worldedit.world.biome.BiomeType;
@@ -497,11 +511,11 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
     }
 
     @Override
-    public void sendFakeNBT(Player player, BlockVector3 pos, CompoundTag nbtData) {
+    public void sendFakeNBT(Player player, BlockVector3 pos, CompoundBinaryTag nbtData) {
         ((CraftPlayer) player).getHandle().b.sendPacket(new PacketPlayOutTileEntityData(
                 new BlockPosition(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()),
                 7,
-                (NBTTagCompound) fromNative(nbtData)
+                (NBTTagCompound) fromNativeBinary(nbtData)
         ));
     }
 
@@ -563,13 +577,6 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
         }
 
         return result == EnumInteractionResult.a;
-    }
-
-    @Override
-    public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
-        int internalId = BlockStateIdAccess.getBlockStateId(blockState);
-        IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
     }
 
     @Override
@@ -862,45 +869,45 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
      * @param foreign structure to convert
      * @return non-native structure
      */
-    NBTBase fromNative(Tag foreign) {
+    @Override
+    public NBTBase fromNativeBinary(BinaryTag foreign) {
         if (foreign == null) {
             return null;
         }
-        if (foreign instanceof CompoundTag) {
+        if (foreign instanceof CompoundBinaryTag) {
             NBTTagCompound tag = new NBTTagCompound();
-            for (Map.Entry<String, Tag> entry : ((CompoundTag) foreign)
-                    .getValue().entrySet()) {
-                tag.set(entry.getKey(), fromNative(entry.getValue()));
+            for (String key : ((CompoundBinaryTag) foreign).keySet()) {
+                tag.set(key, fromNativeBinary(((CompoundBinaryTag) foreign).get(key)));
             }
             return tag;
-        } else if (foreign instanceof ByteTag) {
-            return NBTTagByte.a(((ByteTag) foreign).getValue());
-        } else if (foreign instanceof ByteArrayTag) {
-            return new NBTTagByteArray(((ByteArrayTag) foreign).getValue());
-        } else if (foreign instanceof DoubleTag) {
-            return NBTTagDouble.a(((DoubleTag) foreign).getValue());
-        } else if (foreign instanceof FloatTag) {
-            return NBTTagFloat.a(((FloatTag) foreign).getValue());
-        } else if (foreign instanceof IntTag) {
-            return NBTTagInt.a(((IntTag) foreign).getValue());
-        } else if (foreign instanceof IntArrayTag) {
-            return new NBTTagIntArray(((IntArrayTag) foreign).getValue());
-        } else if (foreign instanceof LongArrayTag) {
-            return new NBTTagLongArray(((LongArrayTag) foreign).getValue());
-        } else if (foreign instanceof ListTag) {
+        } else if (foreign instanceof ByteBinaryTag) {
+            return NBTTagByte.a(((ByteBinaryTag) foreign).value());
+        } else if (foreign instanceof ByteArrayBinaryTag) {
+            return new NBTTagByteArray(((ByteArrayBinaryTag) foreign).value());
+        } else if (foreign instanceof DoubleBinaryTag) {
+            return NBTTagDouble.a(((DoubleBinaryTag) foreign).value());
+        } else if (foreign instanceof FloatBinaryTag) {
+            return NBTTagFloat.a(((FloatBinaryTag) foreign).value());
+        } else if (foreign instanceof IntBinaryTag) {
+            return NBTTagInt.a(((IntBinaryTag) foreign).value());
+        } else if (foreign instanceof IntArrayBinaryTag) {
+            return new NBTTagIntArray(((IntArrayBinaryTag) foreign).value());
+        } else if (foreign instanceof LongArrayBinaryTag) {
+            return new NBTTagLongArray(((LongArrayBinaryTag) foreign).value());
+        } else if (foreign instanceof ListBinaryTag) {
             NBTTagList tag = new NBTTagList();
-            ListTag foreignList = (ListTag) foreign;
-            for (Tag t : foreignList.getValue()) {
-                tag.add(fromNative(t));
+            ListBinaryTag foreignList = (ListBinaryTag) foreign;
+            for (BinaryTag t : foreignList) {
+                tag.add(fromNativeBinary(t));
             }
             return tag;
-        } else if (foreign instanceof LongTag) {
-            return NBTTagLong.a(((LongTag) foreign).getValue());
-        } else if (foreign instanceof ShortTag) {
-            return NBTTagShort.a(((ShortTag) foreign).getValue());
-        } else if (foreign instanceof StringTag) {
-            return NBTTagString.a(((StringTag) foreign).getValue());
-        } else if (foreign instanceof EndTag) {
+        } else if (foreign instanceof LongBinaryTag) {
+            return NBTTagLong.a(((LongBinaryTag) foreign).value());
+        } else if (foreign instanceof ShortBinaryTag) {
+            return NBTTagShort.a(((ShortBinaryTag) foreign).value());
+        } else if (foreign instanceof StringBinaryTag) {
+            return NBTTagString.a(((StringBinaryTag) foreign).value());
+        } else if (foreign instanceof EndBinaryTag) {
             return NBTTagEnd.b;
         } else {
             throw new IllegalArgumentException("Don't know how to make NMS " + foreign.getClass().getCanonicalName());
@@ -979,6 +986,11 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter {
 
         @Override
         public void b() {
+        }
+
+        // TODO Paper only? @Override
+        public void setChunkRadius(int i) {
+
         }
     }
 }

@@ -11,7 +11,7 @@ import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
-import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BaseBlock;
@@ -49,7 +49,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     protected void storeTile(TileEntity tile) {
         tiles.put(BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
-                new LazyCompoundTag_1_17(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
+                new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
     }
 
     @Override

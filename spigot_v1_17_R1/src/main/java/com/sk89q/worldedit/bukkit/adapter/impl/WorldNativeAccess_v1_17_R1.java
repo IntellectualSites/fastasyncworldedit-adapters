@@ -102,7 +102,7 @@ public class WorldNativeAccess_v1_17_R1 implements WorldNativeAccess<Chunk, IBlo
 
     @Override
     public void notifyBlockUpdate(Chunk chunk, BlockPosition position, IBlockData oldState, IBlockData newState) {
-        if (chunk.getSections()[position.getY() >> ChunkStore.CHUNK_SHIFTS] != null) {
+        if (chunk.getSections()[world.get().getSectionIndex(position.getY())] != null) {
             getWorld().notify(position, oldState, newState, UPDATE | NOTIFY);
         }
     }
@@ -114,7 +114,7 @@ public class WorldNativeAccess_v1_17_R1 implements WorldNativeAccess<Chunk, IBlo
 
     @Override
     public void markBlockChanged(Chunk chunk, BlockPosition position) {
-        if (chunk.getSections()[position.getY() >> ChunkStore.CHUNK_SHIFTS] != null) {
+        if (chunk.getSections()[world.get().getSectionIndex(position.getY())] != null) {
             ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
         }
     }

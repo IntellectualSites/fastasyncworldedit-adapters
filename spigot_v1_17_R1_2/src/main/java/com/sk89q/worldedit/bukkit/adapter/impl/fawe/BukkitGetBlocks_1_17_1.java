@@ -21,7 +21,7 @@ import com.sk89q.jnbt.Tag;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
-import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
 import com.sk89q.worldedit.bukkit.paperlib.PaperLib;
 import com.sk89q.worldedit.internal.Constants;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
@@ -79,7 +79,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private static final Function<BlockPosition, BlockVector3> posNms2We = v -> BlockVector3.at(v.getX(), v.getY(), v.getZ());
-    private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+    private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
     public ChunkSection[] sections;
     public Chunk nmsChunk;
     public WorldServer world;
@@ -211,7 +211,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         if (tileEntity == null) {
             return null;
         }
-        return new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+        return new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
     }
 
     @Override
@@ -862,6 +862,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                 nibble = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(skyBlock, sectionPosition, nibble, true);
             }
+            /*
             synchronized (nibble) {
                 for (int i = 0; i < 4096; i++) {
                     if (light[Y][i] < 16) {
@@ -869,6 +870,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     }
                 }
             }
+             */
         }
     }
 

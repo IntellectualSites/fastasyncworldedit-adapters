@@ -85,7 +85,7 @@ import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk, Regen_v1_17_R1.ChunkStatusWrap> {
+public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk, Regen_v1_17_R1_2.ChunkStatusWrap> {
 
     private static final Field serverWorldsField;
     private static final Field worldPaperConfigField;
@@ -200,13 +200,13 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
         MinecraftServer server = originalNMSWorld.getCraftServer().getServer();
         WorldDataServer levelProperties = (WorldDataServer) server.getSaveData();
-        RegistryReadOps<NBTBase> nbtRegOps = RegistryReadOps.a(DynamicOpsNBT.a, server.aC.i(), IRegistryCustom.a());
+        RegistryReadOps<NBTBase> nbtRegOps = RegistryReadOps.a(DynamicOpsNBT.a, server.aB.i(), IRegistryCustom.a());
         GeneratorSettings newOpts = GeneratorSettings.a.encodeStart(nbtRegOps, levelProperties.getGeneratorSettings()).flatMap(tag -> GeneratorSettings.a.parse(this.recursivelySetSeed(new Dynamic<>(nbtRegOps, tag), seed, new HashSet<>()))).result().orElseThrow(() -> new IllegalStateException("Unable to map GeneratorOptions"));
         WorldSettings newWorldSettings = new WorldSettings("worldeditregentempworld", originalWorldData.e.getGameType(), originalWorldData.e.isHardcore(), originalWorldData.e.getDifficulty(), originalWorldData.e.e(), originalWorldData.e.getGameRules(), originalWorldData.e.g());
         WorldDataServer newWorldData = new WorldDataServer(newWorldSettings, newOpts, Lifecycle.stable());
 
         //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(server, server.aA, session, newWorldData, originalNMSWorld.getDimensionKey(), originalNMSWorld.getDimensionManager(), new RegenNoOpWorldLoadListener(), newOpts.d().a(worldDimKey).c(), originalNMSWorld.isDebugWorld(), seed, ImmutableList.of(), false, env, gen) {
+        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(server, server.az, session, newWorldData, originalNMSWorld.getDimensionKey(), originalNMSWorld.getDimensionManager(), new RegenNoOpWorldLoadListener(), newOpts.d().a(worldDimKey).c(), originalNMSWorld.isDebugWorld(), seed, ImmutableList.of(), false, env, gen) {
             private final BiomeBase singleBiome = options.hasBiomeType() ? RegistryGeneration.i.get(MinecraftKey.a(options.getBiomeType().getId())) : null;
 
             @Override
@@ -226,8 +226,8 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
         newWorldData.checkName(originalNMSWorld.E.getName()); //rename to original world name
 
 
-        freshChunkProvider = new ChunkProviderServer(freshNMSWorld, session, server.getDataFixer(), server.getDefinedStructureManager(), server.aA, originalChunkProvider.getChunkGenerator(), freshNMSWorld.spigotConfig.viewDistance, server.isSyncChunkWrites(), new RegenNoOpWorldLoadListener(), (chunkCoordIntPair, state) -> {
-        }, () -> server.F().getWorldPersistentData()) {
+        freshChunkProvider = new ChunkProviderServer(freshNMSWorld, session, server.getDataFixer(), server.getDefinedStructureManager(), server.az, originalChunkProvider.getChunkGenerator(), freshNMSWorld.spigotConfig.viewDistance, server.isSyncChunkWrites(), new RegenNoOpWorldLoadListener(), (chunkCoordIntPair, state) -> {
+        }, () -> server.E().getWorldPersistentData()) {
             // redirect to our protoChunks list
             @Override
             public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean flag) {
@@ -361,11 +361,15 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
     }
 
     private ResourceKey<WorldDimension> getWorldDimKey(org.bukkit.World.Environment env) {
-        return switch (env) {
-            case NETHER -> WorldDimension.c;
-            case THE_END -> WorldDimension.d;
-            default -> WorldDimension.b;
-        };
+        switch (env) {
+            case NETHER:
+                return WorldDimension.c;
+            case THE_END:
+                return WorldDimension.d;
+            case NORMAL:
+            default:
+                return WorldDimension.b;
+        }
     }
 
     private Dynamic<NBTBase> recursivelySetSeed(Dynamic<NBTBase> dynamic, long seed, Set<Dynamic<NBTBase>> seen) {

@@ -34,9 +34,9 @@ import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.blocks.TileEntityBlock;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
-import com.sk89q.worldedit.bukkit.adapter.impl.Spigot_v1_17_R1;
-import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
-import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_17_R1;
+import com.sk89q.worldedit.bukkit.adapter.impl.Spigot_v1_17_R1_2;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
+import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_17_R1_2;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.LazyBaseEntity;
 import com.sk89q.worldedit.extent.Extent;
@@ -115,7 +115,7 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
     private final MapChunkUtil_1_17_1 mapUtil = new MapChunkUtil_1_17_1();
 
     public FAWE_Spigot_v1_17_R1_2() throws NoSuchFieldException, NoSuchMethodException {
-        this.parent = new Spigot_v1_17_R1();
+        this.parent = new Spigot_v1_17_R1_2();
     }
 
     @Nullable
@@ -425,15 +425,15 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
 
     @Override
     public NBTBase fromNative(Tag foreign) {
-        if (foreign instanceof LazyCompoundTag_1_17) {
-            return ((LazyCompoundTag_1_17) foreign).get();
+        if (foreign instanceof LazyCompoundTag_1_17_1) {
+            return ((LazyCompoundTag_1_17_1) foreign).get();
         }
         return parent.fromNative(foreign);
     }
 
     @Override
     public boolean regenerate(org.bukkit.World bukkitWorld, Region region, Extent target, RegenOptions options) throws Exception {
-        return new Regen_v1_17_R1(bukkitWorld, region, target, options).regenerate();
+        return new Regen_v1_17_R1_2(bukkitWorld, region, target, options).regenerate();
     }
 
     @Override

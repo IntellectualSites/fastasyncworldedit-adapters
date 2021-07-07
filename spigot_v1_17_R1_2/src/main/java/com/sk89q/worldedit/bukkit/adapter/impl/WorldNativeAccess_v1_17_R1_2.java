@@ -6,6 +6,7 @@ import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
 import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.storage.ChunkStore;
 import net.minecraft.core.BlockPosition;
@@ -89,13 +90,13 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
     }
 
     @Override
-    public boolean updateTileEntity(BlockPosition position, CompoundTag tag) {
+    public boolean updateTileEntity(BlockPosition position, CompoundBinaryTag tag) {
         // We will assume that the tile entity was created for us
         TileEntity tileEntity = getWorld().getTileEntity(position);
         if (tileEntity == null) {
             return false;
         }
-        NBTBase nativeTag = adapter.fromNative(tag);
+        NBTBase nativeTag = adapter.fromNativeBinary(tag);
         Spigot_v1_17_R1_2.readTagIntoTileEntity((NBTTagCompound) nativeTag, tileEntity);
         return true;
     }
@@ -166,5 +167,10 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
     @Override
     public void onBlockStateChange(BlockPosition pos, IBlockData oldState, IBlockData newState) {
         getWorld().a(pos, oldState, newState);
+    }
+
+    @Override
+    public void flush() {
+
     }
 }
