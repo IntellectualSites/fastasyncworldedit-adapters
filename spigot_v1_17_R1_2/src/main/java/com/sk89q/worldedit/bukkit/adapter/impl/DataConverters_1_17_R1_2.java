@@ -16,6 +16,7 @@ import com.mojang.datafixers.DataFixerBuilder;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.serialization.Dynamic;
 import com.sk89q.jnbt.CompoundTag;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import net.minecraft.core.EnumDirection;
 import net.minecraft.nbt.DynamicOpsNBT;
 import net.minecraft.nbt.NBTBase;
@@ -69,11 +70,11 @@ class DataConverters_1_17_R1_2 extends DataFixerBuilder implements com.sk89q.wor
     @Override
     public <T> T fixUp(FixType<T> type, T original, int srcVer) {
         if (type == FixTypes.CHUNK) {
-            return (T) fixChunk((CompoundTag) original, srcVer);
+            return (T) fixChunk((CompoundBinaryTag) original, srcVer);
         } else if (type == FixTypes.BLOCK_ENTITY) {
-            return (T) fixBlockEntity((CompoundTag) original, srcVer);
+            return (T) fixBlockEntity((CompoundBinaryTag) original, srcVer);
         } else if (type == FixTypes.ENTITY) {
-            return (T) fixEntity((CompoundTag) original, srcVer);
+            return (T) fixEntity((CompoundBinaryTag) original, srcVer);
         } else if (type == FixTypes.BLOCK_STATE) {
             return (T) fixBlockState((String) original, srcVer);
         } else if (type == FixTypes.ITEM_TYPE) {
@@ -84,22 +85,22 @@ class DataConverters_1_17_R1_2 extends DataFixerBuilder implements com.sk89q.wor
         return original;
     }
 
-    private CompoundTag fixChunk(CompoundTag originalChunk, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(originalChunk);
-        NBTTagCompound fixed = convert(LegacyType.CHUNK, tag, srcVer);
-        return (CompoundTag) adapter.toNative(fixed);
+    private CompoundBinaryTag fixChunk(CompoundBinaryTag originalChunk, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(originalChunk);
+        NBTTagCompound fixed = convert(DataConverters_1_17_R1_2.LegacyType.CHUNK, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
-    private CompoundTag fixBlockEntity(CompoundTag origTileEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origTileEnt);
-        NBTTagCompound fixed = convert(LegacyType.BLOCK_ENTITY, tag, srcVer);
-        return (CompoundTag) adapter.toNative(fixed);
+    private CompoundBinaryTag fixBlockEntity(CompoundBinaryTag origTileEnt, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origTileEnt);
+        NBTTagCompound fixed = convert(DataConverters_1_17_R1_2.LegacyType.BLOCK_ENTITY, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
-    private CompoundTag fixEntity(CompoundTag origEnt, int srcVer) {
-        NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(origEnt);
-        NBTTagCompound fixed = convert(LegacyType.ENTITY, tag, srcVer);
-        return (CompoundTag) adapter.toNative(fixed);
+    private CompoundBinaryTag fixEntity(CompoundBinaryTag origEnt, int srcVer) {
+        NBTTagCompound tag = (NBTTagCompound) adapter.fromNativeBinary(origEnt);
+        NBTTagCompound fixed = convert(DataConverters_1_17_R1_2.LegacyType.ENTITY, tag, srcVer);
+        return (CompoundBinaryTag) adapter.toNativeBinary(fixed);
     }
 
     private String fixBlockState(String blockState, int srcVer) {
