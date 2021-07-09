@@ -862,15 +862,18 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                 nibble = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(skyBlock, sectionPosition, nibble, true);
             }
-            /*
             synchronized (nibble) {
-                for (int i = 0; i < 4096; i++) {
-                    if (light[Y][i] < 16) {
-                        nibble.a(i, light[Y][i]);
+                for (int x = 0; x < 16; x++) {
+                    for (int y = 0; y < 16; y++) {
+                        for (int z = 0; z < 16; z++) {
+                            int i = y << 8 | z << 4 | x;
+                            if (light[Y][i] < 16) {
+                                nibble.a(x, y, z, light[Y][i]);
+                            }
+                        }
                     }
                 }
             }
-             */
         }
     }
 
