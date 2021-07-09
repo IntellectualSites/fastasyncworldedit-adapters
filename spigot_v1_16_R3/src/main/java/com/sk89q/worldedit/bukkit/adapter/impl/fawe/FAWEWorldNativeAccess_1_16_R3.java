@@ -39,17 +39,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
     private static final int UPDATE = 1;
     private static final int NOTIFY = 2;
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-            EnumDirection.WEST, EnumDirection.EAST,
-            EnumDirection.DOWN, EnumDirection.UP,
-            EnumDirection.NORTH, EnumDirection.SOUTH
-    };
+
     private final FAWE_Spigot_v1_16_R3 adapter;
     private final WeakReference<World> world;
+    private SideEffectSet sideEffectSet;
     private final AtomicInteger lastTick;
     private final Set<CachedChange> cachedChanges = new HashSet<>();
     private final Set<IntPair> cachedChunksToSend = new HashSet<>();
-    private SideEffectSet sideEffectSet;
 
     public FAWEWorldNativeAccess_1_16_R3(FAWE_Spigot_v1_16_R3 adapter, WeakReference<World> world) {
         this.adapter = adapter;
@@ -92,7 +88,7 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
         int currentTick = MinecraftServer.currentTick;
         if (Fawe.isMainThread()) {
             return chunk.setType(position, state,
-                    this.sideEffectSet != null && this.sideEffectSet.shouldApply(SideEffect.UPDATE));
+                this.sideEffectSet != null && this.sideEffectSet.shouldApply(SideEffect.UPDATE));
         }
         // Since FAWE is.. Async we need to do it on the main thread (wooooo.. :( )
         cachedChanges.add(new CachedChange(chunk, position, state));
@@ -154,6 +150,12 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
         }
     }
 
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.WEST, EnumDirection.EAST,
+            EnumDirection.DOWN, EnumDirection.UP,
+            EnumDirection.NORTH, EnumDirection.SOUTH
+    };
+
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {
         World world = getWorld();
@@ -198,20 +200,20 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
     }
 
     private synchronized void flushAsync(final boolean sendChunks) {
-        final Set<CachedChange> changes = Set.copyOf(cachedChanges);
+        final Set<CachedChange> changes = Collections.unmodifiableSet(new HashSet<>(cachedChanges));
         cachedChanges.clear();
         final Set<IntPair> toSend;
         if (sendChunks) {
-            toSend = Set.copyOf(cachedChunksToSend);
+            toSend = Collections.unmodifiableSet(new HashSet<>(cachedChunksToSend));
             cachedChunksToSend.clear();
         } else {
             toSend = Collections.emptySet();
         }
-        RunnableVal<Object> r = new RunnableVal<>() {
+        RunnableVal<Object> r = new RunnableVal<Object>() {
             @Override
             public void run(Object value) {
                 changes.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
-                        sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
+                    sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
                 if (!sendChunks) {
                     return;
                 }
@@ -225,11 +227,11 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
 
     @Override
     public synchronized void flush() {
-        RunnableVal<Object> r = new RunnableVal<>() {
+        RunnableVal<Object> r = new RunnableVal<Object>() {
             @Override
             public void run(Object value) {
                 cachedChanges.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
-                        sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
+                    sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
                 for (IntPair chunk : cachedChunksToSend) {
                     BukkitAdapter_1_16_5.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
                 }

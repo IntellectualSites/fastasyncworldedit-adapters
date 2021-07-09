@@ -176,17 +176,17 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         org.bukkit.generator.ChunkGenerator gen = originalBukkitWorld.getGenerator();
 
         MinecraftServer server = originalNMSWorld.getServer().getServer();
-        WorldData newWorldData = new WorldData(originalNMSWorld.worldData.a((NBTTagCompound) null), server.dataConverterManager, CraftMagicNumbers.INSTANCE.getDataVersion(), null);
+        WorldData newWorldData = new WorldData(originalNMSWorld.worldData.a((NBTTagCompound) null), server.dataConverterManager, CraftMagicNumbers.INSTANCE.getDataVersion(), (NBTTagCompound) null);
         newWorldData.setName("worldeditregentempworld");
         WorldNBTStorage saveHandler = new WorldNBTStorage(new File(tempDir.toUri()), originalNMSWorld.getDataManager().getDirectory().getName(), server, server.dataConverterManager);
 
         //init world
         freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(server, server.executorService, saveHandler, newWorldData, originalNMSWorld.worldProvider.getDimensionManager(), originalNMSWorld.getMethodProfiler(), new RegenNoOpWorldLoadListener(), env, gen) {
-            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options.getBiomeType().getId())) : null;
-
             @Override
             public void doTick(BooleanSupplier booleansupplier) { //no ticking
             }
+
+            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options.getBiomeType().getId())) : null;
 
             @Override
             public BiomeBase a(int i, int k, int j) {
@@ -199,11 +199,11 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         freshNMSWorld.savingDisabled = true;
         removeWorldFromWorldsMap();
         newWorldData.checkName(originalNMSWorld.getWorldData().getName()); //rename to original world name
-
+        
         try { //flat bedrock (paper only)
             Object paperconf = worldPaperConfigField.get(freshNMSWorld);
             flatBedrockField.setBoolean(paperconf, generateFlatBedrock);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
         }
 
         DefinedStructureManager tmpStructureManager = saveHandler.f();
@@ -234,7 +234,8 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             GeneratorSettingsEnd settings = (GeneratorSettingsEnd) originalChunkProvider.getChunkGenerator().getSettings();
             generator = new ChunkProviderTheEnd(freshNMSWorld, originalChunkProvider.getChunkGenerator().getWorldChunkManager(), settings);
         } else if (originalChunkProvider.getChunkGenerator() instanceof CustomChunkGenerator) {
-            generator = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
+            ChunkGenerator delegate = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
+            generator = delegate;
         } else {
             System.out.println("Unsupported generator type " + originalChunkProvider.getChunkGenerator().getClass().getName());
             return false;
@@ -263,19 +264,19 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                     throw new RuntimeException(e);
                 }
             });
-        } catch (Exception ignored) {
+        } catch (Exception e) {
         }
 
         //remove world from server
         try {
             removeWorldFromWorldsMap();
-        } catch (Exception ignored) {
+        } catch (Exception e) {
         }
 
         //delete directory
         try {
             SafeFiles.tryHardToDeleteDir(tempDir);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
         }
     }
 
@@ -318,6 +319,35 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         };
     }
 
+    protected class ChunkStatusWrap extends ChunkStatusWrapper<IChunkAccess> {
+
+        private final ChunkStatus chunkStatus;
+
+        public ChunkStatusWrap(ChunkStatus chunkStatus) {
+            this.chunkStatus = chunkStatus;
+        }
+
+        @Override
+        public int requiredNeigborChunkRadius() {
+            return chunkStatus.f();
+        }
+
+        @Override
+        public String name() {
+            return chunkStatus.d();
+        }
+
+        @Override
+        public void processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
+            chunkStatus.a(freshNMSWorld,
+                          generator,
+                          structureManager,
+                          lightEngine,
+                          c -> CompletableFuture.completedFuture(Either.left(c)),
+                          accessibleChunks);
+        }
+    }
+
     //util
     private void removeWorldFromWorldsMap() {
         Fawe.get().getQueueHandler().sync(() -> {
@@ -329,7 +359,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             }
         });
     }
-
+    
     private WorldChunkManager fastOverWorldChunkManager(WorldChunkManager chunkManager) throws Exception {
         Field genLayerField = WorldChunkManagerOverworld.class.getDeclaredField("d");
         genLayerField.setAccessible(true);
@@ -381,18 +411,6 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             this.perlinNoise = new NoiseGeneratorPerlin(new Random(seed));
         }
 
-        private static long mix(long seed, long lconst) {
-            long l1 = lconst;
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            long l2 = seed;
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            return l2;
-        }
-
         @Override
         public FastAreaLazy a(AreaTransformer8 var0) {
             return new FastAreaLazy(sharedAreaMap, var0);
@@ -420,6 +438,18 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         @Override
         public NoiseGeneratorPerlin b() {
             return this.perlinNoise;
+        }
+
+        private static long mix(long seed, long lconst) {
+            long l1 = lconst;
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            long l2 = seed;
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            return l2;
         }
     }
 
@@ -479,35 +509,6 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
         @Override
         public void setChunkRadius(int i) {
-        }
-    }
-
-    protected class ChunkStatusWrap extends ChunkStatusWrapper<IChunkAccess> {
-
-        private final ChunkStatus chunkStatus;
-
-        public ChunkStatusWrap(ChunkStatus chunkStatus) {
-            this.chunkStatus = chunkStatus;
-        }
-
-        @Override
-        public int requiredNeigborChunkRadius() {
-            return chunkStatus.f();
-        }
-
-        @Override
-        public String name() {
-            return chunkStatus.d();
-        }
-
-        @Override
-        public void processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
-            chunkStatus.a(freshNMSWorld,
-                    generator,
-                    structureManager,
-                    lightEngine,
-                    c -> CompletableFuture.completedFuture(Either.left(c)),
-                    accessibleChunks);
         }
     }
 }

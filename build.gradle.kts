@@ -32,15 +32,23 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url = uri("https://mvn.intellectualsites.com/content/repositories/releases/") }
+        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
         maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
         maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
     }
 
     dependencies {
-        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-23")
+        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-44")
         compileOnly("io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT")
         compileOnly("io.papermc:paperlib:1.0.6")
+    }
+
+    configurations.all {
+        attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 16)
+    }
+
+    tasks.compileJava.configure {
+        options.release.set(11)
     }
 
 }
@@ -57,7 +65,8 @@ mapOf(
 }
 
 mapOf(
-        "spigot_v1_17_R1" to "1_17_r1"
+        "spigot_v1_17_R1" to "1_17_r1",
+        "spigot_v1_17_R1_2" to "1_17_r2",
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
         dependencies.compileOnly("io.papermc.paperv$dep:paperv$dep:$dep")
