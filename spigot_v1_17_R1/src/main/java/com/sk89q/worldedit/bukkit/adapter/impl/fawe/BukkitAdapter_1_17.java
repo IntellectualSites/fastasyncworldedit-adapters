@@ -1,9 +1,9 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-import com.fastasyncworldedit.core.Fawe;
-import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.bukkit.adapter.DelegateSemaphore;
 import com.fastasyncworldedit.bukkit.adapter.NMSAdapter;
+import com.fastasyncworldedit.core.Fawe;
+import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
 import com.fastasyncworldedit.core.util.MathMan;
@@ -14,6 +14,9 @@ import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import net.minecraft.core.BlockPosition;
+import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.GameProfileSerializer;
 import net.minecraft.network.protocol.game.PacketPlayOutLightUpdate;
 import net.minecraft.network.protocol.game.PacketPlayOutMapChunk;
@@ -26,6 +29,8 @@ import net.minecraft.world.level.ChunkCoordIntPair;
 import net.minecraft.world.level.World;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ITileEntity;
+import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.block.state.IBlockData;
 import net.minecraft.world.level.chunk.BiomeStorage;
 import net.minecraft.world.level.chunk.Chunk;
@@ -33,6 +38,8 @@ import net.minecraft.world.level.chunk.ChunkSection;
 import net.minecraft.world.level.chunk.DataPalette;
 import net.minecraft.world.level.chunk.DataPaletteBlock;
 import net.minecraft.world.level.chunk.DataPaletteLinear;
+import net.minecraft.world.level.gameevent.GameEventDispatcher;
+import net.minecraft.world.level.gameevent.GameEventListener;
 import org.bukkit.craftbukkit.v1_17_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import sun.misc.Unsafe;
@@ -74,6 +81,11 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
     private static final Field fieldLock;
     private static final long fieldLockOffset;
 
+    private static final Field fieldEventDispatcherMap;
+    private static final MethodHandle methodremoveTickingBlockEntity;
+
+    private static final Field fieldTileEntityRemoved;
+
     static {
         try {
             // TODO
@@ -104,6 +116,15 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
             Unsafe unsafe = UnsafeUtility.getUNSAFE();
             fieldLock = DataPaletteBlock.class.getDeclaredField("m");
             fieldLockOffset = unsafe.objectFieldOffset(fieldLock);
+
+            fieldEventDispatcherMap = Chunk.class.getDeclaredField("x");
+            fieldEventDispatcherMap.setAccessible(true);
+            Method removeTickingBlockEntity = Chunk.class.getDeclaredMethod("l", BlockPosition.class);
+            removeTickingBlockEntity.setAccessible(true);
+            methodremoveTickingBlockEntity = MethodHandles.lookup().unreflect(removeTickingBlockEntity);
+
+            fieldTileEntityRemoved = TileEntity.class.getDeclaredField("p");
+            fieldTileEntityRemoved.setAccessible(true);
 
             CHUNKSECTION_BASE = unsafe.arrayBaseOffset(ChunkSection[].class);
             int scale = unsafe.arrayIndexScale(ChunkSection[].class);
@@ -313,6 +334,40 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    protected static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
+        try {
+            // Do the method ourselves to avoid trying to reflect generic method parameters
+            if (nmsChunk.h || nmsChunk.i.isClientSide()) {
+                TileEntity tileentity = nmsChunk.l.remove(beacon.getPosition());
+                if (tileentity != null) {
+                    if (!nmsChunk.i.y) {
+                        Block block = beacon.getBlock().getBlock();
+                        if (block instanceof ITileEntity) {
+                            GameEventListener gameeventlistener = ((ITileEntity) block).a(nmsChunk.i, beacon);
+                            if (gameeventlistener != null) {
+                                int i = SectionPosition.a(beacon.getPosition().getY());
+                                GameEventDispatcher gameeventdispatcher = nmsChunk.a(i);
+                                gameeventdispatcher.b(gameeventlistener);
+                                if (gameeventdispatcher.a()) {
+                                    try {
+                                        ((Int2ObjectMap<GameEventDispatcher>) fieldEventDispatcherMap.get(nmsChunk))
+                                            .remove(i);
+                                    } catch (IllegalAccessException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    fieldTileEntityRemoved.set(beacon, true);
+                }
+            }
+            methodremoveTickingBlockEntity.invoke(nmsChunk, beacon.getPosition());
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
     }
 }
