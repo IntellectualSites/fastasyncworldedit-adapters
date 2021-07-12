@@ -409,7 +409,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                     int ordinal = set.getBlock(lx, ly, lz).getOrdinal();
                     if (ordinal != 0) {
                         TileEntity tile = entry.getValue();
-                        if (tile instanceof TileEntityBeacon) {
+                        if (PaperLib.isPaper() && tile instanceof TileEntityBeacon) {
                             if (beacons == null) {
                                 beacons = new ArrayList<>();
                             }
@@ -529,6 +529,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                 int bz = chunkZ << 4;
 
                 // Call beacon deactivate events here synchronously
+                // list will be null on spigot, so this is an implicit isPaper check
                 if (beacons != null && !beacons.isEmpty()) {
                     final List<TileEntity> finalBeacons = beacons;
 
