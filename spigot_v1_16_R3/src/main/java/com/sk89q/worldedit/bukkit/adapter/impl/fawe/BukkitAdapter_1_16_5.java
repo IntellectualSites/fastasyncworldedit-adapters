@@ -30,6 +30,7 @@ import net.minecraft.server.v1_16_R3.PacketPlayOutLightUpdate;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMapChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunkMap;
+import net.minecraft.server.v1_16_R3.TileEntity;
 import net.minecraft.server.v1_16_R3.World;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.bukkit.craftbukkit.v1_16_R3.CraftChunk;
@@ -72,6 +73,8 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
     private static final Field fieldLock;
     private static final long fieldLockOffset;
 
+    private static final Field fieldTileEntityRemoved;
+
     static {
         try {
             fieldSize = DataPaletteBlock.class.getDeclaredField("i");
@@ -101,6 +104,9 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
             Unsafe unsafe = UnsafeUtility.getUNSAFE();
             fieldLock = DataPaletteBlock.class.getDeclaredField("j");
             fieldLockOffset = unsafe.objectFieldOffset(fieldLock);
+
+            fieldTileEntityRemoved = TileEntity.class.getDeclaredField("f");
+            fieldTileEntityRemoved.setAccessible(true);
 
             CHUNKSECTION_BASE = unsafe.arrayBaseOffset(ChunkSection[].class);
             int scale = unsafe.arrayIndexScale(ChunkSection[].class);
@@ -305,6 +311,18 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    protected static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
+        try {
+            // Do the method ourselves to avoid trying to reflect generic method parameters
+            if (nmsChunk.loaded || nmsChunk.world.s_()) {
+                nmsChunk.tileEntities.remove(beacon.getPosition());
+            }
+            fieldTileEntityRemoved.set(beacon, true);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
     }
 }

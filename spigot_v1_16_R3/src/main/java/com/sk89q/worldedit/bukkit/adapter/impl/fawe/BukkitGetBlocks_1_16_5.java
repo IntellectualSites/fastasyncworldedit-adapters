@@ -28,6 +28,7 @@ import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BlockTypes;
 import io.papermc.lib.PaperLib;
+import io.papermc.paper.event.block.BeaconDeactivatedEvent;
 import net.minecraft.server.v1_16_R3.BiomeBase;
 import net.minecraft.server.v1_16_R3.BiomeStorage;
 import net.minecraft.server.v1_16_R3.BlockPosition;
@@ -49,7 +50,9 @@ import net.minecraft.server.v1_16_R3.NBTTagCompound;
 import net.minecraft.server.v1_16_R3.NBTTagInt;
 import net.minecraft.server.v1_16_R3.NibbleArray;
 import net.minecraft.server.v1_16_R3.SectionPosition;
+import net.minecraft.server.v1_16_R3.SoundEffects;
 import net.minecraft.server.v1_16_R3.TileEntity;
+import net.minecraft.server.v1_16_R3.TileEntityBeacon;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.World;
@@ -61,6 +64,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -388,28 +392,34 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
             Chunk nmsChunk = ensureLoaded(nmsWorld, chunkX, chunkZ);
             boolean fastmode = set.isFastMode() && Settings.IMP.QUEUE.NO_TICK_FASTMODE;
 
-            // Remove existing tiles
-            {
-                // Create a copy so that we can remove blocks
-                Map<BlockPosition, TileEntity> tiles = new HashMap<>(nmsChunk.getTileEntities());
-                if (!tiles.isEmpty()) {
-                    for (Map.Entry<BlockPosition, TileEntity> entry : tiles.entrySet()) {
-                        final BlockPosition pos = entry.getKey();
-                        final int lx = pos.getX() & 15;
-                        final int ly = pos.getY();
-                        final int lz = pos.getZ() & 15;
-                        final int layer = ly >> 4;
-                        if (!set.hasSection(layer)) {
+            // Remove existing tiles. Create a copy so that we can remove blocks
+            Map<BlockPosition, TileEntity> chunkTiles = new HashMap<>(nmsChunk.getTileEntities());
+            List<TileEntity> beacons = null;
+            if (!chunkTiles.isEmpty()) {
+                for (Map.Entry<BlockPosition, TileEntity> entry : chunkTiles.entrySet()) {
+                    final BlockPosition pos = entry.getKey();
+                    final int lx = pos.getX() & 15;
+                    final int ly = pos.getY();
+                    final int lz = pos.getZ() & 15;
+                    final int layer = ly >> 4;
+                    if (!set.hasSection(layer)) {
+                        continue;
+                    }
+
+                    int ordinal = set.getBlock(lx, ly, lz).getOrdinal();
+                    if (ordinal != 0) {
+                        TileEntity tile = entry.getValue();
+                        if (PaperLib.isPaper() && tile instanceof TileEntityBeacon) {
+                            if (beacons == null) {
+                                beacons = new ArrayList<>();
+                            }
+                            beacons.add(tile);
+                            BukkitAdapter_1_16_5.removeBeacon(tile, nmsChunk);
                             continue;
                         }
-
-                        int ordinal = set.getBlock(lx, ly, lz).getOrdinal();
-                        if (ordinal != 0) {
-                            TileEntity tile = entry.getValue();
-                            nmsChunk.removeTileEntity(tile.getPosition());
-                            if (createCopy) {
-                                copy.storeTile(tile);
-                            }
+                        nmsChunk.removeTileEntity(tile.getPosition());
+                        if (createCopy) {
+                            copy.storeTile(tile);
                         }
                     }
                 }
@@ -518,9 +528,26 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                 int bx = chunkX << 4;
                 int bz = chunkZ << 4;
 
+                // Call beacon deactivate events here synchronously
+                // list will be null on spigot, so this is an implicit isPaper check
+                if (beacons != null && !beacons.isEmpty()) {
+                    final List<TileEntity> finalBeacons = beacons;
+
+                    syncTasks = new Runnable[4];
+
+                    syncTasks[3] = () -> {
+                        for (TileEntity beacon : finalBeacons) {
+                            ((TileEntityBeacon) beacon).a(SoundEffects.BLOCK_BEACON_DEACTIVATE);
+                            new BeaconDeactivatedEvent(CraftBlock.at(beacon.getWorld(), beacon.getPosition())).callEvent();
+                        }
+                    };
+                }
+
                 Set<UUID> entityRemoves = set.getEntityRemoves();
                 if (entityRemoves != null && !entityRemoves.isEmpty()) {
-                    syncTasks = new Runnable[3];
+                    if (syncTasks == null) {
+                        syncTasks = new Runnable[3];
+                    }
 
                     syncTasks[2] = () -> {
                         final List<Entity>[] entities = nmsChunk.getEntitySlices();
