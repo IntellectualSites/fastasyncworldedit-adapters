@@ -37,8 +37,10 @@ import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_15_R2;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.LazyBaseEntity;
 import com.sk89q.worldedit.extent.Extent;
+import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
+import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.SideEffect;
@@ -398,6 +400,13 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     @Override
     public Map<String, ? extends Property<?>> getProperties(BlockType blockType) {
         return getParent().getProperties(blockType);
+    }
+
+    @Override
+    public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
+        int internalId = BlockStateIdAccess.getBlockStateId(blockState);
+        IBlockData blockData = Block.getByCombinedId(internalId);
+        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
     }
 
     @Override

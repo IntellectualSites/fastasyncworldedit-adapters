@@ -15,7 +15,6 @@ import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.DataFixerBuilder;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.serialization.Dynamic;
-import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
 import net.minecraft.core.EnumDirection;
 import net.minecraft.nbt.DynamicOpsNBT;
