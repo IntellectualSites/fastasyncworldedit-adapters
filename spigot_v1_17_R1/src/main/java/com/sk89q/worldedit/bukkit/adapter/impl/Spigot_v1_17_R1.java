@@ -187,7 +187,6 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
 
-    private final Field nbtListTagListField;
     private final Field serverWorldsField;
     private final Method getChunkFutureMethod;
     private final Field chunkProviderExecutorField;
@@ -204,10 +203,6 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
         int dataVersion = CraftMagicNumbers.INSTANCE.getDataVersion();
         if (dataVersion != 2724) throw new UnsupportedClassVersionError("Not 1.17!");
-
-        // The list of tags on an NBTTagList
-        nbtListTagListField = NBTTagList.class.getDeclaredField("c");
-        nbtListTagListField.setAccessible(true);
 
         serverWorldsField = CraftServer.class.getDeclaredField("worlds");
         serverWorldsField.setAccessible(true);
@@ -846,12 +841,12 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         ListBinaryTag.Builder values = ListBinaryTag.builder();
 
-        List foreignList;
-        foreignList = (List) nbtListTagListField.get(foreign);
+        //FAWE start - Reduce the use of reflection when it isn't needed.
         for (int i = 0; i < foreign.size(); i++) {
-            NBTBase element = (NBTBase) foreignList.get(i);
+            NBTBase element = foreign.get(i);
             values.add(toNativeBinary(element)); // List elements shouldn't have names
         }
+        //FAWE end
 
         return values.build();
     }

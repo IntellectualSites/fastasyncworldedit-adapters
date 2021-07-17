@@ -65,8 +65,6 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
     public static final Field fieldPalette;
     public static final Field fieldSize;
 
-    public static final Field fieldBitsPerEntry;
-
     public static final Field fieldFluidCount;
     public static final Field fieldTickingBlockCount;
     public static final Field fieldNonEmptyBlockCount;
@@ -84,8 +82,6 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
     private static final Field fieldEventDispatcherMap;
     private static final MethodHandle methodremoveTickingBlockEntity;
 
-    private static final Field fieldTileEntityRemoved;
-
     static {
         try {
             // TODO
@@ -95,9 +91,6 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             fieldBits.setAccessible(true);
             fieldPalette = DataPaletteBlock.class.getDeclaredField("k");
             fieldPalette.setAccessible(true);
-
-            fieldBitsPerEntry = DataBits.class.getDeclaredField("c");
-            fieldBitsPerEntry.setAccessible(true);
 
             fieldFluidCount = ChunkSection.class.getDeclaredField("h");
             fieldFluidCount.setAccessible(true);
@@ -122,9 +115,6 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             Method removeTickingBlockEntity = Chunk.class.getDeclaredMethod("l", BlockPosition.class);
             removeTickingBlockEntity.setAccessible(true);
             methodremoveTickingBlockEntity = MethodHandles.lookup().unreflect(removeTickingBlockEntity);
-
-            fieldTileEntityRemoved = TileEntity.class.getDeclaredField("p");
-            fieldTileEntityRemoved.setAccessible(true);
 
             CHUNKSECTION_BASE = unsafe.arrayBaseOffset(ChunkSection[].class);
             int scale = unsafe.arrayIndexScale(ChunkSection[].class);
@@ -343,6 +333,7 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             if (nmsChunk.h || nmsChunk.i.isClientSide()) {
                 TileEntity tileentity = nmsChunk.l.remove(beacon.getPosition());
                 if (tileentity != null) {
+                    //todo from here down could be replaced with c() on line 691 of non-mojmap Chunk.class
                     if (!nmsChunk.i.y) {
                         Block block = beacon.getBlock().getBlock();
                         if (block instanceof ITileEntity) {
@@ -362,7 +353,7 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
                             }
                         }
                     }
-                    fieldTileEntityRemoved.set(beacon, true);
+                    beacon.aa_();
                 }
             }
             methodremoveTickingBlockEntity.invoke(nmsChunk, beacon.getPosition());
