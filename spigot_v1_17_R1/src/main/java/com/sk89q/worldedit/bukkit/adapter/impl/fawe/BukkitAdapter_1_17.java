@@ -10,10 +10,10 @@ import com.fastasyncworldedit.core.util.MathMan;
 import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
+import com.sk89q.worldedit.bukkit.paperlib.PaperLib;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
-import io.papermc.lib.PaperLib;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.SectionPosition;
@@ -207,11 +207,14 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         ChunkCoordIntPair chunkCoordIntPair = new ChunkCoordIntPair(chunkX, chunkZ);
         // UNLOADED_CHUNK
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.c)).left();
-        Chunk chunk = optional.orElseGet(() ->
-                nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ));
-        if (chunk == null)  {
+        if (PaperLib.isPaper()) {
+            // getChunkAtIfLoadedImmediately is paper only
+            optional = optional.or(() -> Optional.ofNullable(nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
+        }
+        if (optional.isEmpty()) {
             return;
         }
+        Chunk chunk = optional.get();
         PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk);
         nearbyPlayers(nmsWorld, chunkCoordIntPair).forEach(p -> {
             p.b.sendPacket(chunkPacket);
