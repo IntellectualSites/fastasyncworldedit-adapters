@@ -1,7 +1,7 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
 import com.fastasyncworldedit.core.Fawe;
-import com.fastasyncworldedit.core.object.IntPair;
+import com.fastasyncworldedit.core.math.IntPair;
 import com.fastasyncworldedit.core.object.RunnableVal;
 import com.fastasyncworldedit.core.util.TaskManager;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;

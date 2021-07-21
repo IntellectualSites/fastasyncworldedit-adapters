@@ -177,7 +177,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     @Override
-    public int getEmmittedLight(int x, int y, int z) {
+    public int getEmittedLight(int x, int y, int z) {
         return 0;
     }
 

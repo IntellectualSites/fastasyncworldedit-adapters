@@ -10,8 +10,8 @@ import com.fastasyncworldedit.core.beta.implementation.blocks.CharGetBlocks;
 import com.fastasyncworldedit.core.beta.implementation.lighting.HeightMapType;
 import com.fastasyncworldedit.core.beta.implementation.queue.QueueHandler;
 import com.fastasyncworldedit.core.configuration.Settings;
+import com.fastasyncworldedit.core.math.BitArrayUnstretched;
 import com.fastasyncworldedit.core.object.collection.AdaptedMap;
-import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import com.sk89q.jnbt.CompoundTag;
@@ -246,7 +246,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public int getEmmittedLight(int x, int y, int z) {
+    public int getEmittedLight(int x, int y, int z) {
         int layer = y >> 4;
         if (blockLight[layer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
