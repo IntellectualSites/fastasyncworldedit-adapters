@@ -185,11 +185,14 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         }
         ChunkCoordIntPair chunkCoordIntPair = new ChunkCoordIntPair(chunkX, chunkZ);
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.UNLOADED_CHUNK)).left();
-        Chunk chunk = optional.orElseGet(() ->
-                nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ));
-        if (chunk == null)  {
+        if (PaperLib.isPaper()) {
+            // getChunkAtIfLoadedImmediately is paper only
+            optional = optional.or(() -> Optional.ofNullable(nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
+        }
+        if (optional.isEmpty()) {
             return;
         }
+        Chunk chunk = optional.get();
         PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
         playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
             p.playerConnection.sendPacket(chunkPacket);

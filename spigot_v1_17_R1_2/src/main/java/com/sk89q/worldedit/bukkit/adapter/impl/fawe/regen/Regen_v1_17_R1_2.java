@@ -14,6 +14,7 @@ import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
 import com.sk89q.worldedit.world.RegenOptions;
+import io.papermc.lib.PaperLib;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryCustom;
 import net.minecraft.core.RegistryMaterials;
@@ -32,6 +33,7 @@ import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.level.progress.WorldLoadListener;
 import net.minecraft.util.LinearCongruentialGenerator;
 import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.World;
 import net.minecraft.world.level.WorldSettings;
 import net.minecraft.world.level.biome.BiomeBase;
@@ -297,17 +299,32 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
     @Override
     protected ProtoChunk createProtoChunk(int x, int z) {
-        return new ProtoChunk(new ChunkCoordIntPair(x, z), ChunkConverter.a, freshNMSWorld) {
-            public boolean generateFlatBedrock() {
-                return generateFlatBedrock;
-            }
+        return PaperLib.isPaper()
+                ? new FastProtoChunk(new ChunkCoordIntPair(x, z), ChunkConverter.a, freshNMSWorld, freshNMSWorld) // paper
+                : new FastProtoChunk(new ChunkCoordIntPair(x, z), ChunkConverter.a, freshNMSWorld); // spigot
+    }
 
-            // no one will ever see the entities!
-            @Override
-            public List<NBTTagCompound> z() {
-                return Collections.emptyList();
-            }
-        };
+    private class FastProtoChunk extends ProtoChunk {
+
+        // avoid warning on paper
+        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world, WorldServer level) {
+            super(pos, upgradeData, world, level);
+        }
+
+        // compatibility with spigot
+        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world) {
+            super(pos, upgradeData, world);
+        }
+
+        public boolean generateFlatBedrock() {
+            return generateFlatBedrock;
+        }
+
+        // no one will ever see the entities!
+        @Override
+        public List<NBTTagCompound> z() {
+            return Collections.emptyList();
+        }
     }
 
     @Override
