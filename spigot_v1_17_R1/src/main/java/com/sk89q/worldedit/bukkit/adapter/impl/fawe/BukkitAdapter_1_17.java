@@ -215,20 +215,23 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
             return;
         }
         Chunk chunk = optional.get();
-        PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk);
-        nearbyPlayers(nmsWorld, chunkCoordIntPair).forEach(p -> {
-            p.b.sendPacket(chunkPacket);
-        });
-        if (lighting) {
-            //This needs to be true otherwise Minecraft will update lighting from/at the chunk edges (bad)
-            boolean trustEdges = true;
-            PacketPlayOutLightUpdate packet =
-                    new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine(),
-                            null, null, trustEdges);
+        TaskManager.IMP.sync(() -> {
+            PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk);
             nearbyPlayers(nmsWorld, chunkCoordIntPair).forEach(p -> {
-                p.b.sendPacket(packet);
+                p.b.sendPacket(chunkPacket);
             });
-        }
+            if (lighting) {
+                //This needs to be true otherwise Minecraft will update lighting from/at the chunk edges (bad)
+                boolean trustEdges = true;
+                PacketPlayOutLightUpdate packet =
+                        new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine(),
+                                null, null, trustEdges);
+                nearbyPlayers(nmsWorld, chunkCoordIntPair).forEach(p -> {
+                    p.b.sendPacket(packet);
+                });
+            }
+            return null;
+        });
     }
 
     private static Stream<EntityPlayer> nearbyPlayers(WorldServer world, ChunkCoordIntPair chunkCoordIntPair) {

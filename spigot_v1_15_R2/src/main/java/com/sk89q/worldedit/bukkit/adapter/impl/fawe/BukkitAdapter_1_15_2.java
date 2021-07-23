@@ -193,17 +193,20 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             return;
         }
         Chunk chunk = optional.get();
-        PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
-        playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
-            p.playerConnection.sendPacket(chunkPacket);
-        });
-        if (lighting) {
-            PacketPlayOutLightUpdate packet =
-                    new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine());
+        TaskManager.IMP.sync(() -> {
+            PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
             playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
-                p.playerConnection.sendPacket(packet);
+                p.playerConnection.sendPacket(chunkPacket);
             });
-        }
+            if (lighting) {
+                PacketPlayOutLightUpdate packet =
+                        new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine());
+                playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
+                    p.playerConnection.sendPacket(packet);
+                });
+            }
+            return null;
+        });
     }
 
     /*
