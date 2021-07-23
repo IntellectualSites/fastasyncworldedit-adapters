@@ -2,8 +2,8 @@ package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.math.IntPair;
-import com.fastasyncworldedit.core.object.RunnableVal;
 import com.fastasyncworldedit.core.util.TaskManager;
+import com.fastasyncworldedit.core.util.task.RunnableVal;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
@@ -209,9 +209,8 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
         } else {
             toSend = Collections.emptySet();
         }
-        RunnableVal<Object> r = new RunnableVal<Object>() {
-            @Override
-            public void run(Object value) {
+        RunnableVal<Object> r = new RunnableVal<>() {
+            @Override public void run(Object value) {
                 changes.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
                     sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
                 if (!sendChunks) {
@@ -227,9 +226,8 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
 
     @Override
     public synchronized void flush() {
-        RunnableVal<Object> r = new RunnableVal<Object>() {
-            @Override
-            public void run(Object value) {
+        RunnableVal<Object> r = new RunnableVal<>() {
+            @Override public void run(Object value) {
                 cachedChanges.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
                     sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
                 for (IntPair chunk : cachedChunksToSend) {
