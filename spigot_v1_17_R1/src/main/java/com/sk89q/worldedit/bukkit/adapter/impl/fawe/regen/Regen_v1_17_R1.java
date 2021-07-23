@@ -2,8 +2,8 @@ package com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen;
 
 import com.fastasyncworldedit.bukkit.adapter.Regenerator;
 import com.fastasyncworldedit.core.Fawe;
-import com.fastasyncworldedit.core.beta.IChunkCache;
-import com.fastasyncworldedit.core.beta.IChunkGet;
+import com.fastasyncworldedit.core.queue.IChunkCache;
+import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;

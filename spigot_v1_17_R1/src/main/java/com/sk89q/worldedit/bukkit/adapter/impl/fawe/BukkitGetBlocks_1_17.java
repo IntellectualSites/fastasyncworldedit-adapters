@@ -4,14 +4,14 @@ import com.fastasyncworldedit.bukkit.adapter.BukkitGetBlocks;
 import com.fastasyncworldedit.bukkit.adapter.DelegateSemaphore;
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.FaweCache;
-import com.fastasyncworldedit.core.beta.IChunkGet;
-import com.fastasyncworldedit.core.beta.IChunkSet;
-import com.fastasyncworldedit.core.beta.implementation.blocks.CharGetBlocks;
-import com.fastasyncworldedit.core.beta.implementation.lighting.HeightMapType;
-import com.fastasyncworldedit.core.beta.implementation.queue.QueueHandler;
 import com.fastasyncworldedit.core.configuration.Settings;
-import com.fastasyncworldedit.core.object.collection.AdaptedMap;
-import com.fastasyncworldedit.core.object.collection.BitArrayUnstretched;
+import com.fastasyncworldedit.core.extent.processor.heightmap.HeightMapType;
+import com.fastasyncworldedit.core.math.BitArrayUnstretched;
+import com.fastasyncworldedit.core.queue.IChunkGet;
+import com.fastasyncworldedit.core.queue.IChunkSet;
+import com.fastasyncworldedit.core.queue.implementation.QueueHandler;
+import com.fastasyncworldedit.core.queue.implementation.blocks.CharGetBlocks;
+import com.fastasyncworldedit.core.util.collection.AdaptedMap;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import com.sk89q.jnbt.CompoundTag;
@@ -248,7 +248,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public int getEmmittedLight(int x, int y, int z) {
+    public int getEmittedLight(int x, int y, int z) {
         int layer = y >> 4;
         if (blockLight[layer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
