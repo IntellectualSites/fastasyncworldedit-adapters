@@ -721,7 +721,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
             return blocks;
         } else {
-            return BukkitGetBlocks_1_17.this.update(layer, null, false);
+            return BukkitGetBlocks_1_17.this.update(layer, null, true);
         }
     }
 
