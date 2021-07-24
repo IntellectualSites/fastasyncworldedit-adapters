@@ -170,7 +170,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
         BlockState state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
         if (state.getBlockType().getMaterial().hasContainer()) {
 
-        // Read the NBT data
+            // Read the NBT data
             TileEntity te = chunk.a(blockPos, Chunk.EnumTileEntityState.CHECK);
             if (te != null) {
                 NBTTagCompound tag = new NBTTagCompound();
@@ -244,8 +244,10 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
 
     @Override
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
-        return new FAWEWorldNativeAccess_1_15_2(this,
-                new WeakReference<>(((CraftWorld) world).getHandle()));
+        return new FAWEWorldNativeAccess_1_15_2(
+                this,
+                new WeakReference<>(((CraftWorld) world).getHandle())
+        );
     }
 
     @Nullable
@@ -318,8 +320,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     }
 
     /**
-     * @deprecated
-     * Method unused. Use #adaptToChar(IBlockData).
+     * @deprecated Method unused. Use #adaptToChar(IBlockData).
      */
     @Deprecated
     public int adaptToInt(IBlockData ibd) {
@@ -344,11 +345,13 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                 return adaptToChar(ibd);
             } catch (ArrayIndexOutOfBoundsException e1) {
                 LOGGER.error("Attempted to convert {} with ID {} to char. ibdToStateOrdinal length: {}. Defaulting to air!",
-                        ibd.getBlock(), Block.REGISTRY_ID.getId(ibd), ibdToStateOrdinal.length, e1);
+                        ibd.getBlock(), Block.REGISTRY_ID.getId(ibd), ibdToStateOrdinal.length, e1
+                );
                 return 0;
             }
         }
     }
+
     public int ordinalToIbdID(char ordinal) {
         synchronized (this) {
             try {
@@ -366,7 +369,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
         return material.getCraftBlockData();
     }
 
-    private MapChunkUtil_1_15_2 mapUtil = new MapChunkUtil_1_15_2();
+    private final MapChunkUtil_1_15_2 mapUtil = new MapChunkUtil_1_15_2();
 
     @Override
     public void sendFakeChunk(org.bukkit.World world, Player player, ChunkPacket packet) {
@@ -383,7 +386,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                         synchronized (packet) {
                             PacketPlayOutMapChunk nmsPacket = (PacketPlayOutMapChunk) packet.getNativePacket();
                             if (nmsPacket == null) {
-                                nmsPacket = mapUtil.create( this, packet);
+                                nmsPacket = mapUtil.create(this, packet);
                                 packet.setNativePacket(nmsPacket);
                             }
                             try {
@@ -406,7 +409,10 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
         int internalId = BlockStateIdAccess.getBlockStateId(blockState);
         IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
+        return blockData.canPlace(
+                ((CraftWorld) world).getHandle(),
+                new BlockPosition(position.getX(), position.getY(), position.getZ())
+        );
     }
 
     @Override
@@ -445,4 +451,5 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
         BiomeBase base = CraftBlock.biomeToBiomeBase(BukkitAdapter.adapt(biome));
         return IRegistry.BIOME.a(base);
     }
+
 }

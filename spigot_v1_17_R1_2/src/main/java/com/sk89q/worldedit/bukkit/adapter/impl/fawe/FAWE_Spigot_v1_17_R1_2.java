@@ -23,6 +23,7 @@ import com.fastasyncworldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.fastasyncworldedit.bukkit.adapter.IDelegateBukkitImplAdapter;
 import com.fastasyncworldedit.bukkit.adapter.NMSRelighterFactory;
 import com.fastasyncworldedit.core.FaweCache;
+import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
@@ -38,7 +39,6 @@ import com.sk89q.worldedit.bukkit.adapter.impl.Spigot_v1_17_R1_2;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_17_R1_2;
 import com.sk89q.worldedit.entity.BaseEntity;
-import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
@@ -223,7 +223,7 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
 
         nmsChunk.removeTileEntity(blockPos); // Force delete the old tile entity
 
-        CompoundTag nativeTag = state instanceof BaseBlock ? state.getNbtData() : null;
+        CompoundTag nativeTag = state instanceof BaseBlock ? ((BaseBlock) state).getNbtData() : null;
         if (nativeTag != null || existing instanceof TileEntityBlock) {
             nmsWorld.setTypeAndData(blockPos, blockData, 0);
             // remove tile
@@ -259,8 +259,10 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
 
     @Override
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
-        return new FAWEWorldNativeAccess_1_17_R1_2(this,
-                new WeakReference<>(((CraftWorld) world).getHandle()));
+        return new FAWEWorldNativeAccess_1_17_R1_2(
+                this,
+                new WeakReference<>(((CraftWorld) world).getHandle())
+        );
     }
 
     @Override
@@ -348,7 +350,8 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
                 return adaptToChar(ibd);
             } catch (ArrayIndexOutOfBoundsException e1) {
                 LOGGER.error("Attempted to convert {} with ID {} to char. ibdToStateOrdinal length: {}. Defaulting to air!",
-                        ibd.getBlock(), Block.p.getId(ibd), ibdToStateOrdinal.length, e1);
+                        ibd.getBlock(), Block.p.getId(ibd), ibdToStateOrdinal.length, e1
+                );
                 return 0;
             }
         }
@@ -378,7 +381,8 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
         if (map != null && map.hasBeenLoaded()) {
             boolean flag = false;
             // PlayerChunk.d players = map.players;
-            Stream<EntityPlayer> stream = /*players.a(new ChunkCoordIntPair(packet.getChunkX(), packet.getChunkZ()), flag)*/ Stream.empty();
+            Stream<EntityPlayer> stream = /*players.a(new ChunkCoordIntPair(packet.getChunkX(), packet.getChunkZ()), flag)*/ Stream
+                    .empty();
 
             EntityPlayer checkPlayer = player == null ? null : ((CraftPlayer) player).getHandle();
             stream.filter(entityPlayer -> checkPlayer == null || entityPlayer == checkPlayer)
@@ -409,7 +413,10 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
     public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
         int internalId = BlockStateIdAccess.getBlockStateId(blockState);
         IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
+        return blockData.canPlace(
+                ((CraftWorld) world).getHandle(),
+                new BlockPosition(position.getX(), position.getY(), position.getZ())
+        );
     }
 
     @Override
@@ -452,7 +459,10 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
 
     @Override
     public int getInternalBiomeId(BiomeType biome) {
-        BiomeBase base = CraftBlock.biomeToBiomeBase(MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO), BukkitAdapter.adapt(biome));
+        BiomeBase base = CraftBlock.biomeToBiomeBase(
+                MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO),
+                BukkitAdapter.adapt(biome)
+        );
         return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO).getId(base);
     }
 
@@ -470,4 +480,5 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
         }
         return new NMSRelighterFactory();
     }
+
 }

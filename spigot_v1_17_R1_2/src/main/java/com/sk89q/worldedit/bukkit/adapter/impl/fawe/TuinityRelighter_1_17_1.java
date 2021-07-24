@@ -47,7 +47,8 @@ public class TuinityRelighter_1_17_1 implements Relighter {
         MethodHandle tmp = null;
         try {
             MethodHandles.Lookup lookup = MethodHandles.lookup();
-            tmp = lookup.findVirtual(LightEngineThreaded.class,
+            tmp = lookup.findVirtual(
+                    LightEngineThreaded.class,
                     "relight",
                     MethodType.methodType(
                             int.class, // return type
@@ -107,7 +108,9 @@ public class TuinityRelighter_1_17_1 implements Relighter {
     public void fixLightingSafe(boolean sky) {
         this.areaLock.lock();
         try {
-            if (regions.isEmpty()) return;
+            if (regions.isEmpty()) {
+                return;
+            }
             LongSet first = regions.removeFirst();
             fixLighting(first, () -> fixLightingSafe(true));
         } finally {
@@ -136,12 +139,14 @@ public class TuinityRelighter_1_17_1 implements Relighter {
                                 FAWE_TICKET,
                                 pos,
                                 LIGHT_LEVEL,
-                                Unit.a))
+                                Unit.a
+                        ))
                 );
             }
             // collect futures and trigger relight once all chunks are loaded
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v ->
-                    invokeRelight(coords,
+                    invokeRelight(
+                            coords,
                             c -> {
                             }, // no callback for single chunks required
                             i -> {
@@ -152,16 +157,20 @@ public class TuinityRelighter_1_17_1 implements Relighter {
                                 TaskManager.IMP.task(() -> postProcessChunks(coords));
                                 // call callback on our own threads
                                 TaskManager.IMP.async(andThen);
-                            })
+                            }
+                    )
             );
         });
     }
 
-    private void invokeRelight(Set<ChunkCoordIntPair> coords,
-                               Consumer<ChunkCoordIntPair> chunkCallback,
-                               IntConsumer processCallback) {
+    private void invokeRelight(
+            Set<ChunkCoordIntPair> coords,
+            Consumer<ChunkCoordIntPair> chunkCallback,
+            IntConsumer processCallback
+    ) {
         try {
-            int unused = (int) RELIGHT.invokeExact(world.getChunkProvider().getLightEngine(),
+            int unused = (int) RELIGHT.invokeExact(
+                    world.getChunkProvider().getLightEngine(),
                     coords,
                     chunkCallback, // callback per chunk
                     processCallback // callback for all chunks
@@ -226,4 +235,5 @@ public class TuinityRelighter_1_17_1 implements Relighter {
     public void close() throws Exception {
         fixLightingSafe(true);
     }
+
 }

@@ -158,4 +158,5 @@ public class LazyCompoundTag_1_17 extends LazyCompoundTag {
     public String toString() {
         return nmsTag.get().toString();
     }
+
 }

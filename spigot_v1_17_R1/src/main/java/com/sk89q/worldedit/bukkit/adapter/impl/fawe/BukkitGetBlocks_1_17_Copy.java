@@ -25,9 +25,9 @@ import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -48,8 +48,10 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     protected void storeTile(TileEntity tile) {
-        tiles.put(BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
-            new LazyCompoundTag_1_17(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
+        tiles.put(
+                BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
+                new LazyCompoundTag_1_17(Suppliers.memoize(() -> tile.save(new NBTTagCompound())))
+        );
     }
 
     @Override
@@ -106,13 +108,16 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     @Override
-    public void setLightingToGet(char[][] lighting) {}
+    public void setLightingToGet(char[][] lighting) {
+    }
 
     @Override
-    public void setSkyLightingToGet(char[][] lighting) {}
+    public void setSkyLightingToGet(char[][] lighting) {
+    }
 
     @Override
-    public void setHeightmapToGet(HeightMapType type, int[] data) {}
+    public void setHeightmapToGet(HeightMapType type, int[] data) {
+    }
 
     protected void storeBiomes(BiomeStorage biomeStorage) {
         // TODO revisit last parameter, BiomeStorage[] *would* be more efficient
@@ -125,7 +130,9 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
         if (y == -1) {
             for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
                 base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
-                if (base != null) break;
+                if (base != null) {
+                    break;
+                }
             }
         } else {
             base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
@@ -134,7 +141,8 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     @Override
-    public void removeSectionLighting(int layer, boolean sky) {}
+    public void removeSectionLighting(int layer, boolean sky) {
+    }
 
     @Override
     public boolean trim(boolean aggressive, int layer) {
@@ -202,4 +210,5 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     public boolean trim(boolean aggressive) {
         return false;
     }
+
 }

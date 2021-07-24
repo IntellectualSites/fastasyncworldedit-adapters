@@ -35,6 +35,7 @@ import net.minecraft.server.v1_15_R1.UtilColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -48,19 +49,17 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 /**
  * Handles converting all Pre 1.13.2 data using the Legacy DataFix System (ported to 1.13.2)
- *
+ * <p>
  * We register a DFU Fixer per Legacy Data Version and apply the fixes using legacy strategy
  * which is safer, faster and cleaner code.
- *
+ * <p>
  * The pre DFU code did not fail when the Source version was unknown.
- *
+ * <p>
  * This class also provides util methods for converting compounds to wrap the update call to
  * receive the source version in the compound
- *
  */
 @SuppressWarnings("UnnecessarilyQualifiedStaticUsage")
 class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.worldedit.world.DataFixer {
@@ -105,7 +104,12 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     private String fixBlockState(String blockState, int srcVer) {
         NBTTagCompound stateNBT = stateToNBT(blockState);
         Dynamic<NBTBase> dynamic = new Dynamic<>(OPS_NBT, stateNBT);
-        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(DataConverterTypes.BLOCK_STATE, dynamic, srcVer, DATA_VERSION).getValue();
+        NBTTagCompound fixed = (NBTTagCompound) INSTANCE.fixer.update(
+                DataConverterTypes.BLOCK_STATE,
+                dynamic,
+                srcVer,
+                DATA_VERSION
+        ).getValue();
         return nbtToState(fixed);
     }
 
@@ -115,7 +119,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         if (tagCompound.hasKeyOfType("Properties", 10)) {
             sb.append('[');
             NBTTagCompound props = tagCompound.getCompound("Properties");
-            sb.append(props.getKeys().stream().map(k -> k + "=" + props.getString(k).replace("\"", "")).collect(Collectors.joining(",")));
+            sb.append(props
+                    .getKeys()
+                    .stream()
+                    .map(k -> k + "=" + props.getString(k).replace("\"", ""))
+                    .collect(Collectors.joining(",")));
             sb.append(']');
         }
         return sb.toString();
@@ -150,7 +158,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static String fixName(String key, int srcVer, TypeReference type) {
         return INSTANCE.fixer.update(type, new Dynamic<>(OPS_NBT, NBTTagString.a(key)), srcVer, DATA_VERSION)
-            .getValue().asString();
+                .getValue().asString();
     }
 
     private final Spigot_v1_15_R2 adapter;
@@ -206,6 +214,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     }
 
     private class WrappedDataFixer implements DataFixer {
+
         private final DataFixer realFixer;
 
         WrappedDataFixer(DataFixer realFixer) {
@@ -251,6 +260,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         public Schema getSchema(int i) {
             return realFixer.getSchema(i);
         }
+
     }
 
     public static NBTTagCompound convert(LegacyType type, NBTTagCompound cmp) {
@@ -283,7 +293,9 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
 
     public interface DataInspector {
+
         NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer);
+
     }
 
     public interface DataConverter {
@@ -291,6 +303,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         int getDataVersion();
 
         NBTTagCompound convert(NBTTagCompound cmp);
+
     }
 
 
@@ -445,6 +458,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
     private void registerEntityItemListEquipment(String type) {
         registerEntityItemList(type, "ArmorItems", "HandItems");
     }
+
     private static final Map<String, MinecraftKey> OLD_ID_TO_KEY_MAP = new HashMap<>();
 
     static {
@@ -590,7 +604,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterEquipment implements DataConverter {
 
-        DataConverterEquipment() {}
+        DataConverterEquipment() {
+        }
 
         public int getDataVersion() {
             return 100;
@@ -642,6 +657,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorBlockEntity implements DataInspector {
@@ -649,7 +665,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         private static final Map<String, String> b = Maps.newHashMap();
         private static final Map<String, String> c = Maps.newHashMap();
 
-        DataInspectorBlockEntity() {}
+        DataInspectorBlockEntity() {
+        }
 
         @Nullable
         private static String convertEntityId(int i, String s) {
@@ -789,7 +806,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         private static final Logger a = LogManager.getLogger(DataConverters_1_15_R2.class);
 
-        DataInspectorEntity() {}
+        DataInspectorEntity() {
+        }
 
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
@@ -827,6 +845,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
 
@@ -847,6 +866,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         }
 
         abstract NBTTagCompound inspectChecked(NBTTagCompound nbttagcompound, int sourceVer, int targetVer);
+
     }
 
     private static class DataInspectorItemList extends DataInspectorTagged {
@@ -865,7 +885,9 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return nbttagcompound;
         }
+
     }
+
     private static class DataInspectorItem extends DataInspectorTagged {
 
         private final String[] keys;
@@ -882,13 +904,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return nbttagcompound;
         }
+
     }
 
     private static class DataConverterMaterialId implements DataConverter {
 
         private static final String[] materials = new String[2268];
 
-        DataConverterMaterialId() {}
+        DataConverterMaterialId() {
+        }
 
         public int getDataVersion() {
             return 102;
@@ -1267,7 +1291,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterArmorStand implements DataConverter {
 
-        DataConverterArmorStand() {}
+        DataConverterArmorStand() {
+        }
 
         public int getDataVersion() {
             return 147;
@@ -1280,11 +1305,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterBanner implements DataConverter {
 
-        DataConverterBanner() {}
+        DataConverterBanner() {
+        }
 
         public int getDataVersion() {
             return 804;
@@ -1325,13 +1352,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterPotionId implements DataConverter {
 
         private static final String[] potions = new String[128];
 
-        DataConverterPotionId() {}
+        DataConverterPotionId() {
+        }
 
         public int getDataVersion() {
             return 102;
@@ -1496,7 +1525,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         private static final String[] eggs = new String[256];
 
-        DataConverterSpawnEgg() {}
+        DataConverterSpawnEgg() {
+        }
 
         public int getDataVersion() {
             return 105;
@@ -1600,9 +1630,18 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterMinecart implements DataConverter {
 
-        private static final List<String> a = Lists.newArrayList(new String[] { "MinecartRideable", "MinecartChest", "MinecartFurnace", "MinecartTNT", "MinecartSpawner", "MinecartHopper", "MinecartCommandBlock"});
+        private static final List<String> a = Lists.newArrayList(
+                "MinecartRideable",
+                "MinecartChest",
+                "MinecartFurnace",
+                "MinecartTNT",
+                "MinecartSpawner",
+                "MinecartHopper",
+                "MinecartCommandBlock"
+        );
 
-        DataConverterMinecart() {}
+        DataConverterMinecart() {
+        }
 
         public int getDataVersion() {
             return 106;
@@ -1623,11 +1662,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterMobSpawner implements DataConverter {
 
-        DataConverterMobSpawner() {}
+        DataConverterMobSpawner() {
+        }
 
         public int getDataVersion() {
             return 107;
@@ -1666,11 +1707,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                 return cmp;
             }
         }
+
     }
 
     private static class DataConverterUUID implements DataConverter {
 
-        DataConverterUUID() {}
+        DataConverterUUID() {
+        }
 
         public int getDataVersion() {
             return 108;
@@ -1683,13 +1726,50 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterHealth implements DataConverter {
 
-        private static final Set<String> a = Sets.newHashSet(new String[] { "ArmorStand", "Bat", "Blaze", "CaveSpider", "Chicken", "Cow", "Creeper", "EnderDragon", "Enderman", "Endermite", "EntityHorse", "Ghast", "Giant", "Guardian", "LavaSlime", "MushroomCow", "Ozelot", "Pig", "PigZombie", "Rabbit", "Sheep", "Shulker", "Silverfish", "Skeleton", "Slime", "SnowMan", "Spider", "Squid", "Villager", "VillagerGolem", "Witch", "WitherBoss", "Wolf", "Zombie"});
+        private static final Set<String> a = Sets.newHashSet(
+                "ArmorStand",
+                "Bat",
+                "Blaze",
+                "CaveSpider",
+                "Chicken",
+                "Cow",
+                "Creeper",
+                "EnderDragon",
+                "Enderman",
+                "Endermite",
+                "EntityHorse",
+                "Ghast",
+                "Giant",
+                "Guardian",
+                "LavaSlime",
+                "MushroomCow",
+                "Ozelot",
+                "Pig",
+                "PigZombie",
+                "Rabbit",
+                "Sheep",
+                "Shulker",
+                "Silverfish",
+                "Skeleton",
+                "Slime",
+                "SnowMan",
+                "Spider",
+                "Squid",
+                "Villager",
+                "VillagerGolem",
+                "Witch",
+                "WitherBoss",
+                "Wolf",
+                "Zombie"
+        );
 
-        DataConverterHealth() {}
+        DataConverterHealth() {
+        }
 
         public int getDataVersion() {
             return 109;
@@ -1715,11 +1795,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterSaddle implements DataConverter {
 
-        DataConverterSaddle() {}
+        DataConverterSaddle() {
+        }
 
         public int getDataVersion() {
             return 110;
@@ -1738,11 +1820,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterHanging implements DataConverter {
 
-        DataConverterHanging() {}
+        DataConverterHanging() {
+        }
 
         public int getDataVersion() {
             return 111;
@@ -1775,11 +1859,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterDropChances implements DataConverter {
 
-        DataConverterDropChances() {}
+        DataConverterDropChances() {
+        }
 
         public int getDataVersion() {
             return 113;
@@ -1797,18 +1883,21 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             if (cmp.hasKeyOfType("ArmorDropChances", 9)) {
                 nbttaglist = cmp.getList("ArmorDropChances", 5);
-                if (nbttaglist.size() == 4 && nbttaglist.i(0) == 0.0F && nbttaglist.i(1) == 0.0F && nbttaglist.i(2) == 0.0F && nbttaglist.i(3) == 0.0F) {
+                if (nbttaglist.size() == 4 && nbttaglist.i(0) == 0.0F && nbttaglist.i(1) == 0.0F && nbttaglist.i(2) == 0.0F && nbttaglist
+                        .i(3) == 0.0F) {
                     cmp.remove("ArmorDropChances");
                 }
             }
 
             return cmp;
         }
+
     }
 
     private static class DataConverterRiding implements DataConverter {
 
-        DataConverterRiding() {}
+        DataConverterRiding() {
+        }
 
         public int getDataVersion() {
             return 135;
@@ -1838,11 +1927,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
             nbttagcompound.remove("Riding");
             return nbttagcompound1;
         }
+
     }
 
     private static class DataConverterBook implements DataConverter {
 
-        DataConverterBook() {}
+        DataConverterBook() {
+        }
 
         public int getDataVersion() {
             return 165;
@@ -1869,14 +1960,12 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                                         object = new ChatComponentText("");
                                     }
                                 } catch (JsonParseException jsonparseexception) {
-                                    ;
                                 }
 
                                 if (object == null) {
                                     try {
                                         object = IChatBaseComponent.ChatSerializer.a(s);
                                     } catch (JsonParseException jsonparseexception1) {
-                                        ;
                                     }
                                 }
 
@@ -1884,7 +1973,6 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                                     try {
                                         object = IChatBaseComponent.ChatSerializer.b(s);
                                     } catch (JsonParseException jsonparseexception2) {
-                                        ;
                                     }
                                 }
 
@@ -1905,13 +1993,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterCookedFish implements DataConverter {
 
         private static final MinecraftKey a = new MinecraftKey("cooked_fished");
 
-        DataConverterCookedFish() {}
+        DataConverterCookedFish() {
+        }
 
         public int getDataVersion() {
             return 502;
@@ -1924,13 +2014,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterZombie implements DataConverter {
 
         private static final Random a = new Random();
 
-        DataConverterZombie() {}
+        DataConverterZombie() {
+        }
 
         public int getDataVersion() {
             return 502;
@@ -1945,7 +2037,6 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                         try {
                             i = this.convert(cmp.getInt("VillagerProfession"));
                         } catch (RuntimeException runtimeexception) {
-                            ;
                         }
                     }
 
@@ -1965,11 +2056,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         private int convert(int i) {
             return i >= 0 && i < 6 ? i : -1;
         }
+
     }
 
     private static class DataConverterVBO implements DataConverter {
 
-        DataConverterVBO() {}
+        DataConverterVBO() {
+        }
 
         public int getDataVersion() {
             return 505;
@@ -1979,11 +2072,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
             cmp.setString("useVbo", "true");
             return cmp;
         }
+
     }
 
     private static class DataConverterGuardian implements DataConverter {
 
-        DataConverterGuardian() {}
+        DataConverterGuardian() {
+        }
 
         public int getDataVersion() {
             return 700;
@@ -2000,11 +2095,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterSkeleton implements DataConverter {
 
-        DataConverterSkeleton() {}
+        DataConverterSkeleton() {
+        }
 
         public int getDataVersion() {
             return 701;
@@ -2027,11 +2124,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterZombieType implements DataConverter {
 
-        DataConverterZombieType() {}
+        DataConverterZombieType() {
+        }
 
         public int getDataVersion() {
             return 702;
@@ -2064,11 +2163,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterHorse implements DataConverter {
 
-        DataConverterHorse() {}
+        DataConverterHorse() {
+        }
 
         public int getDataVersion() {
             return 703;
@@ -2105,13 +2206,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterTileEntity implements DataConverter {
 
         private static final Map<String, String> a = Maps.newHashMap();
 
-        DataConverterTileEntity() {}
+        DataConverterTileEntity() {
+        }
 
         public int getDataVersion() {
             return 704;
@@ -2158,7 +2261,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
         private static final Map<String, String> a = Maps.newHashMap();
 
-        DataConverterEntity() {}
+        DataConverterEntity() {
+        }
 
         public int getDataVersion() {
             return 704;
@@ -2255,7 +2359,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
     private static class DataConverterPotionWater implements DataConverter {
 
-        DataConverterPotionWater() {}
+        DataConverterPotionWater() {
+        }
 
         public int getDataVersion() {
             return 806;
@@ -2264,7 +2369,8 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
         public NBTTagCompound convert(NBTTagCompound cmp) {
             String s = cmp.getString("id");
 
-            if ("minecraft:potion".equals(s) || "minecraft:splash_potion".equals(s) || "minecraft:lingering_potion".equals(s) || "minecraft:tipped_arrow".equals(s)) {
+            if ("minecraft:potion".equals(s) || "minecraft:splash_potion".equals(s) || "minecraft:lingering_potion".equals(s) || "minecraft:tipped_arrow"
+                    .equals(s)) {
                 NBTTagCompound nbttagcompound1 = cmp.getCompound("tag");
 
                 if (!nbttagcompound1.hasKeyOfType("Potion", 8)) {
@@ -2278,11 +2384,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterShulker implements DataConverter {
 
-        DataConverterShulker() {}
+        DataConverterShulker() {
+        }
 
         public int getDataVersion() {
             return 808;
@@ -2295,13 +2403,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterShulkerBoxItem implements DataConverter {
 
-        public static final String[] a = new String[] { "minecraft:white_shulker_box", "minecraft:orange_shulker_box", "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box", "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box", "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box", "minecraft:red_shulker_box", "minecraft:black_shulker_box"};
+        public static final String[] a = new String[]{"minecraft:white_shulker_box", "minecraft:orange_shulker_box", "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box", "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box", "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box", "minecraft:red_shulker_box", "minecraft:black_shulker_box"};
 
-        DataConverterShulkerBoxItem() {}
+        DataConverterShulkerBoxItem() {
+        }
 
         public int getDataVersion() {
             return 813;
@@ -2335,11 +2445,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterShulkerBoxBlock implements DataConverter {
 
-        DataConverterShulkerBoxBlock() {}
+        DataConverterShulkerBoxBlock() {
+        }
 
         public int getDataVersion() {
             return 813;
@@ -2352,11 +2464,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterLang implements DataConverter {
 
-        DataConverterLang() {}
+        DataConverterLang() {
+        }
 
         public int getDataVersion() {
             return 816;
@@ -2369,11 +2483,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterTotem implements DataConverter {
 
-        DataConverterTotem() {}
+        DataConverterTotem() {
+        }
 
         public int getDataVersion() {
             return 820;
@@ -2386,13 +2502,15 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterBedBlock implements DataConverter {
 
         private static final Logger a = LogManager.getLogger(DataConverters_1_15_R2.class);
 
-        DataConverterBedBlock() {}
+        DataConverterBedBlock() {
+        }
 
         public int getDataVersion() {
             return 1125;
@@ -2434,11 +2552,13 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterBedItem implements DataConverter {
 
-        DataConverterBedItem() {}
+        DataConverterBedItem() {
+        }
 
         public int getDataVersion() {
             return 1125;
@@ -2451,12 +2571,14 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterSignText implements DataConverter {
 
         public static final Gson a = new GsonBuilder().registerTypeAdapter(IChatBaseComponent.class, new JsonDeserializer() {
-            IChatBaseComponent a(JsonElement jsonelement, Type type, JsonDeserializationContext jsondeserializationcontext) throws JsonParseException {
+            IChatBaseComponent a(JsonElement jsonelement, Type type, JsonDeserializationContext jsondeserializationcontext) throws
+                    JsonParseException {
                 if (jsonelement.isJsonPrimitive()) {
                     return new ChatComponentText(jsonelement.getAsString());
                 } else if (jsonelement.isJsonArray()) {
@@ -2466,7 +2588,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
                     while (iterator.hasNext()) {
                         JsonElement jsonelement1 = (JsonElement) iterator.next();
-                        IChatBaseComponent ichatbasecomponent1 = this.a(jsonelement1, jsonelement1.getClass(), jsondeserializationcontext);
+                        IChatBaseComponent ichatbasecomponent1 = this.a(
+                                jsonelement1,
+                                jsonelement1.getClass(),
+                                jsondeserializationcontext
+                        );
 
                         if (ichatbasecomponent == null) {
                             ichatbasecomponent = ichatbasecomponent1;
@@ -2477,16 +2603,21 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
                     return ichatbasecomponent;
                 } else {
-                    throw new JsonParseException("Don\'t know how to turn " + jsonelement + " into a Component");
+                    throw new JsonParseException("Don't know how to turn " + jsonelement + " into a Component");
                 }
             }
 
-            public Object deserialize(JsonElement jsonelement, Type type, JsonDeserializationContext jsondeserializationcontext) throws JsonParseException {
+            public Object deserialize(
+                    JsonElement jsonelement,
+                    Type type,
+                    JsonDeserializationContext jsondeserializationcontext
+            ) throws JsonParseException {
                 return this.a(jsonelement, type, jsondeserializationcontext);
             }
         }).create();
 
-        DataConverterSignText() {}
+        DataConverterSignText() {
+        }
 
         public int getDataVersion() {
             return 101;
@@ -2517,14 +2648,12 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                             object = new ChatComponentText("");
                         }
                     } catch (JsonParseException jsonparseexception) {
-                        ;
                     }
 
                     if (object == null) {
                         try {
                             object = IChatBaseComponent.ChatSerializer.a(s1);
                         } catch (JsonParseException jsonparseexception1) {
-                            ;
                         }
                     }
 
@@ -2532,7 +2661,6 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                         try {
                             object = IChatBaseComponent.ChatSerializer.b(s1);
                         } catch (JsonParseException jsonparseexception2) {
-                            ;
                         }
                     }
 
@@ -2546,9 +2674,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             nbttagcompound.setString(s, IChatBaseComponent.ChatSerializer.a((IChatBaseComponent) object));
         }
+
     }
 
     private static class DataInspectorPlayerVehicle implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             if (cmp.hasKeyOfType("RootVehicle", 10)) {
@@ -2561,9 +2691,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorLevelPlayer implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             if (cmp.hasKeyOfType("Player", 10)) {
@@ -2572,9 +2704,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorStructure implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             NBTTagList nbttaglist;
@@ -2605,9 +2739,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorChunks implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             if (cmp.hasKeyOfType("Level", 10)) {
@@ -2627,16 +2763,21 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                     nbttaglist = nbttagcompound1.getList("TileEntities", 10);
 
                     for (j = 0; j < nbttaglist.size(); ++j) {
-                        nbttaglist.set(j, convert(LegacyType.BLOCK_ENTITY, (NBTTagCompound) nbttaglist.get(j), sourceVer, targetVer));
+                        nbttaglist.set(
+                                j,
+                                convert(LegacyType.BLOCK_ENTITY, (NBTTagCompound) nbttaglist.get(j), sourceVer, targetVer)
+                        );
                     }
                 }
             }
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorEntityPassengers implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             if (cmp.hasKeyOfType("Passengers", 9)) {
@@ -2649,9 +2790,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorPlayer implements DataInspector {
+
         @Override
         public NBTTagCompound inspect(NBTTagCompound cmp, int sourceVer, int targetVer) {
             convertItems(cmp, "Inventory", sourceVer, targetVer);
@@ -2666,9 +2809,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorVillagers implements DataInspector {
+
         MinecraftKey entityVillager = getKey("EntityVillager");
 
         @Override
@@ -2692,9 +2837,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorMobSpawnerMinecart implements DataInspector {
+
         MinecraftKey entityMinecartMobSpawner = getKey("EntityMinecartMobSpawner");
         MinecraftKey tileEntityMobSpawner = getKey("TileEntityMobSpawner");
 
@@ -2709,9 +2856,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorMobSpawnerMobs implements DataInspector {
+
         MinecraftKey tileEntityMobSpawner = getKey("TileEntityMobSpawner");
 
         @Override
@@ -2732,9 +2881,11 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataInspectorCommandBlock implements DataInspector {
+
         MinecraftKey tileEntityCommand = getKey("TileEntityCommand");
 
         @Override
@@ -2747,5 +2898,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
+
 }

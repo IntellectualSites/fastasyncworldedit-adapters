@@ -22,11 +22,12 @@ import org.bukkit.craftbukkit.v1_15_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_15_R1.block.data.CraftBlockData;
 import org.bukkit.event.block.BlockPhysicsEvent;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
+
     private static final int UPDATE = 1, NOTIFY = 2;
 
     private final Spigot_v1_15_R2 adapter;
@@ -56,8 +57,8 @@ public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlo
     public IBlockData toNative(com.sk89q.worldedit.world.block.BlockState state) {
         int stateId = BlockStateIdAccess.getBlockStateId(state);
         return BlockStateIdAccess.isValidInternalId(stateId)
-            ? Block.getByCombinedId(stateId)
-            : ((CraftBlockData) BukkitAdapter.adapt(state)).getState();
+                ? Block.getByCombinedId(stateId)
+                : ((CraftBlockData) BukkitAdapter.adapt(state)).getState();
     }
 
     @Override
@@ -119,9 +120,9 @@ public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlo
     }
 
     private static final EnumDirection[] NEIGHBOUR_ORDER = {
-        EnumDirection.WEST, EnumDirection.EAST,
-        EnumDirection.DOWN, EnumDirection.UP,
-        EnumDirection.NORTH, EnumDirection.SOUTH
+            EnumDirection.WEST, EnumDirection.EAST,
+            EnumDirection.DOWN, EnumDirection.UP,
+            EnumDirection.NORTH, EnumDirection.SOUTH
     };
 
     @Override
@@ -151,7 +152,10 @@ public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlo
         if (sideEffectSet.shouldApply(SideEffect.EVENTS)) {
             CraftWorld craftWorld = world.getWorld();
             if (craftWorld != null) {
-                BlockPhysicsEvent event = new BlockPhysicsEvent(craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
+                BlockPhysicsEvent event = new BlockPhysicsEvent(
+                        craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()),
+                        CraftBlockData.fromData(newState)
+                );
                 world.getServer().getPluginManager().callEvent(event);
                 if (event.isCancelled()) {
                     return;
@@ -171,4 +175,5 @@ public class WorldNativeAccess_v1_15_R2 implements WorldNativeAccess<Chunk, IBlo
     public void flush() {
 
     }
+
 }

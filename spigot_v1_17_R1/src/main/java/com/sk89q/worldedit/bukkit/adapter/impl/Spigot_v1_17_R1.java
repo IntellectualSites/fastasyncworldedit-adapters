@@ -29,20 +29,6 @@ import com.google.common.util.concurrent.Futures;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
-import com.sk89q.worldedit.util.nbt.BinaryTag;
-import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
-import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
-import com.sk89q.worldedit.util.nbt.DoubleBinaryTag;
-import com.sk89q.worldedit.util.nbt.EndBinaryTag;
-import com.sk89q.worldedit.util.nbt.FloatBinaryTag;
-import com.sk89q.worldedit.util.nbt.IntArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.IntBinaryTag;
-import com.sk89q.worldedit.util.nbt.ListBinaryTag;
-import com.sk89q.worldedit.util.nbt.LongArrayBinaryTag;
-import com.sk89q.worldedit.util.nbt.LongBinaryTag;
-import com.sk89q.worldedit.util.nbt.ShortBinaryTag;
-import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BaseItemStack;
@@ -68,6 +54,20 @@ import com.sk89q.worldedit.util.concurrency.LazyReference;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import com.sk89q.worldedit.util.io.file.SafeFiles;
+import com.sk89q.worldedit.util.nbt.BinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
+import com.sk89q.worldedit.util.nbt.DoubleBinaryTag;
+import com.sk89q.worldedit.util.nbt.EndBinaryTag;
+import com.sk89q.worldedit.util.nbt.FloatBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.IntBinaryTag;
+import com.sk89q.worldedit.util.nbt.ListBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongArrayBinaryTag;
+import com.sk89q.worldedit.util.nbt.LongBinaryTag;
+import com.sk89q.worldedit.util.nbt.ShortBinaryTag;
+import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.world.DataFixer;
 import com.sk89q.worldedit.world.RegenOptions;
 import com.sk89q.worldedit.world.biome.BiomeType;
@@ -159,6 +159,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotConfig;
 import org.spigotmc.WatchdogThread;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -178,7 +179,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -202,13 +202,16 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
 
         int dataVersion = CraftMagicNumbers.INSTANCE.getDataVersion();
-        if (dataVersion != 2724) throw new UnsupportedClassVersionError("Not 1.17!");
+        if (dataVersion != 2724) {
+            throw new UnsupportedClassVersionError("Not 1.17!");
+        }
 
         serverWorldsField = CraftServer.class.getDeclaredField("worlds");
         serverWorldsField.setAccessible(true);
 
         getChunkFutureMethod = ChunkProviderServer.class.getDeclaredMethod("getChunkFutureMainThread",
-                int.class, int.class, ChunkStatus.class, boolean.class);
+                int.class, int.class, ChunkStatus.class, boolean.class
+        );
         getChunkFutureMethod.setAccessible(true);
 
         chunkProviderExecutorField = ChunkProviderServer.class.getDeclaredField("h");
@@ -232,7 +235,8 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         try {
             Class.forName("org.spigotmc.SpigotConfig");
             SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
-        } catch (ClassNotFoundException ignored) {}
+        } catch (ClassNotFoundException ignored) {
+        }
     }
 
     @Override
@@ -244,7 +248,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Read the given NBT data into the given tile entity.
      *
      * @param tileEntity the tile entity
-     * @param tag the tag
+     * @param tag        the tag
      */
     static void readTagIntoTileEntity(NBTTagCompound tag, TileEntity tileEntity) {
         tileEntity.load(tag);
@@ -255,7 +259,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the tile entity's NBT data to the given tag.
      *
      * @param tileEntity the tile entity
-     * @param tag the tag
+     * @param tag        the tag
      */
     private static void readTileEntityIntoTag(TileEntity tileEntity, NBTTagCompound tag) {
         tileEntity.save(tag);
@@ -277,7 +281,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     /**
      * Create an entity using the given entity ID.
      *
-     * @param id the entity ID
+     * @param id    the entity ID
      * @param world the world
      * @return an entity or null
      */
@@ -290,7 +294,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the given NBT data into the given entity.
      *
      * @param entity the entity
-     * @param tag the tag
+     * @param tag    the tag
      */
     private static void readTagIntoEntity(NBTTagCompound tag, Entity entity) {
         entity.load(tag);
@@ -300,7 +304,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      * Write the entity's NBT data to the given tag.
      *
      * @param entity the entity
-     * @param tag the tag
+     * @param tag    the tag
      */
     private static void readEntityIntoTag(Entity entity, NBTTagCompound tag) {
         entity.save(tag);
@@ -364,24 +368,35 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
 
     @Override
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
-        return new WorldNativeAccess_v1_17_R1(this,
-                new WeakReference<>(((CraftWorld) world).getHandle()));
+        return new WorldNativeAccess_v1_17_R1(
+                this,
+                new WeakReference<>(((CraftWorld) world).getHandle())
+        );
     }
 
     private static EnumDirection adapt(Direction face) {
         switch (face) {
-            case NORTH: return EnumDirection.c;
-            case SOUTH: return EnumDirection.d;
-            case WEST: return EnumDirection.e;
-            case EAST: return EnumDirection.f;
-            case DOWN: return EnumDirection.a;
+            case NORTH:
+                return EnumDirection.c;
+            case SOUTH:
+                return EnumDirection.d;
+            case WEST:
+                return EnumDirection.e;
+            case EAST:
+                return EnumDirection.f;
+            case DOWN:
+                return EnumDirection.a;
             case UP:
             default:
                 return EnumDirection.b;
         }
     }
 
-    private IBlockData applyProperties(BlockStateList<Block, IBlockData> stateContainer, IBlockData newState, Map<Property<?>, Object> states) {
+    private IBlockData applyProperties(
+            BlockStateList<Block, IBlockData> stateContainer,
+            IBlockData newState,
+            Map<Property<?>, Object> states
+    ) {
         for (Map.Entry<Property<?>, Object> state : states.entrySet()) {
             IBlockState<?> property = stateContainer.a(state.getKey().getName());
             Comparable<?> value = (Comparable) state.getValue();
@@ -413,7 +428,10 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         if (id != null) {
             NBTTagCompound tag = new NBTTagCompound();
             readEntityIntoTag(mcEntity, tag);
-            return new BaseEntity(com.sk89q.worldedit.world.entity.EntityTypes.get(id), LazyReference.from(() -> (CompoundBinaryTag) toNativeBinary(tag)));
+            return new BaseEntity(
+                    com.sk89q.worldedit.world.entity.EntityTypes.get(id),
+                    LazyReference.from(() -> (CompoundBinaryTag) toNativeBinary(tag))
+            );
         } else {
             return null;
         }
@@ -475,11 +493,19 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
             if (state instanceof BlockStateBoolean) {
                 property = new BooleanProperty(state.getName(), ImmutableList.copyOf(state.getValues()));
             } else if (state instanceof BlockStateDirection) {
-                property = new DirectionalProperty(state.getName(),
-                        (List<Direction>) state.getValues().stream().map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase())).collect(Collectors.toList()));
+                property = new DirectionalProperty(
+                        state.getName(),
+                        (List<Direction>) state
+                                .getValues()
+                                .stream()
+                                .map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase()))
+                                .collect(Collectors.toList())
+                );
             } else if (state instanceof BlockStateEnum) {
-                property = new EnumProperty(state.getName(),
-                        (List<String>) state.getValues().stream().map(e -> ((INamable) e).getName()).collect(Collectors.toList()));
+                property = new EnumProperty(
+                        state.getName(),
+                        (List<String>) state.getValues().stream().map(e -> ((INamable) e).getName()).collect(Collectors.toList())
+                );
             } else if (state instanceof BlockStateInteger) {
                 property = new IntegerProperty(state.getName(), ImmutableList.copyOf(state.getValues()));
             } else {
@@ -522,7 +548,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         return weStack;
     }
 
-    private LoadingCache<WorldServer, FakePlayer_v1_17_R1> fakePlayers
+    private final LoadingCache<WorldServer, FakePlayer_v1_17_R1> fakePlayers
             = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_17_R1::new));
 
     @Override
@@ -541,7 +567,8 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         }
         fakePlayer.a(EnumHand.a, stack);
         fakePlayer.setLocation(position.getBlockX(), position.getBlockY(), position.getBlockZ(),
-                (float) face.toVector().toYaw(), (float) face.toVector().toPitch());
+                (float) face.toVector().toYaw(), (float) face.toVector().toPitch()
+        );
 
         final BlockPosition blockPos = new BlockPosition(position.getBlockX(), position.getBlockY(), position.getBlockZ());
         final Vec3D blockVec = Vec3D.b(blockPos);
@@ -564,7 +591,10 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
         int internalId = BlockStateIdAccess.getBlockStateId(blockState);
         IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
+        return blockData.canPlace(
+                ((CraftWorld) world).getHandle(),
+                new BlockPosition(position.getX(), position.getY(), position.getZ())
+        );
     }
 
 
@@ -610,13 +640,15 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
                     .orElseThrow(() -> new IllegalStateException("Unable to map GeneratorOptions"));
 
 
-            WorldSettings newWorldSettings = new WorldSettings("worldeditregentempworld",
+            WorldSettings newWorldSettings = new WorldSettings(
+                    "worldeditregentempworld",
                     originalWorldData.e.getGameType(),
                     originalWorldData.e.isHardcore(),
                     originalWorldData.e.getDifficulty(),
                     originalWorldData.e.e(),
                     originalWorldData.e.getGameRules(),
-                    originalWorldData.e.g());
+                    originalWorldData.e.g()
+            );
             WorldDataServer newWorldData = new WorldDataServer(newWorldSettings, newOpts, Lifecycle.stable());
 
             WorldServer freshWorld = new WorldServer(
@@ -673,7 +705,8 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         return BiomeTypes.get(key.toString());
     }
 
-    private void regenForWorld(Region region, Extent extent, WorldServer serverWorld, RegenOptions options) throws WorldEditException {
+    private void regenForWorld(Region region, Extent extent, WorldServer serverWorld, RegenOptions options) throws
+            WorldEditException {
         List<CompletableFuture<IChunkAccess>> chunkLoadings = submitChunkLoadTasks(region, serverWorld);
         IAsyncTaskHandler<Runnable> executor;
         try {
@@ -833,12 +866,13 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
      *
      * @param foreign the foreign tag
      * @return the converted tag
-     * @throws NoSuchFieldException on error
-     * @throws SecurityException on error
+     * @throws NoSuchFieldException     on error
+     * @throws SecurityException        on error
      * @throws IllegalArgumentException on error
-     * @throws IllegalAccessException on error
+     * @throws IllegalAccessException   on error
      */
-    private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+    private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException,
+            IllegalArgumentException, IllegalAccessException {
         ListBinaryTag.Builder values = ListBinaryTag.builder();
 
         //FAWE start - Reduce the use of reflection when it isn't needed.
@@ -913,6 +947,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     }
 
     private class SpigotWatchdog implements Watchdog {
+
         private final Field instanceField;
         private final Field lastTickField;
 
@@ -937,9 +972,11 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
                 logger.log(Level.WARNING, "Failed to tick watchdog", e);
             }
         }
+
     }
 
     private static class MojangWatchdog implements Watchdog {
+
         private final DedicatedServer server;
         private final Field tickField;
 
@@ -957,9 +994,11 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
             } catch (IllegalAccessException ignored) {
             }
         }
+
     }
 
     private static class NoOpWorldLoadListener implements WorldLoadListener {
+
         @Override
         public void a() {
         }
@@ -980,5 +1019,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         public void setChunkRadius(int i) {
 
         }
+
     }
+
 }
