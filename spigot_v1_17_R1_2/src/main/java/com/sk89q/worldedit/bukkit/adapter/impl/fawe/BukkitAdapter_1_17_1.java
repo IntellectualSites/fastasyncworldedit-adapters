@@ -82,6 +82,8 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
     private static final Field fieldEventDispatcherMap;
     private static final MethodHandle methodremoveTickingBlockEntity;
 
+    private static final Field fieldTileEntityRemoved;
+
     static {
         try {
             // TODO
@@ -115,6 +117,9 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             Method removeTickingBlockEntity = Chunk.class.getDeclaredMethod("l", BlockPosition.class);
             removeTickingBlockEntity.setAccessible(true);
             methodremoveTickingBlockEntity = MethodHandles.lookup().unreflect(removeTickingBlockEntity);
+
+            fieldTileEntityRemoved = TileEntity.class.getDeclaredField("p");
+            fieldTileEntityRemoved.setAccessible(true);
 
             CHUNKSECTION_BASE = unsafe.arrayBaseOffset(ChunkSection[].class);
             int scale = unsafe.arrayIndexScale(ChunkSection[].class);
@@ -359,7 +364,7 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
                             }
                         }
                     }
-                    beacon.aa_();
+                    fieldTileEntityRemoved.set(beacon, true);
                 }
             }
             methodremoveTickingBlockEntity.invoke(nmsChunk, beacon.getPosition());
