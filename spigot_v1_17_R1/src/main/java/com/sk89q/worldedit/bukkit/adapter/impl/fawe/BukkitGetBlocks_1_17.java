@@ -920,6 +920,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
     @Override
     public boolean hasSection(int layer) {
+        layer -= getMinLayer();
         return getSections(false)[layer] != null;
     }
 

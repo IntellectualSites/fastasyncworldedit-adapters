@@ -182,6 +182,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     @Override
     public boolean hasSection(int layer) {
+        layer -= getMinLayer();
         return blocks[layer] != null;
     }
 
