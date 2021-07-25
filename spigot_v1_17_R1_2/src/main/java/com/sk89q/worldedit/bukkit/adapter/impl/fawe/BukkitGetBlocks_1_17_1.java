@@ -61,7 +61,6 @@ import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -89,8 +88,8 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     public WorldServer world;
     public int chunkX;
     public int chunkZ;
-    public NibbleArray[] blockLight = new NibbleArray[16];
-    public NibbleArray[] skyLight = new NibbleArray[16];
+    public NibbleArray[] blockLight;
+    public NibbleArray[] skyLight;
     private boolean createCopy = false;
     private BukkitGetBlocks_1_17_1_Copy copy = null;
     private boolean forceLoadSections = true;
@@ -101,9 +100,12 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     public BukkitGetBlocks_1_17_1(WorldServer world, int chunkX, int chunkZ) {
+        super(world.getMinBuildHeight() >> 4, (world.getMaxBuildHeight() - 1) >> 4);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
+        this.skyLight = new NibbleArray[getLayerCount()];
+        this.blockLight = new NibbleArray[getLayerCount()];
     }
 
     public int getChunkX() {
@@ -158,6 +160,22 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         heightMap.a(getChunk(), nativeType, bitArray.getData());
     }
 
+    @Override public int getMaxY() {
+        return world.getMaxBuildHeight() - 1;
+    }
+
+    @Override public int getMinY() {
+        return world.getMinBuildHeight();
+    }
+
+    @Override public int getMaxLayer() {
+        return getMinLayer() + world.getSectionsCount();
+    }
+
+    @Override public int getMinLayer() {
+        return world.getMinBuildHeight() >> 4;
+    }
+
     public int getChunkZ() {
         return chunkZ;
     }
@@ -167,7 +185,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = world.getMinBuildHeight(); y < world.getMaxBuildHeight(); y += 4) {
                 base = index.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
@@ -431,7 +449,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             synchronized (nmsChunk) {
                 ChunkSection[] sections = nmsChunk.getSections();
 
-                for (int layer = 0; layer < 16; layer++) {
+                for (int layer = 0; layer < getLayerCount(); layer++) {
                     if (!set.hasSection(layer)) {
                         continue;
                     }
@@ -877,7 +895,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock) {
-        for (int Y = 0; Y < 16; Y++) {
+        for (int Y = 0; Y < getLayerCount(); Y++) {
             if (light[Y] == null) {
                 continue;
             }
@@ -911,14 +929,14 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
 
     @Override
     public boolean trim(boolean aggressive) {
-        skyLight = new NibbleArray[16];
-        blockLight = new NibbleArray[16];
+        skyLight = new NibbleArray[getLayerCount()];
+        blockLight = new NibbleArray[getLayerCount()];
         if (aggressive) {
             sections = null;
             nmsChunk = null;
             return super.trim(true);
         } else {
-            for (int i = 0; i < 16; i++) {
+            for (int i = 0; i < getLayerCount(); i++) {
                 if (!hasSection(i) || !super.sections[i].isFull()) {
                     continue;
                 }

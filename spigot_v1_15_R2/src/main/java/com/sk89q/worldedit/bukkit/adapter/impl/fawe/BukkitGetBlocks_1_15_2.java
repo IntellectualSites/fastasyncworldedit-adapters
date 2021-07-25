@@ -96,6 +96,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     public BukkitGetBlocks_1_15_2(WorldServer world, int chunkX, int chunkZ) {
+        super(0, 255);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -151,6 +152,22 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         getChunk().heightMap.get(HeightMap.Type.valueOf(type.name())).a(bitArray.getData());
     }
 
+    @Override public int getMaxY() {
+        return 255;
+    }
+
+    @Override public int getMinY() {
+        return 0;
+    }
+
+    @Override public int getMaxLayer() {
+        return 15;
+    }
+
+    @Override public int getMinLayer() {
+        return 0;
+    }
+
     public int getChunkZ() {
         return chunkZ;
     }
@@ -160,7 +177,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = 0; y < 256; y += 4) {
                 base = index.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
