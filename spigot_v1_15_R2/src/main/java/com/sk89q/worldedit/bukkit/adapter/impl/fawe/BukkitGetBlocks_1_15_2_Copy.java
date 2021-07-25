@@ -119,11 +119,11 @@ public class BukkitGetBlocks_1_15_2_Copy implements IChunkGet {
         return 0;
     }
 
-    @Override public int getMaxLayer() {
+    @Override public int getMaxSectionIndex() {
         return 15;
     }
 
-    @Override public int getMinLayer() {
+    @Override public int getMinSectionIndex() {
         return 0;
     }
 
@@ -160,7 +160,7 @@ public class BukkitGetBlocks_1_15_2_Copy implements IChunkGet {
         return null;
     }
 
-    @Override public int getLayerCount() {
+    @Override public int getSectionCount() {
         return 16;
     }
 

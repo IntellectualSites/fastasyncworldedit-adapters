@@ -104,8 +104,8 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
-        this.skyLight = new NibbleArray[getLayerCount()];
-        this.blockLight = new NibbleArray[getLayerCount()];
+        this.skyLight = new NibbleArray[getSectionCount()];
+        this.blockLight = new NibbleArray[getSectionCount()];
     }
 
     public int getChunkX() {
@@ -168,11 +168,11 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         return world.getMinBuildHeight();
     }
 
-    @Override public int getMaxLayer() {
-        return getMinLayer() + world.getSectionsCount();
+    @Override public int getMaxSectionIndex() {
+        return getMinSectionIndex() + world.getSectionsCount() - 1;
     }
 
-    @Override public int getMinLayer() {
+    @Override public int getMinSectionIndex() {
         return world.getMinBuildHeight() >> 4;
     }
 
@@ -449,11 +449,11 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             synchronized (nmsChunk) {
                 ChunkSection[] sections = nmsChunk.getSections();
 
-                for (int layerNo = getMinLayer(); layerNo < getMaxLayer(); layerNo++) {
+                for (int layerNo = getMinSectionIndex(); layerNo <= getMaxSectionIndex(); layerNo++) {
                     if (!set.hasSection(layerNo)) {
                         continue;
                     }
-                    int layer = layerNo - getMinLayer();
+                    int layer = layerNo - getMinSectionIndex();
 
                     bitMask |= 1 << layer;
 
@@ -735,7 +735,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private synchronized char[] loadPrivately(int layer) {
-        layer -= getMinLayer();
+        layer -= getMinSectionIndex();
         if (super.blocks[layer] != null) {
             char[] blocks = new char[4096];
             System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
@@ -897,7 +897,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock) {
-        for (int Y = 0; Y < getLayerCount(); Y++) {
+        for (int Y = 0; Y < getSectionCount(); Y++) {
             if (light[Y] == null) {
                 continue;
             }
@@ -926,25 +926,25 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
 
     @Override
     public boolean hasSection(int layer) {
-        layer -= getMinLayer();
+        layer -= getMinSectionIndex();
         return getSections(false)[layer] != null;
     }
 
     @Override
     public boolean trim(boolean aggressive) {
-        skyLight = new NibbleArray[getLayerCount()];
-        blockLight = new NibbleArray[getLayerCount()];
+        skyLight = new NibbleArray[getSectionCount()];
+        blockLight = new NibbleArray[getSectionCount()];
         if (aggressive) {
             sections = null;
             nmsChunk = null;
             return super.trim(true);
         } else {
-            for (int i = getMinLayer(); i < getMaxLayer(); i++) {
+            for (int i = getMinSectionIndex(); i <= getMaxSectionIndex(); i++) {
                 if (!hasSection(i) || !super.sections[i].isFull()) {
                     continue;
                 }
                 ChunkSection existing = getSections(true)[i];
-                int layer = i - getMinLayer();
+                int layer = i - getMinSectionIndex();
                 try {
                     final DataPaletteBlock<IBlockData> blocksExisting = existing.getBlocks();
 

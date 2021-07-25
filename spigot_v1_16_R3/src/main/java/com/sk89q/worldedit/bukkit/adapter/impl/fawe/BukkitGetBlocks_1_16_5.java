@@ -165,11 +165,11 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         return 0;
     }
 
-    @Override public int getMaxLayer() {
+    @Override public int getMaxSectionIndex() {
         return 15;
     }
 
-    @Override public int getMinLayer() {
+    @Override public int getMinSectionIndex() {
         return 0;
     }
 

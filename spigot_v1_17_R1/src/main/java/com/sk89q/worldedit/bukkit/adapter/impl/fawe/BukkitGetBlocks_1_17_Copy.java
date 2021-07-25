@@ -42,7 +42,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
 
     protected BukkitGetBlocks_1_17_Copy(WorldServer world) {
         this.world = world;
-        this.blocks = new char[getLayerCount()][];
+        this.blocks = new char[getSectionCount()][];
     }
 
     protected void storeTile(TileEntity tile) {
@@ -120,11 +120,11 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
         return world.getMinBuildHeight();
     }
 
-    @Override public int getMaxLayer() {
-        return getMinLayer() + world.getSectionsCount();
+    @Override public int getMaxSectionIndex() {
+        return getMinSectionIndex() + world.getSectionsCount();
     }
 
-    @Override public int getMinLayer() {
+    @Override public int getMinSectionIndex() {
         return getMinY() >> 4;
     }
 
@@ -162,7 +162,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
         return null;
     }
 
-    @Override public int getLayerCount() {
+    @Override public int getSectionCount() {
         return world.getSectionsCount();
     }
 
@@ -178,7 +178,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
 
     @Override
     public boolean hasSection(int layer) {
-        layer -= getMinLayer();
+        layer -= getMinSectionIndex();
         return blocks[layer] != null;
     }
 
@@ -213,7 +213,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     }
 
     public char get(int x, int y, int z) {
-        final int layer = (y >> 4) - getMinLayer();
+        final int layer = (y >> 4) - getMinSectionIndex();
         final int index = (y & 15) << 8 | z << 4 | x;
         return blocks[layer][index];
     }
