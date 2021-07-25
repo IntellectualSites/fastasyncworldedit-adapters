@@ -449,18 +449,19 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             synchronized (nmsChunk) {
                 ChunkSection[] sections = nmsChunk.getSections();
 
-                for (int layer = 0; layer < getLayerCount(); layer++) {
-                    if (!set.hasSection(layer)) {
+                for (int layerNo = getMinLayer(); layerNo < getMaxLayer(); layerNo++) {
+                    if (!set.hasSection(layerNo)) {
                         continue;
                     }
+                    int layer = layerNo - getMinLayer();
 
                     bitMask |= 1 << layer;
 
-                    char[] tmp = set.load(layer);
+                    char[] tmp = set.load(layerNo);
                     char[] setArr = new char[4096];
                     System.arraycopy(tmp, 0, setArr, 0, 4096);
                     if (createCopy) {
-                        char[] tmpLoad = loadPrivately(layer);
+                        char[] tmpLoad = loadPrivately(layerNo);
                         char[] copyArr = new char[4096];
                         System.arraycopy(tmpLoad, 0, copyArr, 0, 4096);
                         copy.storeSection(layer, copyArr);
@@ -469,7 +470,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     ChunkSection newSection;
                     ChunkSection existingSection = sections[layer];
                     if (existingSection == null) {
-                        newSection = BukkitAdapter_1_17_1.newChunkSection(layer, setArr, fastmode);
+                        newSection = BukkitAdapter_1_17_1.newChunkSection(layerNo, setArr, fastmode);
                         if (BukkitAdapter_1_17_1.setSectionAtomic(sections, null, newSection, layer)) {
                             updateGet(this, nmsChunk, sections, newSection, setArr, layer);
                             continue;
@@ -497,13 +498,13 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                             } else if (existingSection != getSections(false)[layer]) {
                                 this.sections[layer] = existingSection;
                                 this.reset();
-                            } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layer))) {
-                                this.reset(layer);
+                            } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layerNo))) {
+                                this.reset(layerNo);
                             /*} else if (lock.isModified()) {
-                                this.reset(layer);*/
+                                this.reset(layerNo);*/
                             }
                             newSection = BukkitAdapter_1_17_1
-                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode);
+                                    .newChunkSection(layerNo, this::loadPrivately, setArr, fastmode);
                             if (!BukkitAdapter_1_17_1
                                     .setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
@@ -734,6 +735,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private synchronized char[] loadPrivately(int layer) {
+        layer -= getMinLayer();
         if (super.blocks[layer] != null) {
             char[] blocks = new char[4096];
             System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
@@ -937,11 +939,12 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             nmsChunk = null;
             return super.trim(true);
         } else {
-            for (int i = 0; i < getLayerCount(); i++) {
+            for (int i = getMinLayer(); i < getMaxLayer(); i++) {
                 if (!hasSection(i) || !super.sections[i].isFull()) {
                     continue;
                 }
                 ChunkSection existing = getSections(true)[i];
+                int layer = i - getMinLayer();
                 try {
                     final DataPaletteBlock<IBlockData> blocksExisting = existing.getBlocks();
 
@@ -951,16 +954,16 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     if (palette instanceof DataPaletteLinear || palette instanceof DataPaletteHash) {
                         paletteSize = palette.b();
                     } else {
-                        super.trim(false, i);
+                        super.trim(false, layer);
                         continue;
                     }
                     if (paletteSize == 1) {
                         //If the cached palette size is 1 then no blocks can have been changed i.e. do not need to update these chunks.
                         continue;
                     }
-                    super.trim(false, i);
+                    super.trim(false, layer);
                 } catch (IllegalAccessException ignored) {
-                    super.trim(false, i);
+                    super.trim(false, layer);
                 }
             }
             return true;

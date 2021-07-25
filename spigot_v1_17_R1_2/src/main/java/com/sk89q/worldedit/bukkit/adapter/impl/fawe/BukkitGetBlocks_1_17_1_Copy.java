@@ -217,7 +217,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     }
 
     public char get(int x, int y, int z) {
-        final int layer = y >> 4;
+        final int layer = (y >> 4) - getMinLayer();
         final int index = (y & 15) << 8 | z << 4 | x;
         return blocks[layer][index];
     }
