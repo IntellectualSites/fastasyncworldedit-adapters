@@ -92,6 +92,7 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
     private static final Field serverWorldsField;
     private static final Field worldPaperConfigField;
     private static final Field flatBedrockField;
+    private static final Field generatorSettingFlatField;
     private static final Field generatorSettingBaseSupplierField;
     private static final Field delegateField;
     private static final Field chunkProviderField;
@@ -134,6 +135,9 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
             generatorSettingBaseSupplierField = ChunkGeneratorAbstract.class.getDeclaredField("g");
             generatorSettingBaseSupplierField.setAccessible(true);
+
+            generatorSettingFlatField = ChunkProviderFlat.class.getDeclaredField("e");
+            generatorSettingFlatField.setAccessible(true);
 
             delegateField = CustomChunkGenerator.class.getDeclaredField("delegate");
             delegateField.setAccessible(true);
@@ -236,7 +240,7 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
         //generator
         if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
-            GeneratorSettingsFlat generatorSettingFlat = ((ChunkProviderFlat) originalChunkProvider.getChunkGenerator()).h();
+            GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) generatorSettingFlatField.get(originalChunkProvider.getChunkGenerator());
             generator = new ChunkProviderFlat(generatorSettingFlat);
         } else if (originalChunkProvider.getChunkGenerator() instanceof ChunkGeneratorAbstract) {
             Supplier<GeneratorSettingBase> generatorSettingBaseSupplier = (Supplier<GeneratorSettingBase>) generatorSettingBaseSupplierField.get(originalChunkProvider.getChunkGenerator());

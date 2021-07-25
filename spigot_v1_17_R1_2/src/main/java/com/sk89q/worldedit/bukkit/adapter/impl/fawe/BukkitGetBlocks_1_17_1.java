@@ -754,7 +754,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                 final DataBits bits = (DataBits) BukkitAdapter_1_17_1.fieldBits.get(blocks);
                 final DataPalette<IBlockData> palette = (DataPalette<IBlockData>) BukkitAdapter_1_17_1.fieldPalette.get(blocks);
 
-                final int bitsPerEntry = bits.c();
+                final int bitsPerEntry = (int) BukkitAdapter_1_17_1.fieldBitsPerEntry.get(bits);
                 final long[] blockStates = bits.a();
 
                 new BitArrayUnstretched(bitsPerEntry, 4096, blockStates).toRaw(data);
