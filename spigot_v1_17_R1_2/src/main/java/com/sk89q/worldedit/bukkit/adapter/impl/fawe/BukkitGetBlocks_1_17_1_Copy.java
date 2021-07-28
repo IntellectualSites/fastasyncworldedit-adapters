@@ -188,6 +188,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     @Override
     public char[] load(int layer) {
+        layer -= getMinSectionIndex();
         return blocks[layer];
     }
 

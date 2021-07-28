@@ -936,11 +936,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             return super.trim(true);
         } else {
             for (int i = getMinSectionIndex(); i <= getMaxSectionIndex(); i++) {
-                if (!hasSection(i) || !super.sections[i].isFull()) {
+                int layer = i - getMinSectionIndex();
+                if (!hasSection(i) || !super.sections[layer].isFull()) {
                     continue;
                 }
-                ChunkSection existing = getSections(true)[i];
-                int layer = i - getMinSectionIndex();
+                ChunkSection existing = getSections(true)[layer];
                 try {
                     final DataPaletteBlock<IBlockData> blocksExisting = existing.getBlocks();
 
