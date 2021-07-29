@@ -128,7 +128,7 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
         } else {
             base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.r().b(IRegistry.ay), base)) : null;
+        return base != null ? BukkitAdapter_1_16_5.adapt(base, world) : null;
     }
 
     @Override

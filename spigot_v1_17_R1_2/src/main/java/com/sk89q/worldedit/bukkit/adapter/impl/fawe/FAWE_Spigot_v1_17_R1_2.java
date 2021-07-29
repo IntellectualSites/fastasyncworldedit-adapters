@@ -62,6 +62,8 @@ import com.sk89q.worldedit.world.item.ItemType;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
+import net.minecraft.core.IRegistryWritable;
+import net.minecraft.data.RegistryGeneration;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
@@ -84,23 +86,28 @@ import net.minecraft.world.level.chunk.ChunkSection;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_17_R1.CraftChunk;
+import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_17_R1.util.CraftNamespacedKey;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements IDelegateBukkitImplAdapter<NBTBase> {
@@ -454,6 +461,16 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
     public int getInternalBiomeId(BiomeType biome) {
         BiomeBase base = CraftBlock.biomeToBiomeBase(MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO), BukkitAdapter.adapt(biome));
         return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO).getId(base);
+    }
+
+    @Override
+    public Iterable<NamespacedKey> getRegisteredBiomes(org.bukkit.World world) {
+        WorldServer worldServer = ((CraftWorld) world).getHandle();
+        IRegistryWritable<BiomeBase> biomeRegistry = worldServer.t().b(IRegistry.aO);
+        return biomeRegistry.g()
+                .map(biomeRegistry::getKey)
+                .map(CraftNamespacedKey::fromMinecraft)
+                .collect(Collectors.toList());
     }
 
     @Override

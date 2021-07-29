@@ -11,6 +11,8 @@ import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.world.biome.BiomeType;
+import com.sk89q.worldedit.world.biome.BiomeTypes;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
@@ -25,7 +27,9 @@ import net.minecraft.server.v1_16_R3.DataPalette;
 import net.minecraft.server.v1_16_R3.DataPaletteBlock;
 import net.minecraft.server.v1_16_R3.DataPaletteLinear;
 import net.minecraft.server.v1_16_R3.GameProfileSerializer;
+import net.minecraft.server.v1_16_R3.GeneratorAccess;
 import net.minecraft.server.v1_16_R3.IBlockData;
+import net.minecraft.server.v1_16_R3.IRegistry;
 import net.minecraft.server.v1_16_R3.PacketPlayOutLightUpdate;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMapChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunk;
@@ -318,6 +322,10 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static BiomeType adapt(BiomeBase base, GeneratorAccess world) {
+        return BiomeTypes.get(world.r().b(IRegistry.ay).getKey(base).toString());
     }
 
     protected static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
