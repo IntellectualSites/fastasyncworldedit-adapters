@@ -954,16 +954,16 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     if (palette instanceof DataPaletteLinear || palette instanceof DataPaletteHash) {
                         paletteSize = palette.b();
                     } else {
-                        super.trim(false, layer);
+                        super.trim(false, i);
                         continue;
                     }
                     if (paletteSize == 1) {
                         //If the cached palette size is 1 then no blocks can have been changed i.e. do not need to update these chunks.
                         continue;
                     }
-                    super.trim(false, layer);
+                    super.trim(false, i);
                 } catch (IllegalAccessException ignored) {
-                    super.trim(false, layer);
+                    super.trim(false, i);
                 }
             }
             return true;
