@@ -103,10 +103,10 @@ public class BukkitGetBlocks_1_15_2_Copy implements IChunkGet {
     }
 
     @Override
-    public void setLightingToGet(char[][] lighting) {}
+    public void setLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {}
 
     @Override
-    public void setSkyLightingToGet(char[][] lighting) {}
+    public void setSkyLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {}
 
     @Override
     public void setHeightmapToGet(HeightMapType type, int[] data) {}

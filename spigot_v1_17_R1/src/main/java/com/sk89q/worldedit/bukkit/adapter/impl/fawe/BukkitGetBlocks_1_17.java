@@ -129,11 +129,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setLightingToGet(char[][] light) {
+    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.b);
+                fillLightNibble(light, EnumSkyBlock.b, minSectionIndex, maxSectionIndex);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -141,11 +141,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light) {
+    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.a);
+                fillLightNibble(light, EnumSkyBlock.a, minSectionIndex, maxSectionIndex);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -249,7 +249,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     @Override
     public int getSkyLight(int x, int y, int z) {
         int layer = y >> 4;
-        if (skyLight[layer] == null) {
+        int alayer = layer - getMinSectionIndex();
+        if (skyLight[alayer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
             NibbleArray nibbleArray = world.getChunkProvider().getLightEngine().a(EnumSkyBlock.a).a(sectionPosition);
             // If the server hasn't generated the section's NibbleArray yet, it will be null
@@ -260,16 +261,16 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 nibbleArray = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(EnumSkyBlock.a, sectionPosition, nibbleArray, true);
             }
-            skyLight[layer] = nibbleArray;
+            skyLight[alayer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return skyLight[layer].a(SectionPosition.b(BlockPosition.a(l)), SectionPosition.b(BlockPosition.b(l)), SectionPosition.b(BlockPosition.c(l)));
+        return skyLight[alayer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
     public int getEmittedLight(int x, int y, int z) {
         int layer = y >> 4;
-        if (blockLight[layer] == null) {
+        int alayer = layer - getMinSectionIndex();
+        if (blockLight[alayer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
             NibbleArray nibbleArray = world.getChunkProvider().getLightEngine().a(EnumSkyBlock.b).a(sectionPosition);
             // If the server hasn't generated the section's NibbleArray yet, it will be null
@@ -280,10 +281,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 nibbleArray = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(EnumSkyBlock.b, sectionPosition, nibbleArray, true);
             }
-            blockLight[layer] = nibbleArray;
+            blockLight[alayer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return blockLight[layer].a(SectionPosition.b(BlockPosition.a(l)), SectionPosition.b(BlockPosition.b(l)), SectionPosition.b(BlockPosition.c(l)));
+        return blockLight[alayer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -542,8 +542,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 for (Map.Entry<HeightMapType, int[]> entry : heightMaps.entrySet()) {
                     BukkitGetBlocks_1_17.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
-                BukkitGetBlocks_1_17.this.setLightingToGet(set.getLight());
-                BukkitGetBlocks_1_17.this.setSkyLightingToGet(set.getSkyLight());
+                BukkitGetBlocks_1_17.this.setLightingToGet(set.getLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
+                BukkitGetBlocks_1_17.this.setSkyLightingToGet(set.getSkyLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
 
                 Runnable[] syncTasks = null;
 
@@ -897,12 +897,12 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         return tmp;
     }
 
-    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock) {
-        for (int Y = 0; Y < getSectionCount(); Y++) {
+    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock, int minSectionIndex, int maxSectionIndex) {
+        for (int Y = 0; Y < maxSectionIndex - minSectionIndex; Y++) {
             if (light[Y] == null) {
                 continue;
             }
-            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y);
+            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y + minSectionIndex);
             NibbleArray nibble = world.getChunkProvider().getLightEngine().a(skyBlock).a(sectionPosition);
             if (nibble == null) {
                 byte[] a = new byte[2048];
