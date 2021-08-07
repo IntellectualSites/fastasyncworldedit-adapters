@@ -29,6 +29,9 @@ import com.google.common.util.concurrent.Futures;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.util.TreeGenerator;
 import com.sk89q.worldedit.util.nbt.BinaryTag;
 import com.sk89q.worldedit.util.nbt.ByteArrayBinaryTag;
 import com.sk89q.worldedit.util.nbt.ByteBinaryTag;
@@ -144,10 +147,13 @@ import net.minecraft.world.phys.MovingObjectPositionBlock;
 import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.TreeType;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
@@ -517,6 +523,36 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         ItemStack stack = new ItemStack(IRegistry.Z.get(MinecraftKey.a(item.getType().getId())), item.getAmount());
         stack.setTag(((NBTTagCompound) fromNativeBinary(item.getNbt())));
         return CraftItemStack.asCraftMirror(stack);
+    }
+
+    @Override
+    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
+        org.bukkit.World bukkitWorld) {
+        TreeType bukkitType = BukkitWorld.toBukkitTreeType(type);
+        if (bukkitType == TreeType.CHORUS_PLANT) {
+            pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
+        }
+        WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+        world.captureTreeGeneration = true;
+        world.captureBlockStates = true;
+        boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, pt), bukkitType);
+        world.captureBlockStates = false;
+        world.captureTreeGeneration = false;
+        if (!grownTree) {
+            world.capturedBlockStates.clear();
+            return false;
+        } else {
+            for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
+                if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
+                    continue;
+                }
+                editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
+                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData()));
+            }
+
+            world.capturedBlockStates.clear();
+            return true;
+        }
     }
 
     @Override
