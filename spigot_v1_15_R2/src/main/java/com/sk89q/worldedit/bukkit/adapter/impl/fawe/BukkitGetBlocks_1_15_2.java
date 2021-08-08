@@ -682,14 +682,18 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         }
     }
 
-    private synchronized char[] loadPrivately(int layer) {
-        if (super.blocks[layer] != null) {
-            char[] blocks = new char[4096];
-            System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
-            return blocks;
-        } else {
-            return BukkitGetBlocks_1_15_2.this.update(layer, null, true);
+    private char[] loadPrivately(int layer) {
+        Section section = super.sections[layer];
+        if (super.sections[layer] != null) {
+            synchronized (section) {
+                if (super.sections[layer].isFull() && super.blocks[layer] != null) {
+                    char[] blocks = new char[4096];
+                    System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
+                    return blocks;
+                }
+            }
         }
+        return BukkitGetBlocks_1_15_2.this.update(layer, null, true);
     }
 
     @Override
