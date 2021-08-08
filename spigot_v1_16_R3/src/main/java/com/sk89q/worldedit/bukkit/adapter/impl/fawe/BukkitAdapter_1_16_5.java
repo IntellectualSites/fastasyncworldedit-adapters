@@ -196,7 +196,7 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
             return;
         }
         Chunk chunk = optional.get();
-        TaskManager.IMP.sync(() -> {
+        TaskManager.IMP.task(() -> {
             PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
             playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
                 p.playerConnection.sendPacket(chunkPacket);
@@ -211,7 +211,6 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
                     p.playerConnection.sendPacket(packet);
                 });
             }
-            return null;
         });
     }
 
