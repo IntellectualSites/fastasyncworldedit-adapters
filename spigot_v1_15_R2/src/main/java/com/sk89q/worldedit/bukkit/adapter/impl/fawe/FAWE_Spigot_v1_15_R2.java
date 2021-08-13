@@ -100,6 +100,7 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -450,6 +451,11 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
             world.capturedBlockStates.clear();
             return true;
         }
+    }
+
+    @Override
+    public List<org.bukkit.entity.Entity> getEntities(org.bukkit.World world) {
+        return world.getEntities();
     }
 
     @Override

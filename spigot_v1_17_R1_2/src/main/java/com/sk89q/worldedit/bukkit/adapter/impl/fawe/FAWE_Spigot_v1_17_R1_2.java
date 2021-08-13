@@ -102,7 +102,9 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -453,6 +455,23 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
             world.capturedBlockStates.clear();
             return true;
         }
+    }
+
+    @Override
+    public List<org.bukkit.entity.Entity> getEntities(org.bukkit.World world) {
+        // Quickly add each entity to a list copy.
+        List<Entity> mcEntities = new ArrayList<>();
+        ((CraftWorld) world).getHandle().G.d().a().forEach(mcEntities::add);
+
+        List<org.bukkit.entity.Entity> list = new ArrayList<>();
+        mcEntities.forEach((mcEnt) -> {
+            org.bukkit.entity.Entity bukkitEntity = mcEnt.getBukkitEntity();
+            if (bukkitEntity.isValid()) {
+                list.add(bukkitEntity);
+            }
+
+        });
+        return list;
     }
 
     @Override
