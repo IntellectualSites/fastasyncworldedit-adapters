@@ -20,7 +20,6 @@ import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
-import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
 import com.sk89q.worldedit.internal.Constants;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
@@ -83,6 +82,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
 
     private static final Function<BlockPosition, BlockVector3> posNms2We = v -> BlockVector3.at(v.getX(), v.getY(), v.getZ());
     private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+    private final FAWE_Spigot_v1_17_R1_2 adapter = ((FAWE_Spigot_v1_17_R1_2) WorldEditPlugin.getInstance().getBukkitImplAdapter());
     public ChunkSection[] sections;
     public Chunk nmsChunk;
     public WorldServer world;
@@ -366,7 +366,6 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     @Nullable
                     @Override
                     public CompoundTag apply(@Nullable Entity input) {
-                        BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                         NBTTagCompound tag = new NBTTagCompound();
                         return (CompoundTag) adapter.toNative(input.save(tag));
                     }
@@ -471,7 +470,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     ChunkSection newSection;
                     ChunkSection existingSection = sections[layer];
                     if (existingSection == null) {
-                        newSection = BukkitAdapter_1_17_1.newChunkSection(layerNo, setArr, fastmode);
+                        newSection = BukkitAdapter_1_17_1.newChunkSection(layerNo, setArr, fastmode, adapter);
                         if (BukkitAdapter_1_17_1.setSectionAtomic(sections, null, newSection, layer)) {
                             updateGet(this, nmsChunk, sections, newSection, setArr, layer);
                             continue;
@@ -505,7 +504,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                                 this.reset(layerNo);*/
                             }
                             newSection = BukkitAdapter_1_17_1
-                                    .newChunkSection(layerNo, this::loadPrivately, setArr, fastmode);
+                                    .newChunkSection(layerNo, this::loadPrivately, setArr, fastmode, adapter);
                             if (!BukkitAdapter_1_17_1
                                     .setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
@@ -619,7 +618,6 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                             if (type != null) {
                                 Entity entity = type.a(nmsWorld);
                                 if (entity != null) {
-                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     for (final String name : Constants.NO_COPY_ENTITY_NBT_FIELDS) {
                                         tag.remove(name);
@@ -657,7 +655,6 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                                     tileEntity = nmsWorld.getTileEntity(pos);
                                 }
                                 if (tileEntity != null) {
-                                    BukkitImplAdapter<?> adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
                                     final NBTTagCompound tag = (NBTTagCompound) adapter.fromNative(nativeTag);
                                     tag.set("x", NBTTagInt.a(x));
                                     tag.set("y", NBTTagInt.a(y));
@@ -773,7 +770,6 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             // Efficiently convert ChunkSection to raw data
             try {
                 lock.acquire();
-                FAWE_Spigot_v1_17_R1_2 adapter = ((FAWE_Spigot_v1_17_R1_2) WorldEditPlugin.getInstance().getBukkitImplAdapter());
 
                 final DataPaletteBlock<IBlockData> blocks = section.getBlocks();
                 final DataBits bits = (DataBits) BukkitAdapter_1_17_1.fieldBits.get(blocks);
@@ -788,34 +784,12 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                 if (palette instanceof DataPaletteLinear || palette instanceof DataPaletteHash) {
                     num_palette = palette.b();
                 } else {
-                    num_palette = 0;
-                    int[] paletteToBlockInts = FaweCache.IMP.PALETTE_TO_BLOCK.get();
-                    char[] paletteToBlockChars = FaweCache.IMP.PALETTE_TO_BLOCK_CHAR.get();
-                    try {
-                        for (int i = 0; i < 4096; i++) {
-                            char paletteVal = data[i];
-                            char ordinal = paletteToBlockChars[paletteVal];
-                            if (ordinal == Character.MAX_VALUE) {
-                                paletteToBlockInts[num_palette++] = paletteVal;
-                                IBlockData ibd = palette.a(data[i]);
-                                if (ibd == null) {
-                                    ordinal = BlockTypes.AIR.getDefaultState().getOrdinalChar();
-                                } else {
-                                    ordinal = adapter.adaptToChar(ibd);
-                                }
-                                paletteToBlockChars[paletteVal] = ordinal;
-                            }
-                            // Don't read "empty".
-                            if (ordinal == 0) {
-                                ordinal = 1;
-                            }
-                            data[i] = ordinal;
-                        }
-                    } finally {
-                        for (int i = 0; i < num_palette; i++) {
-                            int paletteVal = paletteToBlockInts[i];
-                            paletteToBlockChars[paletteVal] = Character.MAX_VALUE;
-                        }
+                    // The section's palette is the global block palette.
+                    for (int i = 0; i < 4096; i++) {
+                        char paletteVal = data[i];
+                        char ordinal = adapter.ibdIDToOrdinal(paletteVal);
+                        // Don't read "empty".
+                        data[i] = ordinal == 0 ? 1 : ordinal;
                     }
                     return data;
                 }

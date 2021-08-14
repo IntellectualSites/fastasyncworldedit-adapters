@@ -102,7 +102,9 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -114,8 +116,8 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private final BukkitImplAdapter<NBTBase> parent;
-    private char[] ibdToStateOrdinal;
-    private int[] ordinalToIbdID;
+    private char[] ibdToStateOrdinal = null;
+    private int[] ordinalToIbdID = null;
 
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
@@ -328,46 +330,77 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
         return BlockTypesCache.states[adaptToChar(ibd)];
     }
 
-    /**
-     * @deprecated Method unused. Use #adaptToChar(IBlockData).
-     */
-    @Deprecated
-    public int adaptToInt(IBlockData ibd) {
-        synchronized (this) {
-            try {
-                int id = Block.p.getId(ibd);
-                return ibdToStateOrdinal[id];
-            } catch (NullPointerException e) {
-                init();
-                return adaptToInt(ibd);
-            }
-        }
-    }
-
     public char adaptToChar(IBlockData ibd) {
+        int id = Block.p.getId(ibd);
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal[id];
+        }
         synchronized (this) {
-            try {
-                int id = Block.p.getId(ibd);
+            if (ibdToStateOrdinal != null) {
                 return ibdToStateOrdinal[id];
-            } catch (NullPointerException e) {
+            }
+            try {
                 init();
-                return adaptToChar(ibd);
+                return ibdToStateOrdinal[id];
             } catch (ArrayIndexOutOfBoundsException e1) {
                 LOGGER.error("Attempted to convert {} with ID {} to char. ibdToStateOrdinal length: {}. Defaulting to air!",
-                        ibd.getBlock(), Block.p.getId(ibd), ibdToStateOrdinal.length, e1);
+                    ibd.getBlock(), Block.p.getId(ibd), ibdToStateOrdinal.length, e1);
                 return 0;
             }
         }
     }
 
-    public int ordinalToIbdID(char ordinal) {
+    public char ibdIDToOrdinal(int id) {
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal[id];
+        }
         synchronized (this) {
-            try {
-                return ordinalToIbdID[ordinal];
-            } catch (NullPointerException e) {
-                init();
-                return ordinalToIbdID(ordinal);
+            if (ibdToStateOrdinal != null) {
+                return ibdToStateOrdinal[id];
             }
+            init();
+            return ibdToStateOrdinal[id];
+        }
+    }
+
+    @Override
+    public char[] getIbdToStateOrdinal() {
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal;
+        }
+        synchronized (this) {
+            if (ibdToStateOrdinal != null) {
+                return ibdToStateOrdinal;
+            }
+            init();
+            return ibdToStateOrdinal;
+        }
+    }
+
+    public int ordinalToIbdID(char ordinal) {
+        if (ordinalToIbdID != null) {
+            return ordinalToIbdID[ordinal];
+        }
+        synchronized (this) {
+            if (ordinalToIbdID != null) {
+                return ordinalToIbdID[ordinal];
+            }
+            init();
+            return ordinalToIbdID[ordinal];
+        }
+    }
+
+    @Override
+    public int[] getOrdinalToIbdID() {
+        if (ordinalToIbdID != null) {
+            return ordinalToIbdID;
+        }
+        synchronized (this) {
+            if (ordinalToIbdID != null) {
+                return ordinalToIbdID;
+            }
+            init();
+            return ordinalToIbdID;
         }
     }
 
@@ -453,6 +486,23 @@ public final class FAWE_Spigot_v1_17_R1_2 extends CachedBukkitAdapter implements
             world.capturedBlockStates.clear();
             return true;
         }
+    }
+
+    @Override
+    public List<org.bukkit.entity.Entity> getEntities(org.bukkit.World world) {
+        // Quickly add each entity to a list copy.
+        List<Entity> mcEntities = new ArrayList<>();
+        ((CraftWorld) world).getHandle().G.d().a().forEach(mcEntities::add);
+
+        List<org.bukkit.entity.Entity> list = new ArrayList<>();
+        mcEntities.forEach((mcEnt) -> {
+            org.bukkit.entity.Entity bukkitEntity = mcEnt.getBukkitEntity();
+            if (bukkitEntity.isValid()) {
+                list.add(bukkitEntity);
+            }
+
+        });
+        return list;
     }
 
     @Override
