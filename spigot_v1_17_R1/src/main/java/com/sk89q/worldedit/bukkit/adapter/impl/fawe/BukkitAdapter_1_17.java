@@ -24,6 +24,7 @@ import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.GameProfileSerializer;
 import net.minecraft.network.protocol.game.PacketPlayOutLightUpdate;
 import net.minecraft.network.protocol.game.PacketPlayOutMapChunk;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.PlayerChunk;
 import net.minecraft.server.level.PlayerChunkMap;
@@ -56,6 +57,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -360,7 +362,11 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
     }
 
     public static BiomeType adapt(BiomeBase base, GeneratorAccess world) {
-        return BiomeTypes.get(world.t().b(IRegistry.aO).getKey(base).toString());
+        MinecraftKey key = world.t().b(IRegistry.aO).getKey(base);
+        if (key == null) {
+            return world.t().b(IRegistry.aO).getId(base) == -1 ? BiomeTypes.OCEAN : null;
+        }
+        return BiomeTypes.get(key.toString().toLowerCase(Locale.ROOT));
     }
 
     static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
