@@ -46,6 +46,7 @@ import net.minecraft.server.v1_16_R3.HeightMap;
 import net.minecraft.server.v1_16_R3.IBlockData;
 import net.minecraft.server.v1_16_R3.IRegistry;
 import net.minecraft.server.v1_16_R3.LightEngine;
+import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.NBTTagCompound;
 import net.minecraft.server.v1_16_R3.NBTTagInt;
 import net.minecraft.server.v1_16_R3.NibbleArray;
@@ -56,7 +57,6 @@ import net.minecraft.server.v1_16_R3.TileEntityBeacon;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -192,7 +192,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         } else {
             base = index.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.r().b(IRegistry.ay), base)) : null;
+        return base != null ? BukkitAdapter_1_16_5.adapt(base, world) : null;
     }
 
     @Override
@@ -522,8 +522,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                             for (int x = 0; x < 4; x++, i++) {
                                 final BiomeType biome = biomes[i];
                                 if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(nmsWorld.r().b(IRegistry.ay), craftBiome);
+                                    BiomeBase nmsBiome = nmsWorld.r().b(IRegistry.ay).get(MinecraftKey.a(biome.getId()));
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }

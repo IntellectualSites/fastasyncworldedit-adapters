@@ -34,6 +34,7 @@ import net.minecraft.core.IRegistry;
 import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.sounds.SoundEffects;
 import net.minecraft.util.DataBits;
@@ -56,7 +57,6 @@ import net.minecraft.world.level.levelgen.HeightMap;
 import net.minecraft.world.level.lighting.LightEngine;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -196,7 +196,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         } else {
             base = index.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.t().b(IRegistry.aO), base)) : null;
+        return base != null ? BukkitAdapter_1_17.adapt(base, world) : null;
     }
 
     @Override
@@ -529,8 +529,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             for (int x = 0; x < 4; x++, i++) {
                                 final BiomeType biome = biomes[i];
                                 if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(nmsWorld.t().b(IRegistry.aO), craftBiome);
+                                    BiomeBase nmsBiome = nmsWorld.t().b(IRegistry.aO).get(MinecraftKey.a(biome.getId()));
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
