@@ -1,6 +1,5 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.extent.processor.heightmap.HeightMapType;
 import com.fastasyncworldedit.core.queue.IBlocks;
 import com.fastasyncworldedit.core.queue.IChunkGet;
@@ -105,13 +104,29 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
     }
 
     @Override
-    public void setLightingToGet(char[][] lighting) {}
+    public void setLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {}
 
     @Override
-    public void setSkyLightingToGet(char[][] lighting) {}
+    public void setSkyLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {}
 
     @Override
     public void setHeightmapToGet(HeightMapType type, int[] data) {}
+
+    @Override public int getMaxY() {
+        return 255;
+    }
+
+    @Override public int getMinY() {
+        return 0;
+    }
+
+    @Override public int getMaxSectionIndex() {
+        return 15;
+    }
+
+    @Override public int getMinSectionIndex() {
+        return 0;
+    }
 
     protected void storeBiomes(BiomeStorage biomeStorage) {
         this.biomeStorage = new BiomeStorage(biomeStorage.registry, BukkitAdapter_1_16_5.getBiomeArray(biomeStorage).clone());
@@ -121,9 +136,11 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
     public BiomeType getBiomeType(int x, int y, int z) {
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = 0; y < 256; y += 4) {
                 base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
-                if (base != null) break;
+                if (base != null) {
+                    break;
+                }
             }
         } else {
             base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
@@ -142,6 +159,10 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
     @Override
     public IBlocks reset() {
         return null;
+    }
+
+    @Override public int getSectionCount() {
+        return 16;
     }
 
     protected void storeSection(int layer, char[] data) {

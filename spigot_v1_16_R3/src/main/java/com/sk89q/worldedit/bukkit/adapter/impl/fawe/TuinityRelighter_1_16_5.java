@@ -80,7 +80,7 @@ public class TuinityRelighter_1_16_5 implements Relighter {
 
     public TuinityRelighter_1_16_5(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
-        this.delegate = new NMSRelighter(queue, false);
+        this.delegate = new NMSRelighter(queue);
     }
 
     @Override

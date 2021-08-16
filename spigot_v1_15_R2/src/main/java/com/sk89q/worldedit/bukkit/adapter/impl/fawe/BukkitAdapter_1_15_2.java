@@ -1,5 +1,6 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
+import com.fastasyncworldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.fastasyncworldedit.bukkit.adapter.DelegateLock;
 import com.fastasyncworldedit.bukkit.adapter.NMSAdapter;
 import com.fastasyncworldedit.core.Fawe;
@@ -23,6 +24,7 @@ import net.minecraft.server.v1_15_R1.ChunkSection;
 import net.minecraft.server.v1_15_R1.DataBits;
 import net.minecraft.server.v1_15_R1.DataPalette;
 import net.minecraft.server.v1_15_R1.DataPaletteBlock;
+import net.minecraft.server.v1_15_R1.DataPaletteHash;
 import net.minecraft.server.v1_15_R1.DataPaletteLinear;
 import net.minecraft.server.v1_15_R1.GameProfileSerializer;
 import net.minecraft.server.v1_15_R1.IBlockData;
@@ -119,7 +121,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         }
     }
 
-    protected static boolean setSectionAtomic(ChunkSection[] sections, ChunkSection expected, ChunkSection value, int layer) {
+    static boolean setSectionAtomic(ChunkSection[] sections, ChunkSection expected, ChunkSection value, int layer) {
         long offset = ((long) layer << CHUNKSECTION_SHIFT) + CHUNKSECTION_BASE;
         if (layer >= 0 && layer < sections.length) {
             return UnsafeUtility.getUNSAFE().compareAndSwapObject(sections, offset, expected, value);
@@ -127,7 +129,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         return false;
     }
 
-    protected static DelegateLock applyLock(ChunkSection section) {
+    static DelegateLock applyLock(ChunkSection section) {
         //todo there has to be a better way to do this. Maybe using a() in DataPaletteBlock which acquires the lock in NMS?
         try {
             synchronized (section) {
@@ -157,7 +159,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         }
         if (PaperLib.isPaper()) {
             CraftWorld craftWorld = nmsWorld.getWorld();
-            CompletableFuture<org.bukkit.Chunk> future = craftWorld.getChunkAtAsync(chunkX, chunkZ, true);
+            CompletableFuture<org.bukkit.Chunk> future = craftWorld.getChunkAtAsync(chunkX, chunkZ, true, true);
             try {
                 CraftChunk chunk = (CraftChunk) future.get();
                 return chunk.getHandle();
@@ -193,7 +195,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             return;
         }
         Chunk chunk = optional.get();
-        TaskManager.IMP.sync(() -> {
+        TaskManager.IMP.task(() -> {
             PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
             playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
                 p.playerConnection.sendPacket(chunkPacket);
@@ -205,18 +207,17 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                     p.playerConnection.sendPacket(packet);
                 });
             }
-            return null;
         });
     }
 
     /*
     NMS conversion
      */
-    public static ChunkSection newChunkSection(final int layer, final char[] blocks, boolean fastmode) {
-        return newChunkSection(layer, null, blocks, fastmode);
+    public static ChunkSection newChunkSection(final int layer, final char[] blocks, boolean fastmode, CachedBukkitAdapter adapter) {
+        return newChunkSection(layer, null, blocks, fastmode, adapter);
     }
 
-    public static ChunkSection newChunkSection(final int layer, final Function<Integer, char[]> get, char[] set, boolean fastmode) {
+    public static ChunkSection newChunkSection(final int layer, final Function<Integer, char[]> get, char[] set, boolean fastmode, CachedBukkitAdapter adapter) {
         if (set == null) {
             return newChunkSection(layer);
         }
@@ -230,10 +231,10 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             int air;
             if (get == null) {
                 air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer,
-                    set, ticking_blocks, fastmode);
+                    set, ticking_blocks, fastmode, adapter);
             } else {
                 air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy,
-                    num_palette_buffer, get, set, ticking_blocks, fastmode);
+                    num_palette_buffer, get, set, ticking_blocks, fastmode, adapter);
             }
             int num_palette = num_palette_buffer[0];
             // BlockStates
@@ -242,6 +243,9 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                 bitsPerEntry = Math.max(bitsPerEntry, 4); // Protocol support breaks <4 bits per entry
             } else {
                 bitsPerEntry = Math.max(bitsPerEntry, 1); // For some reason minecraft needs 4096 bits to store 0 entries
+            }
+            if (bitsPerEntry > 8) {
+                bitsPerEntry = MathMan.log2nlz(Block.REGISTRY_ID.a() - 1);
             }
 
             final int blockBitArrayEnd = (bitsPerEntry * 4096) >> 6;
@@ -262,15 +266,23 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             final long[] bits = Arrays.copyOfRange(blockStates, 0, blockBitArrayEnd);
             final DataBits nmsBits = new DataBits(bitsPerEntry, 4096, bits);
             final DataPalette<IBlockData> palette;
-            palette = new DataPaletteLinear<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d);
+            if (bitsPerEntry <= 4) {
+                palette = new DataPaletteLinear<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d);
+            } else if (bitsPerEntry < 9) {
+                palette = new DataPaletteHash<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d, GameProfileSerializer::a);
+            } else {
+                palette = ChunkSection.GLOBAL_PALETTE;
+            }
 
-            // set palette
-            for (int i = 0; i < num_palette; i++) {
-                final int ordinal = paletteToBlock[i];
-                blockToPalette[ordinal] = Integer.MAX_VALUE;
-                final BlockState state = BlockTypesCache.states[ordinal];
-                final IBlockData ibd = ((BlockMaterial_1_15_2) state.getMaterial()).getState();
-                palette.a(ibd);
+            // set palette if required
+            if (bitsPerEntry < 9) {
+                for (int i = 0; i < num_palette; i++) {
+                    final int ordinal = paletteToBlock[i];
+                    blockToPalette[ordinal] = Integer.MAX_VALUE;
+                    final BlockState state = BlockTypesCache.states[ordinal];
+                    final IBlockData ibd = ((BlockMaterial_1_15_2) state.getMaterial()).getState();
+                    palette.a(ibd);
+                }
             }
             try {
                 fieldBits.set(dataPaletteBlocks, nmsBits);
