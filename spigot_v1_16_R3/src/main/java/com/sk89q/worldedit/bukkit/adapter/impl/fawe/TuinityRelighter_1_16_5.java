@@ -45,19 +45,12 @@ public class TuinityRelighter_1_16_5 implements Relighter {
     private static final TicketType<Unit> FAWE_TICKET = TicketType.a("fawe_ticket", (a, b) -> 0);
     private static final int LIGHT_LEVEL = MCUtil.getTicketLevelFor(ChunkStatus.LIGHT);
 
-    private final WorldServer world;
-    private final ReentrantLock lock = new ReentrantLock();
-
-    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
-
-    private final ReentrantLock areaLock = new ReentrantLock();
-    private final NMSRelighter delegate;
-
     static {
         MethodHandle tmp = null;
         try {
             MethodHandles.Lookup lookup = MethodHandles.lookup();
-            tmp = lookup.findVirtual(LightEngineThreaded.class,
+            tmp = lookup.findVirtual(
+                    LightEngineThreaded.class,
                     "relight",
                     MethodType.methodType(
                             int.class, // return type
@@ -74,13 +67,19 @@ public class TuinityRelighter_1_16_5 implements Relighter {
         RELIGHT = tmp;
     }
 
-    public static boolean isUsable() {
-        return RELIGHT != null;
-    }
+    private final WorldServer world;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
+    private final ReentrantLock areaLock = new ReentrantLock();
+    private final NMSRelighter delegate;
 
     public TuinityRelighter_1_16_5(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
-        this.delegate = new NMSRelighter(queue, false);
+        this.delegate = new NMSRelighter(queue);
+    }
+
+    public static boolean isUsable() {
+        return RELIGHT != null;
     }
 
     @Override
@@ -111,7 +110,9 @@ public class TuinityRelighter_1_16_5 implements Relighter {
     public void fixLightingSafe(boolean sky) {
         this.areaLock.lock();
         try {
-            if (regions.isEmpty()) return;
+            if (regions.isEmpty()) {
+                return;
+            }
             LongSet first = regions.removeFirst();
             fixLighting(first, () -> fixLightingSafe(true));
         } finally {
@@ -140,13 +141,16 @@ public class TuinityRelighter_1_16_5 implements Relighter {
                                 FAWE_TICKET,
                                 pos,
                                 LIGHT_LEVEL,
-                                Unit.INSTANCE))
+                                Unit.INSTANCE
+                        ))
                 );
             }
             // collect futures and trigger relight once all chunks are loaded
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v ->
-                    invokeRelight(coords,
-                            c -> { }, // no callback for single chunks required
+                    invokeRelight(
+                            coords,
+                            c -> {
+                            }, // no callback for single chunks required
                             i -> {
                                 if (i != coords.size()) {
                                     LOGGER.warn("Processed " + i + " chunks instead of " + coords.size());
@@ -155,16 +159,20 @@ public class TuinityRelighter_1_16_5 implements Relighter {
                                 TaskManager.IMP.task(() -> postProcessChunks(coords));
                                 // call callback on our own threads
                                 TaskManager.IMP.async(andThen);
-                            })
+                            }
+                    )
             );
         });
     }
 
-    private void invokeRelight(Set<ChunkCoordIntPair> coords,
-                               Consumer<ChunkCoordIntPair> chunkCallback,
-                               IntConsumer processCallback) {
+    private void invokeRelight(
+            Set<ChunkCoordIntPair> coords,
+            Consumer<ChunkCoordIntPair> chunkCallback,
+            IntConsumer processCallback
+    ) {
         try {
-            int unused = (int) RELIGHT.invokeExact(world.getChunkProvider().getLightEngine(),
+            int unused = (int) RELIGHT.invokeExact(
+                    world.getChunkProvider().getLightEngine(),
                     coords,
                     chunkCallback, // callback per chunk
                     processCallback // callback for all chunks
@@ -229,4 +237,5 @@ public class TuinityRelighter_1_16_5 implements Relighter {
     public void close() throws Exception {
         fixLightingSafe(true);
     }
+
 }

@@ -12,21 +12,26 @@ import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.world.biome.BiomeType;
+import com.sk89q.worldedit.world.biome.BiomeTypes;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.core.BlockPosition;
+import net.minecraft.core.IRegistry;
 import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.GameProfileSerializer;
 import net.minecraft.network.protocol.game.PacketPlayOutLightUpdate;
 import net.minecraft.network.protocol.game.PacketPlayOutMapChunk;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.PlayerChunk;
 import net.minecraft.server.level.PlayerChunkMap;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.util.DataBits;
 import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.GeneratorAccess;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ITileEntity;
@@ -39,7 +44,6 @@ import net.minecraft.world.level.chunk.DataPalette;
 import net.minecraft.world.level.chunk.DataPaletteBlock;
 import net.minecraft.world.level.chunk.DataPaletteHash;
 import net.minecraft.world.level.chunk.DataPaletteLinear;
-import net.minecraft.world.level.chunk.IChunkAccess;
 import net.minecraft.world.level.gameevent.GameEventDispatcher;
 import net.minecraft.world.level.gameevent.GameEventListener;
 import org.bukkit.craftbukkit.v1_17_R1.CraftChunk;
@@ -51,6 +55,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +64,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class BukkitAdapter_1_17_1 extends NMSAdapter {
+
     /*
     NMS fields
     */
@@ -217,7 +223,9 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.c)).left();
         if (PaperLib.isPaper()) {
             // getChunkAtIfLoadedImmediately is paper only
-            optional = optional.or(() -> Optional.ofNullable(nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
+            optional = optional.or(() -> Optional.ofNullable(nmsWorld
+                    .getChunkProvider()
+                    .getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
         }
         if (optional.isEmpty()) {
             return;
@@ -232,8 +240,9 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
                 //This needs to be true otherwise Minecraft will update lighting from/at the chunk edges (bad)
                 boolean trustEdges = true;
                 PacketPlayOutLightUpdate packet =
-                    new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine(), null, null,
-                        trustEdges);
+                        new PacketPlayOutLightUpdate(chunkCoordIntPair, nmsWorld.getChunkProvider().getLightEngine(), null, null,
+                                trustEdges
+                        );
                 nearbyPlayers(nmsWorld, chunkCoordIntPair).forEach(p -> {
                     p.b.sendPacket(packet);
                 });
@@ -248,13 +257,17 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
     /*
     NMS conversion
      */
-    public static ChunkSection newChunkSection(final int layer, final char[] blocks, boolean fastmode,
-        CachedBukkitAdapter adapter) {
+    public static ChunkSection newChunkSection(
+            final int layer, final char[] blocks, boolean fastmode,
+            CachedBukkitAdapter adapter
+    ) {
         return newChunkSection(layer, null, blocks, fastmode, adapter);
     }
 
-    public static ChunkSection newChunkSection(final int layer, final Function<Integer, char[]> get, char[] set,
-        boolean fastmode, CachedBukkitAdapter adapter) {
+    public static ChunkSection newChunkSection(
+            final int layer, final Function<Integer, char[]> get, char[] set,
+            boolean fastmode, CachedBukkitAdapter adapter
+    ) {
         if (set == null) {
             return newChunkSection(layer);
         }
@@ -268,10 +281,12 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             int air;
             if (get == null) {
                 air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer,
-                        set, ticking_blocks, fastmode, adapter);
+                        set, ticking_blocks, fastmode, adapter
+                );
             } else {
                 air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy,
-                        num_palette_buffer, get, set, ticking_blocks, fastmode, adapter);
+                        num_palette_buffer, get, set, ticking_blocks, fastmode, adapter
+                );
             }
             int num_palette = num_palette_buffer[0];
             // BlockStates
@@ -308,7 +323,13 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             if (bitsPerEntry <= 4) {
                 palette = new DataPaletteLinear<>(Block.p, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::c);
             } else if (bitsPerEntry < 9) {
-                palette = new DataPaletteHash<>(Block.p, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::c, GameProfileSerializer::a);
+                palette = new DataPaletteHash<>(
+                        Block.p,
+                        bitsPerEntry,
+                        dataPaletteBlocks,
+                        GameProfileSerializer::c,
+                        GameProfileSerializer::a
+                );
             } else {
                 palette = ChunkSection.d;
             }
@@ -331,7 +352,8 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
                 if (!fastmode) {
                     ticking_blocks.forEach((pos, ordinal) -> section
                             .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(),
-                                    Block.getByCombinedId(ordinal)));
+                                    Block.getByCombinedId(ordinal)
+                            ));
                 }
             } catch (final IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -348,7 +370,8 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
         return new ChunkSection(layer);
     }
 
-    public static void setCount(final int tickingBlockCount, final int nonEmptyBlockCount, final ChunkSection section) throws IllegalAccessException {
+    public static void setCount(final int tickingBlockCount, final int nonEmptyBlockCount, final ChunkSection section) throws
+            IllegalAccessException {
         fieldFluidCount.setShort(section, (short) 0); // TODO FIXME
         fieldTickingBlockCount.setShort(section, (short) tickingBlockCount);
         fieldNonEmptyBlockCount.setShort(section, (short) nonEmptyBlockCount);
@@ -361,6 +384,14 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static BiomeType adapt(BiomeBase base, GeneratorAccess world) {
+        MinecraftKey key = world.t().b(IRegistry.aO).getKey(base);
+        if (key == null) {
+            return world.t().b(IRegistry.aO).getId(base) == -1 ? BiomeTypes.OCEAN : null;
+        }
+        return BiomeTypes.get(key.toString().toLowerCase(Locale.ROOT));
     }
 
     static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
@@ -380,7 +411,7 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
                                 if (gameeventdispatcher.a()) {
                                     try {
                                         ((Int2ObjectMap<GameEventDispatcher>) fieldEventDispatcherMap.get(nmsChunk))
-                                            .remove(i);
+                                                .remove(i);
                                     } catch (IllegalAccessException e) {
                                         e.printStackTrace();
                                     }
@@ -396,4 +427,5 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             throwable.printStackTrace();
         }
     }
+
 }

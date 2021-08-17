@@ -4,6 +4,7 @@ import com.fastasyncworldedit.bukkit.adapter.MapChunkUtil;
 import net.minecraft.network.protocol.game.PacketPlayOutMapChunk;
 
 public class MapChunkUtil_1_17_1 extends MapChunkUtil<PacketPlayOutMapChunk> {
+
     public MapChunkUtil_1_17_1() throws NoSuchFieldException {
         fieldX = PacketPlayOutMapChunk.class.getDeclaredField("a");
         fieldZ = PacketPlayOutMapChunk.class.getDeclaredField("b");
@@ -26,4 +27,5 @@ public class MapChunkUtil_1_17_1 extends MapChunkUtil<PacketPlayOutMapChunk> {
         // TODO ??? return new PacketPlayOutMapChunk();
         throw new UnsupportedOperationException();
     }
+
 }
