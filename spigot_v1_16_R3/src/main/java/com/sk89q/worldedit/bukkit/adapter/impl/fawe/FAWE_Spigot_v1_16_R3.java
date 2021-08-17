@@ -73,6 +73,7 @@ import net.minecraft.server.v1_16_R3.EntityPlayer;
 import net.minecraft.server.v1_16_R3.EntityTypes;
 import net.minecraft.server.v1_16_R3.IBlockData;
 import net.minecraft.server.v1_16_R3.IRegistry;
+import net.minecraft.server.v1_16_R3.IRegistryWritable;
 import net.minecraft.server.v1_16_R3.ItemStack;
 import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.MinecraftServer;
@@ -88,6 +89,7 @@ import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R3.CraftChunk;
@@ -98,6 +100,7 @@ import org.bukkit.craftbukkit.v1_16_R3.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_16_R3.util.CraftNamespacedKey;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
@@ -108,6 +111,7 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements IDelegateBukkitImplAdapter<NBTBase> {
@@ -532,6 +536,17 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         );
         return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay).a(base);
     }
+
+    @Override
+    public Iterable<NamespacedKey> getRegisteredBiomes(org.bukkit.World world) {
+        WorldServer worldServer = ((CraftWorld) world).getHandle();
+        IRegistryWritable<BiomeBase> biomeRegistry = worldServer.r().b(IRegistry.ay);
+        return biomeRegistry.g()
+                .map(biomeRegistry::getKey)
+                .map(CraftNamespacedKey::fromMinecraft)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     public RelighterFactory getRelighterFactory() {

@@ -1,14 +1,11 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
-
-import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.extent.processor.heightmap.HeightMapType;
 import com.fastasyncworldedit.core.queue.IBlocks;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.IChunkSet;
 import com.google.common.base.Suppliers;
 import com.sk89q.jnbt.CompoundTag;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
@@ -17,15 +14,12 @@ import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
-import net.minecraft.core.IRegistry;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.chunk.BiomeStorage;
-import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
-import org.jetbrains.annotations.Range;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -39,12 +33,13 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     private final Map<BlockVector3, CompoundTag> tiles = new HashMap<>();
     private final Set<CompoundTag> entities = new HashSet<>();
-    private final char[][] blocks = new char[16][];
+    private final char[][] blocks;
     private final WorldServer world;
     private BiomeStorage biomeStorage;
 
     protected BukkitGetBlocks_1_17_1_Copy(WorldServer world) {
         this.world = world;
+        this.blocks = new char[getSectionCount()][];
     }
 
     protected void storeTile(TileEntity tile) {
@@ -104,19 +99,34 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     @Override
     public void setCreateCopy(boolean createCopy) {
-
     }
 
     @Override
-    public void setLightingToGet(char[][] lighting) {
+    public void setLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] lighting) {
+    public void setSkyLightingToGet(char[][] lighting, int minSectionIndex, int maxSectionIndex) {
     }
 
     @Override
     public void setHeightmapToGet(HeightMapType type, int[] data) {
+    }
+
+    @Override public int getMaxY() {
+        return world.getMaxBuildHeight();
+    }
+
+    @Override public int getMinY() {
+        return world.getMinBuildHeight();
+    }
+
+    @Override public int getMaxSectionIndex() {
+        return getMinSectionIndex() + world.getSectionsCount();
+    }
+
+    @Override public int getMinSectionIndex() {
+        return getMinY() >> 4;
     }
 
     protected void storeBiomes(BiomeStorage biomeStorage) {
@@ -128,7 +138,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     public BiomeType getBiomeType(int x, int y, int z) {
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = world.getMinBuildHeight(); y <= world.getMaxBuildHeight(); y += 4) {
                 base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
@@ -137,7 +147,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
         } else {
             base = biomeStorage.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.t().b(IRegistry.aO), base)) : null;
+        return base != null ? BukkitAdapter_1_17_1.adapt(base, world) : null;
     }
 
     @Override
@@ -154,6 +164,10 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
         return null;
     }
 
+    @Override public int getSectionCount() {
+        return world.getSectionsCount();
+    }
+
     protected void storeSection(int layer, char[] data) {
         blocks[layer] = data;
     }
@@ -165,12 +179,14 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     }
 
     @Override
-    public boolean hasSection(@Range(from = 0, to = 15) int layer) {
+    public boolean hasSection(int layer) {
+        layer -= getMinSectionIndex();
         return blocks[layer] != null;
     }
 
     @Override
     public char[] load(int layer) {
+        layer -= getMinSectionIndex();
         return blocks[layer];
     }
 
@@ -200,7 +216,7 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     }
 
     public char get(int x, int y, int z) {
-        final int layer = y >> 4;
+        final int layer = (y >> 4) - getMinSectionIndex();
         final int index = (y & 15) << 8 | z << 4 | x;
         return blocks[layer][index];
     }

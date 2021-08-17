@@ -14,13 +14,13 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
         maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
+        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
         maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
     }
 
     dependencies {
-        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-138")
+        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-155")
         compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
         compileOnly("io.papermc:paperlib:1.0.6") {
             because("Shading is done in FAWE")

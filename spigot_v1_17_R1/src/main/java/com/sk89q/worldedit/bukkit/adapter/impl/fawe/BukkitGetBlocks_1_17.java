@@ -33,6 +33,7 @@ import net.minecraft.core.IRegistry;
 import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.sounds.SoundEffects;
 import net.minecraft.util.DataBits;
@@ -55,12 +56,10 @@ import net.minecraft.world.level.levelgen.HeightMap;
 import net.minecraft.world.level.lighting.LightEngine;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -90,8 +89,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     public WorldServer world;
     public int chunkX;
     public int chunkZ;
-    public NibbleArray[] blockLight = new NibbleArray[16];
-    public NibbleArray[] skyLight = new NibbleArray[16];
+    public NibbleArray[] blockLight;
+    public NibbleArray[] skyLight;
     private boolean createCopy = false;
     private BukkitGetBlocks_1_17_Copy copy = null;
     private boolean forceLoadSections = true;
@@ -102,9 +101,12 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     public BukkitGetBlocks_1_17(WorldServer world, int chunkX, int chunkZ) {
+        super(world.getMinBuildHeight() >> 4, (world.getMaxBuildHeight() - 1) >> 4);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
+        this.skyLight = new NibbleArray[getSectionCount()];
+        this.blockLight = new NibbleArray[getSectionCount()];
     }
 
     public int getChunkX() {
@@ -127,11 +129,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setLightingToGet(char[][] light) {
+    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.b);
+                fillLightNibble(light, EnumSkyBlock.b, minSectionIndex, maxSectionIndex);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -139,11 +141,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light) {
+    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.a);
+                fillLightNibble(light, EnumSkyBlock.a, minSectionIndex, maxSectionIndex);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -159,6 +161,22 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         heightMap.a(getChunk(), nativeType, bitArray.getData());
     }
 
+    @Override public int getMaxY() {
+        return world.getMaxBuildHeight() - 1;
+    }
+
+    @Override public int getMinY() {
+        return world.getMinBuildHeight();
+    }
+
+    @Override public int getMaxSectionIndex() {
+        return getMinSectionIndex() + world.getSectionsCount() - 1;
+    }
+
+    @Override public int getMinSectionIndex() {
+        return world.getMinBuildHeight() >> 4;
+    }
+
     public int getChunkZ() {
         return chunkZ;
     }
@@ -168,7 +186,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = world.getMinBuildHeight(); y < world.getMaxBuildHeight(); y += 4) {
                 base = index.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
@@ -177,7 +195,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         } else {
             base = index.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.t().b(IRegistry.aO), base)) : null;
+        return base != null ? BukkitAdapter_1_17.adapt(base, world) : null;
     }
 
     @Override
@@ -231,7 +249,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     @Override
     public int getSkyLight(int x, int y, int z) {
         int layer = y >> 4;
-        if (skyLight[layer] == null) {
+        int alayer = layer - getMinSectionIndex();
+        if (skyLight[alayer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
             NibbleArray nibbleArray = world.getChunkProvider().getLightEngine().a(EnumSkyBlock.a).a(sectionPosition);
             // If the server hasn't generated the section's NibbleArray yet, it will be null
@@ -242,20 +261,16 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 nibbleArray = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(EnumSkyBlock.a, sectionPosition, nibbleArray, true);
             }
-            skyLight[layer] = nibbleArray;
+            skyLight[alayer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return skyLight[layer].a(
-                SectionPosition.b(BlockPosition.a(l)),
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l))
-        );
+        return skyLight[alayer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
     public int getEmittedLight(int x, int y, int z) {
         int layer = y >> 4;
-        if (blockLight[layer] == null) {
+        int alayer = layer - getMinSectionIndex();
+        if (blockLight[alayer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
             NibbleArray nibbleArray = world.getChunkProvider().getLightEngine().a(EnumSkyBlock.b).a(sectionPosition);
             // If the server hasn't generated the section's NibbleArray yet, it will be null
@@ -266,14 +281,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 nibbleArray = new NibbleArray(a);
                 ((LightEngine) world.getChunkProvider().getLightEngine()).a(EnumSkyBlock.b, sectionPosition, nibbleArray, true);
             }
-            blockLight[layer] = nibbleArray;
+            blockLight[alayer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return blockLight[layer].a(
-                SectionPosition.b(BlockPosition.a(l)),
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l))
-        );
+        return blockLight[alayer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -449,18 +459,19 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             synchronized (nmsChunk) {
                 ChunkSection[] sections = nmsChunk.getSections();
 
-                for (int layer = 0; layer < 16; layer++) {
-                    if (!set.hasSection(layer)) {
+                for (int layerNo = getMinSectionIndex(); layerNo <= getMaxSectionIndex(); layerNo++) {
+                    if (!set.hasSection(layerNo)) {
                         continue;
                     }
+                    int layer = layerNo - getMinSectionIndex();
 
                     bitMask |= 1 << layer;
 
-                    char[] tmp = set.load(layer);
+                    char[] tmp = set.load(layerNo);
                     char[] setArr = new char[4096];
                     System.arraycopy(tmp, 0, setArr, 0, 4096);
                     if (createCopy) {
-                        char[] tmpLoad = loadPrivately(layer);
+                        char[] tmpLoad = loadPrivately(layerNo);
                         char[] copyArr = new char[4096];
                         System.arraycopy(tmpLoad, 0, copyArr, 0, 4096);
                         copy.storeSection(layer, copyArr);
@@ -469,7 +480,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                     ChunkSection newSection;
                     ChunkSection existingSection = sections[layer];
                     if (existingSection == null) {
-                        newSection = BukkitAdapter_1_17.newChunkSection(layer, setArr, fastmode, adapter);
+                        newSection = BukkitAdapter_1_17.newChunkSection(layerNo, setArr, fastmode, adapter);
                         if (BukkitAdapter_1_17.setSectionAtomic(sections, null, newSection, layer)) {
                             updateGet(this, nmsChunk, sections, newSection, setArr, layer);
                             continue;
@@ -497,15 +508,14 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             } else if (existingSection != getSections(false)[layer]) {
                                 this.sections[layer] = existingSection;
                                 this.reset();
-                            } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layer))) {
-                                this.reset(layer);
+                            } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layerNo))) {
+                                this.reset(layerNo);
                             /*} else if (lock.isModified()) {
-                                this.reset(layer);*/
+                                this.reset(layerNo);*/
                             }
-                            newSection = BukkitAdapter_1_17
-                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode, adapter);
-                            if (!BukkitAdapter_1_17
-                                    .setSectionAtomic(sections, existingSection, newSection, layer)) {
+                            newSection =
+                                BukkitAdapter_1_17.newChunkSection(layerNo, this::loadPrivately, setArr, fastmode, adapter);
+                            if (!BukkitAdapter_1_17.setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
                                 updateGet(this, nmsChunk, sections, newSection, setArr, layer);
@@ -527,8 +537,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             for (int x = 0; x < 4; x++, i++) {
                                 final BiomeType biome = biomes[i];
                                 if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(nmsWorld.t().b(IRegistry.aO), craftBiome);
+                                    BiomeBase nmsBiome = nmsWorld.t().b(IRegistry.aO).get(MinecraftKey.a(biome.getId()));
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
@@ -540,8 +549,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 for (Map.Entry<HeightMapType, int[]> entry : heightMaps.entrySet()) {
                     BukkitGetBlocks_1_17.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
-                BukkitGetBlocks_1_17.this.setLightingToGet(set.getLight());
-                BukkitGetBlocks_1_17.this.setSkyLightingToGet(set.getSkyLight());
+                BukkitGetBlocks_1_17.this.setLightingToGet(set.getLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
+                BukkitGetBlocks_1_17.this.setSkyLightingToGet(set.getSkyLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
 
                 Runnable[] syncTasks = null;
 
@@ -732,6 +741,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     private char[] loadPrivately(int layer) {
+        layer -= getMinSectionIndex();
         Section section = super.sections[layer];
         if (super.sections[layer] != null) {
             synchronized (section) {
@@ -872,12 +882,12 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         return tmp;
     }
 
-    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock) {
-        for (int Y = 0; Y < 16; Y++) {
+    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock, int minSectionIndex, int maxSectionIndex) {
+        for (int Y = 0; Y < maxSectionIndex - minSectionIndex; Y++) {
             if (light[Y] == null) {
                 continue;
             }
-            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y);
+            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y + minSectionIndex);
             NibbleArray nibble = world.getChunkProvider().getLightEngine().a(skyBlock).a(sectionPosition);
             if (nibble == null) {
                 byte[] a = new byte[2048];
@@ -897,23 +907,25 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
     @Override
     public boolean hasSection(int layer) {
+        layer -= getMinSectionIndex();
         return getSections(false)[layer] != null;
     }
 
     @Override
     public boolean trim(boolean aggressive) {
-        skyLight = new NibbleArray[16];
-        blockLight = new NibbleArray[16];
+        skyLight = new NibbleArray[getSectionCount()];
+        blockLight = new NibbleArray[getSectionCount()];
         if (aggressive) {
             sections = null;
             nmsChunk = null;
             return super.trim(true);
         } else {
-            for (int i = 0; i < 16; i++) {
-                if (!hasSection(i) || !super.sections[i].isFull()) {
+            for (int i = getMinSectionIndex(); i <= getMaxSectionIndex(); i++) {
+                int layer = i - getMinSectionIndex();
+                if (!hasSection(i) || !super.sections[layer].isFull()) {
                     continue;
                 }
-                ChunkSection existing = getSections(true)[i];
+                ChunkSection existing = getSections(true)[layer];
                 try {
                     final DataPaletteBlock<IBlockData> blocksExisting = existing.getBlocks();
 

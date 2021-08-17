@@ -12,6 +12,8 @@ import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.world.biome.BiomeType;
+import com.sk89q.worldedit.world.biome.BiomeTypes;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
@@ -27,7 +29,10 @@ import net.minecraft.server.v1_16_R3.DataPaletteBlock;
 import net.minecraft.server.v1_16_R3.DataPaletteHash;
 import net.minecraft.server.v1_16_R3.DataPaletteLinear;
 import net.minecraft.server.v1_16_R3.GameProfileSerializer;
+import net.minecraft.server.v1_16_R3.GeneratorAccess;
 import net.minecraft.server.v1_16_R3.IBlockData;
+import net.minecraft.server.v1_16_R3.IRegistry;
+import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.PacketPlayOutLightUpdate;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMapChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunk;
@@ -43,6 +48,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -360,6 +366,14 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static BiomeType adapt(BiomeBase base, GeneratorAccess world) {
+        MinecraftKey key = world.r().b(IRegistry.ay).getKey(base);
+        if (key == null) {
+            return world.r().b(IRegistry.ay).a(base) == -1 ? BiomeTypes.OCEAN : null;
+        }
+        return BiomeTypes.get(key.toString().toLowerCase(Locale.ROOT));
     }
 
     static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {

@@ -45,6 +45,7 @@ import net.minecraft.server.v1_16_R3.HeightMap;
 import net.minecraft.server.v1_16_R3.IBlockData;
 import net.minecraft.server.v1_16_R3.IRegistry;
 import net.minecraft.server.v1_16_R3.LightEngine;
+import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.NBTTagCompound;
 import net.minecraft.server.v1_16_R3.NBTTagInt;
 import net.minecraft.server.v1_16_R3.NibbleArray;
@@ -55,7 +56,6 @@ import net.minecraft.server.v1_16_R3.TileEntityBeacon;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -102,6 +102,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     public BukkitGetBlocks_1_16_5(WorldServer world, int chunkX, int chunkZ) {
+        super(0, 255);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -127,7 +128,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setLightingToGet(char[][] light) {
+    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
@@ -139,7 +140,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light) {
+    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
@@ -157,6 +158,22 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         getChunk().heightMap.get(HeightMap.Type.valueOf(type.name())).a(bitArray.getData());
     }
 
+    @Override public int getMaxY() {
+        return 255;
+    }
+
+    @Override public int getMinY() {
+        return 0;
+    }
+
+    @Override public int getMaxSectionIndex() {
+        return 15;
+    }
+
+    @Override public int getMinSectionIndex() {
+        return 0;
+    }
+
     public int getChunkZ() {
         return chunkZ;
     }
@@ -166,7 +183,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = 0; y < 256; y += 4) {
                 base = index.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
@@ -175,7 +192,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         } else {
             base = index.getBiome(x >> 2, y >> 2, z >> 2);
         }
-        return base != null ? BukkitAdapter.adapt(CraftBlock.biomeBaseToBiome(world.r().b(IRegistry.ay), base)) : null;
+        return base != null ? BukkitAdapter_1_16_5.adapt(base, world) : null;
     }
 
     @Override
@@ -242,12 +259,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
             }
             skyLight[layer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return skyLight[layer].a(
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l)),
-                SectionPosition.b(BlockPosition.d(l))
-        );
+        return skyLight[layer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -271,12 +283,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
             }
             blockLight[layer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return blockLight[layer].a(
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l)),
-                SectionPosition.b(BlockPosition.d(l))
-        );
+        return blockLight[layer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -530,8 +537,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                             for (int x = 0; x < 4; x++, i++) {
                                 final BiomeType biome = biomes[i];
                                 if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(nmsWorld.r().b(IRegistry.ay), craftBiome);
+                                    BiomeBase nmsBiome = nmsWorld.r().b(IRegistry.ay).get(MinecraftKey.a(biome.getId()));
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
@@ -543,8 +549,8 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                 for (Map.Entry<HeightMapType, int[]> entry : heightMaps.entrySet()) {
                     BukkitGetBlocks_1_16_5.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
-                BukkitGetBlocks_1_16_5.this.setLightingToGet(set.getLight());
-                BukkitGetBlocks_1_16_5.this.setSkyLightingToGet(set.getSkyLight());
+                BukkitGetBlocks_1_16_5.this.setLightingToGet(set.getLight(), 0, 15);
+                BukkitGetBlocks_1_16_5.this.setSkyLightingToGet(set.getSkyLight(), 0, 15);
 
                 Runnable[] syncTasks = null;
 

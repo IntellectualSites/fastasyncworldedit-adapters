@@ -97,6 +97,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     public BukkitGetBlocks_1_15_2(WorldServer world, int chunkX, int chunkZ) {
+        super(0, 255);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -122,7 +123,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setLightingToGet(char[][] light) {
+    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
@@ -134,7 +135,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light) {
+    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
         if (light != null) {
             lightUpdate = true;
             try {
@@ -152,6 +153,22 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         getChunk().heightMap.get(HeightMap.Type.valueOf(type.name())).a(bitArray.getData());
     }
 
+    @Override public int getMaxY() {
+        return 255;
+    }
+
+    @Override public int getMinY() {
+        return 0;
+    }
+
+    @Override public int getMaxSectionIndex() {
+        return 15;
+    }
+
+    @Override public int getMinSectionIndex() {
+        return 0;
+    }
+
     public int getChunkZ() {
         return chunkZ;
     }
@@ -161,7 +178,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;
         if (y == -1) {
-            for (y = 0; y < FaweCache.IMP.WORLD_HEIGHT; y++) {
+            for (y = 0; y < 256; y += 4) {
                 base = index.getBiome(x >> 2, y >> 2, z >> 2);
                 if (base != null) {
                     break;
@@ -236,12 +253,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
             }
             skyLight[layer] = nibbleArray;
         }
-        long l = BlockPosition.a(x, y, z);
-        return skyLight[layer].a(
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l)),
-                SectionPosition.b(BlockPosition.d(l))
-        );
+        return skyLight[layer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -261,11 +273,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
             blockLight[layer] = nibbleArray;
         }
         long l = BlockPosition.a(x, y, z);
-        return blockLight[layer].a(
-                SectionPosition.b(BlockPosition.b(l)),
-                SectionPosition.b(BlockPosition.c(l)),
-                SectionPosition.b(BlockPosition.d(l))
-        );
+        return blockLight[layer].a(x & 15, y & 15, z & 15);
     }
 
     @Override
@@ -530,8 +538,8 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                 for (Map.Entry<HeightMapType, int[]> entry : heightMaps.entrySet()) {
                     BukkitGetBlocks_1_15_2.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
-                BukkitGetBlocks_1_15_2.this.setLightingToGet(set.getLight());
-                BukkitGetBlocks_1_15_2.this.setSkyLightingToGet(set.getSkyLight());
+                BukkitGetBlocks_1_15_2.this.setLightingToGet(set.getLight(), 0, 15);
+                BukkitGetBlocks_1_15_2.this.setSkyLightingToGet(set.getSkyLight(), 0, 15);
 
                 Runnable[] syncTasks = null;
 

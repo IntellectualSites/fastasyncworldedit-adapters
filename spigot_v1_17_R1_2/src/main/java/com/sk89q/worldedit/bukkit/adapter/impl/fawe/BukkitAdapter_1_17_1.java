@@ -12,21 +12,26 @@ import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.world.biome.BiomeType;
+import com.sk89q.worldedit.world.biome.BiomeTypes;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.core.BlockPosition;
+import net.minecraft.core.IRegistry;
 import net.minecraft.core.SectionPosition;
 import net.minecraft.nbt.GameProfileSerializer;
 import net.minecraft.network.protocol.game.PacketPlayOutLightUpdate;
 import net.minecraft.network.protocol.game.PacketPlayOutMapChunk;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.PlayerChunk;
 import net.minecraft.server.level.PlayerChunkMap;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.util.DataBits;
 import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.GeneratorAccess;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ITileEntity;
@@ -50,6 +55,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -378,6 +384,14 @@ public final class BukkitAdapter_1_17_1 extends NMSAdapter {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static BiomeType adapt(BiomeBase base, GeneratorAccess world) {
+        MinecraftKey key = world.t().b(IRegistry.aO).getKey(base);
+        if (key == null) {
+            return world.t().b(IRegistry.aO).getId(base) == -1 ? BiomeTypes.OCEAN : null;
+        }
+        return BiomeTypes.get(key.toString().toLowerCase(Locale.ROOT));
     }
 
     static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {

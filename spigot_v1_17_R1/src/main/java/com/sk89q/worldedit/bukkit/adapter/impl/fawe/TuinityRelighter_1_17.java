@@ -2,6 +2,7 @@ package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.extent.processor.lighting.NMSRelighter;
+import com.fastasyncworldedit.core.extent.processor.lighting.RelightMode;
 import com.fastasyncworldedit.core.extent.processor.lighting.Relighter;
 import com.fastasyncworldedit.core.queue.IQueueChunk;
 import com.fastasyncworldedit.core.queue.IQueueExtent;
@@ -73,7 +74,7 @@ public class TuinityRelighter_1_17 implements Relighter {
 
     public TuinityRelighter_1_17(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
-        this.delegate = new NMSRelighter(queue, false);
+        this.delegate = new NMSRelighter(queue);
     }
 
     public static boolean isUsable() {
