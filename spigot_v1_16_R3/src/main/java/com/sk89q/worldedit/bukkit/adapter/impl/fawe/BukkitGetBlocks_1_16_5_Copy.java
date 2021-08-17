@@ -38,9 +38,9 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
 
     private final Map<BlockVector3, CompoundTag> tiles = new HashMap<>();
     private final Set<CompoundTag> entities = new HashSet<>();
-    private BiomeStorage biomeStorage;
     private final char[][] blocks = new char[16][];
     private final WorldServer world;
+    private BiomeStorage biomeStorage;
 
     protected BukkitGetBlocks_1_16_5_Copy(WorldServer world) {
         this.world = world;
@@ -97,13 +97,13 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
     }
 
     @Override
-    public void setCreateCopy(boolean createCopy) {
-
+    public boolean isCreateCopy() {
+        return false;
     }
 
     @Override
-    public boolean isCreateCopy() {
-        return false;
+    public void setCreateCopy(boolean createCopy) {
+
     }
 
     @Override

@@ -39,13 +39,20 @@ public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, I
 
     private static final int UPDATE = 1;
     private static final int NOTIFY = 2;
-
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.f, // EAST
+            EnumDirection.e, // WEST
+            EnumDirection.a, // DOWN
+            EnumDirection.b, // UP
+            EnumDirection.c, // NORTH
+            EnumDirection.d  // SOUTH
+    };
     private final FAWE_Spigot_v1_17_R1 adapter;
     private final WeakReference<World> world;
-    private SideEffectSet sideEffectSet;
     private final AtomicInteger lastTick;
     private final Set<CachedChange> cachedChanges = new HashSet<>();
     private final Set<IntPair> cachedChunksToSend = new HashSet<>();
+    private SideEffectSet sideEffectSet;
 
     public FAWEWorldNativeAccess_1_17_R1(FAWE_Spigot_v1_17_R1 adapter, WeakReference<World> world) {
         this.adapter = adapter;
@@ -151,15 +158,6 @@ public class FAWEWorldNativeAccess_1_17_R1 implements WorldNativeAccess<Chunk, I
             ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
         }
     }
-
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-            EnumDirection.f, // EAST
-            EnumDirection.e, // WEST
-            EnumDirection.a, // DOWN
-            EnumDirection.b, // UP
-            EnumDirection.c, // NORTH
-            EnumDirection.d  // SOUTH
-    };
 
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {

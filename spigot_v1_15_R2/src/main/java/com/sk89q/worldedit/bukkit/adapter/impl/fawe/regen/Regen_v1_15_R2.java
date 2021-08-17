@@ -208,13 +208,13 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 env,
                 gen
         ) {
-            @Override
-            public void doTick(BooleanSupplier booleansupplier) { //no ticking
-            }
-
             private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options
                     .getBiomeType()
                     .getId())) : null;
+
+            @Override
+            public void doTick(BooleanSupplier booleansupplier) { //no ticking
+            }
 
             @Override
             public BiomeBase a(int i, int k, int j) {
@@ -373,38 +373,6 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         };
     }
 
-    protected class ChunkStatusWrap extends ChunkStatusWrapper<IChunkAccess> {
-
-        private final ChunkStatus chunkStatus;
-
-        public ChunkStatusWrap(ChunkStatus chunkStatus) {
-            this.chunkStatus = chunkStatus;
-        }
-
-        @Override
-        public int requiredNeigborChunkRadius() {
-            return chunkStatus.f();
-        }
-
-        @Override
-        public String name() {
-            return chunkStatus.d();
-        }
-
-        @Override
-        public void processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
-            chunkStatus.a(
-                    freshNMSWorld,
-                    generator,
-                    structureManager,
-                    lightEngine,
-                    c -> CompletableFuture.completedFuture(Either.left(c)),
-                    accessibleChunks
-            );
-        }
-
-    }
-
     //util
     private void removeWorldFromWorldsMap() {
         Fawe.get().getQueueHandler().sync(() -> {
@@ -479,6 +447,18 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             this.perlinNoise = new NoiseGeneratorPerlin(new Random(seed));
         }
 
+        private static long mix(long seed, long lconst) {
+            long l1 = lconst;
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            l1 = LinearCongruentialGenerator.a(l1, lconst);
+            long l2 = seed;
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            l2 = LinearCongruentialGenerator.a(l2, l1);
+            return l2;
+        }
+
         @Override
         public FastAreaLazy a(AreaTransformer8 var0) {
             return new FastAreaLazy(sharedAreaMap, var0);
@@ -506,18 +486,6 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         @Override
         public NoiseGeneratorPerlin b() {
             return this.perlinNoise;
-        }
-
-        private static long mix(long seed, long lconst) {
-            long l1 = lconst;
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            long l2 = seed;
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            return l2;
         }
 
     }
@@ -581,6 +549,38 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
         @Override
         public void setChunkRadius(int i) {
+        }
+
+    }
+
+    protected class ChunkStatusWrap extends ChunkStatusWrapper<IChunkAccess> {
+
+        private final ChunkStatus chunkStatus;
+
+        public ChunkStatusWrap(ChunkStatus chunkStatus) {
+            this.chunkStatus = chunkStatus;
+        }
+
+        @Override
+        public int requiredNeigborChunkRadius() {
+            return chunkStatus.f();
+        }
+
+        @Override
+        public String name() {
+            return chunkStatus.d();
+        }
+
+        @Override
+        public void processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
+            chunkStatus.a(
+                    freshNMSWorld,
+                    generator,
+                    structureManager,
+                    lightEngine,
+                    c -> CompletableFuture.completedFuture(Either.left(c)),
+                    accessibleChunks
+            );
         }
 
     }

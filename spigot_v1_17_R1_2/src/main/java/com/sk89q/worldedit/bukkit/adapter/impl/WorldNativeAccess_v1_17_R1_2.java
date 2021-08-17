@@ -30,7 +30,11 @@ import java.util.Objects;
 public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
 
     private static final int UPDATE = 1, NOTIFY = 2;
-
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.e, EnumDirection.f,
+            EnumDirection.a, EnumDirection.b,
+            EnumDirection.c, EnumDirection.d
+    };
     private final Spigot_v1_17_R1_2 adapter;
     private final WeakReference<World> world;
     private SideEffectSet sideEffectSet;
@@ -118,12 +122,6 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
             ((ChunkProviderServer) getWorld().getChunkProvider()).flagDirty(position);
         }
     }
-
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-            EnumDirection.e, EnumDirection.f,
-            EnumDirection.a, EnumDirection.b,
-            EnumDirection.c, EnumDirection.d
-    };
 
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {

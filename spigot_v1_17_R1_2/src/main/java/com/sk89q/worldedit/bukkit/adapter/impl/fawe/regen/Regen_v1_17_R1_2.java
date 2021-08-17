@@ -285,7 +285,8 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
         //generator
         if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
-            GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) generatorSettingFlatField.get(originalChunkProvider.getChunkGenerator());
+            GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) generatorSettingFlatField.get(
+                    originalChunkProvider.getChunkGenerator());
             generator = new ChunkProviderFlat(generatorSettingFlat);
         } else if (originalChunkProvider.getChunkGenerator() instanceof ChunkGeneratorAbstract) {
             Supplier<GeneratorSettingBase> generatorSettingBaseSupplier = (Supplier<GeneratorSettingBase>) generatorSettingBaseSupplierField
@@ -352,30 +353,6 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
         return PaperLib.isPaper()
                 ? new FastProtoChunk(new ChunkCoordIntPair(x, z), ChunkConverter.a, freshNMSWorld, freshNMSWorld) // paper
                 : new FastProtoChunk(new ChunkCoordIntPair(x, z), ChunkConverter.a, freshNMSWorld); // spigot
-    }
-
-    private class FastProtoChunk extends ProtoChunk {
-
-        // avoid warning on paper
-        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world, WorldServer level) {
-            super(pos, upgradeData, world, level);
-        }
-
-        // compatibility with spigot
-        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world) {
-            super(pos, upgradeData, world);
-        }
-
-        public boolean generateFlatBedrock() {
-            return generateFlatBedrock;
-        }
-
-        // no one will ever see the entities!
-        @Override
-        public List<NBTTagCompound> z() {
-            return Collections.emptyList();
-        }
-
     }
 
     @Override
@@ -656,6 +633,30 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
 
         // TODO Paper only? @Override
         public void setChunkRadius(int i) {
+        }
+
+    }
+
+    private class FastProtoChunk extends ProtoChunk {
+
+        // avoid warning on paper
+        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world, WorldServer level) {
+            super(pos, upgradeData, world, level);
+        }
+
+        // compatibility with spigot
+        public FastProtoChunk(ChunkCoordIntPair pos, ChunkConverter upgradeData, LevelHeightAccessor world) {
+            super(pos, upgradeData, world);
+        }
+
+        public boolean generateFlatBedrock() {
+            return generateFlatBedrock;
+        }
+
+        // no one will ever see the entities!
+        @Override
+        public List<NBTTagCompound> z() {
+            return Collections.emptyList();
         }
 
     }

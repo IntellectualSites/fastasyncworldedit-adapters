@@ -166,15 +166,24 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
 
+    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
+            SideEffect.NEIGHBORS,
+            SideEffect.LIGHTING,
+            SideEffect.VALIDATION,
+            SideEffect.ENTITY_AI,
+            SideEffect.EVENTS,
+            SideEffect.UPDATE
+    );
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
-
     private final Field nbtListTagListField;
     private final Field serverWorldsField;
-    private final Watchdog watchdog;
 
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
+    private final Watchdog watchdog;
+    private final LoadingCache<WorldServer, FakePlayer_v1_15_R2> fakePlayers
+            = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_15_R2::new));
 
     public Spigot_v1_15_R2() throws NoSuchFieldException {
         // A simple test
@@ -212,11 +221,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
             SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
         } catch (ClassNotFoundException ignored) {
         }
-    }
-
-    @Override
-    public DataFixer getDataFixer() {
-        return DataConverters_1_15_R2.INSTANCE;
     }
 
     /**
@@ -292,6 +296,29 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         return IRegistry.ITEM.get(MinecraftKey.a(itemType.getId()));
     }
 
+    private static EnumDirection adapt(Direction face) {
+        switch (face) {
+            case NORTH:
+                return EnumDirection.NORTH;
+            case SOUTH:
+                return EnumDirection.SOUTH;
+            case WEST:
+                return EnumDirection.WEST;
+            case EAST:
+                return EnumDirection.EAST;
+            case DOWN:
+                return EnumDirection.DOWN;
+            case UP:
+            default:
+                return EnumDirection.UP;
+        }
+    }
+
+    @Override
+    public DataFixer getDataFixer() {
+        return DataConverters_1_15_R2.INSTANCE;
+    }
+
     @Override
     public OptionalInt getInternalBlockStateId(BlockData data) {
         IBlockData state = ((CraftBlockData) data).getState();
@@ -346,24 +373,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
                 this,
                 new WeakReference<>(((CraftWorld) world).getHandle())
         );
-    }
-
-    private static EnumDirection adapt(Direction face) {
-        switch (face) {
-            case NORTH:
-                return EnumDirection.NORTH;
-            case SOUTH:
-                return EnumDirection.SOUTH;
-            case WEST:
-                return EnumDirection.WEST;
-            case EAST:
-                return EnumDirection.EAST;
-            case DOWN:
-                return EnumDirection.DOWN;
-            case UP:
-            default:
-                return EnumDirection.UP;
-        }
     }
 
     private IBlockData applyProperties(
@@ -513,8 +522,10 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
     }
 
     @Override
-    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
-        org.bukkit.World bukkitWorld) {
+    public boolean generateTree(
+            TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
+            org.bukkit.World bukkitWorld
+    ) {
         TreeType bukkitType = BukkitWorld.toBukkitTreeType(type);
         if (bukkitType == TreeType.CHORUS_PLANT) {
             pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
@@ -534,7 +545,8 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
                     continue;
                 }
                 editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
-                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData()));
+                        BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData())
+                );
             }
 
             world.capturedBlockStates.clear();
@@ -549,9 +561,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         weStack.setNbt(((CompoundBinaryTag) toNativeBinary(nmsStack.getTag())));
         return weStack;
     }
-
-    private final LoadingCache<WorldServer, FakePlayer_v1_15_R2> fakePlayers
-            = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_15_R2::new));
 
     @Override
     public boolean simulateItemUse(org.bukkit.World world, BlockVector3 position, BaseItem item, Direction face) {
@@ -656,15 +665,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         }
         return true;
     }
-
-    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
-            SideEffect.NEIGHBORS,
-            SideEffect.LIGHTING,
-            SideEffect.VALIDATION,
-            SideEffect.ENTITY_AI,
-            SideEffect.EVENTS,
-            SideEffect.UPDATE
-    );
 
     @Override
     public Set<SideEffect> getSupportedSideEffects() {
@@ -815,35 +815,6 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         watchdog.tick();
     }
 
-    private class SpigotWatchdog implements Watchdog {
-
-        private final Field instanceField;
-        private final Field lastTickField;
-
-        SpigotWatchdog() throws NoSuchFieldException {
-            Field instanceField = WatchdogThread.class.getDeclaredField("instance");
-            instanceField.setAccessible(true);
-            this.instanceField = instanceField;
-
-            Field lastTickField = WatchdogThread.class.getDeclaredField("lastTick");
-            lastTickField.setAccessible(true);
-            this.lastTickField = lastTickField;
-        }
-
-        @Override
-        public void tick() {
-            try {
-                WatchdogThread instance = (WatchdogThread) this.instanceField.get(null);
-                if ((long) lastTickField.get(instance) != 0) {
-                    WatchdogThread.tick();
-                }
-            } catch (IllegalAccessException e) {
-                logger.log(Level.WARNING, "Failed to tick watchdog", e);
-            }
-        }
-
-    }
-
     private static class MojangWatchdog implements Watchdog {
 
         private final DedicatedServer server;
@@ -883,6 +854,35 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         @Override
         public void setChunkRadius(int i) {
 
+        }
+
+    }
+
+    private class SpigotWatchdog implements Watchdog {
+
+        private final Field instanceField;
+        private final Field lastTickField;
+
+        SpigotWatchdog() throws NoSuchFieldException {
+            Field instanceField = WatchdogThread.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            this.instanceField = instanceField;
+
+            Field lastTickField = WatchdogThread.class.getDeclaredField("lastTick");
+            lastTickField.setAccessible(true);
+            this.lastTickField = lastTickField;
+        }
+
+        @Override
+        public void tick() {
+            try {
+                WatchdogThread instance = (WatchdogThread) this.instanceField.get(null);
+                if ((long) lastTickField.get(instance) != 0) {
+                    WatchdogThread.tick();
+                }
+            } catch (IllegalAccessException e) {
+                logger.log(Level.WARNING, "Failed to tick watchdog", e);
+            }
         }
 
     }

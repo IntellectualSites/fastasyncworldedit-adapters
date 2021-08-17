@@ -35,23 +35,13 @@ import java.util.function.IntConsumer;
 
 public class TuinityRelighter_1_17 implements Relighter {
 
-    private static final Logger LOGGER = LogManagerCompat.getLogger();
-
     public static final MethodHandle RELIGHT;
-
+    private static final Logger LOGGER = LogManagerCompat.getLogger();
     private static final int CHUNKS_PER_BATCH = 1024; // 32 * 32
     private static final int CHUNKS_PER_BATCH_SQRT_LOG2 = 5; // for shifting
 
     private static final TicketType<Unit> FAWE_TICKET = TicketType.a("fawe_ticket", (a, b) -> 0);
     private static final int LIGHT_LEVEL = MCUtil.getTicketLevelFor(ChunkStatus.j);
-
-    private final WorldServer world;
-    private final ReentrantLock lock = new ReentrantLock();
-
-    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
-
-    private final ReentrantLock areaLock = new ReentrantLock();
-    private final NMSRelighter delegate;
 
     static {
         MethodHandle tmp = null;
@@ -75,14 +65,19 @@ public class TuinityRelighter_1_17 implements Relighter {
         RELIGHT = tmp;
     }
 
-    public static boolean isUsable() {
-        return RELIGHT != null;
-    }
-
+    private final WorldServer world;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Long2ObjectLinkedOpenHashMap<LongSet> regions = new Long2ObjectLinkedOpenHashMap<>();
+    private final ReentrantLock areaLock = new ReentrantLock();
+    private final NMSRelighter delegate;
 
     public TuinityRelighter_1_17(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
         this.delegate = new NMSRelighter(queue, false);
+    }
+
+    public static boolean isUsable() {
+        return RELIGHT != null;
     }
 
     @Override
