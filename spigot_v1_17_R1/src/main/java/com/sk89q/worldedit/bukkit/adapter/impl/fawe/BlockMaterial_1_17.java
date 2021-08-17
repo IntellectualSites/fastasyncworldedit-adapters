@@ -18,6 +18,7 @@ import net.minecraft.world.level.material.Material;
 import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 
 public class BlockMaterial_1_17 implements BlockMaterial {
+
     private final Block block;
     private final IBlockData defaultState;
     private final Material material;
@@ -38,10 +39,15 @@ public class BlockMaterial_1_17 implements BlockMaterial {
         this.craftBlockData = CraftBlockData.fromData(defaultState);
         this.craftMaterial = craftBlockData.getMaterial();
         BlockBase.Info blockInfo = ReflectionUtil.getField(BlockBase.class, block, "aP");
-        this.isTranslucent = !(boolean)ReflectionUtil.getField(BlockBase.Info.class, blockInfo, "n");
+        this.isTranslucent = !(boolean) ReflectionUtil.getField(BlockBase.Info.class, blockInfo, "n");
         opacity = defaultState.b(BlockAccessAir.a, BlockPosition.b);
-        TileEntity tileEntity = !(block instanceof ITileEntity) ? null : ((ITileEntity)block).createTile(BlockPosition.b ,defaultState);
-        tile = tileEntity == null ? null : new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+        TileEntity tileEntity = !(block instanceof ITileEntity) ? null : ((ITileEntity) block).createTile(
+                BlockPosition.b,
+                defaultState
+        );
+        tile = tileEntity == null
+                ? null
+                : new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
     }
 
     public Block getBlock() {
@@ -178,4 +184,5 @@ public class BlockMaterial_1_17 implements BlockMaterial {
         // rgb field
         return material.h().al;
     }
+
 }

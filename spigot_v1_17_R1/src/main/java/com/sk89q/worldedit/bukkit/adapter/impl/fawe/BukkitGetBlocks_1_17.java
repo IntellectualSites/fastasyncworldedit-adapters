@@ -20,7 +20,6 @@ import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
-import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17;
 import com.sk89q.worldedit.internal.Constants;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
@@ -83,7 +82,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private static final Function<BlockPosition, BlockVector3> posNms2We = v -> BlockVector3.at(v.getX(), v.getY(), v.getZ());
-    private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+    private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_17(Suppliers.memoize(() -> tileEntity.save(
+            new NBTTagCompound())));
     private final FAWE_Spigot_v1_17_R1 adapter = ((FAWE_Spigot_v1_17_R1) WorldEditPlugin.getInstance().getBukkitImplAdapter());
     public ChunkSection[] sections;
     public Chunk nmsChunk;
@@ -112,13 +112,13 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setCreateCopy(boolean createCopy) {
-        this.createCopy = createCopy;
+    public boolean isCreateCopy() {
+        return createCopy;
     }
 
     @Override
-    public boolean isCreateCopy() {
-        return createCopy;
+    public void setCreateCopy(boolean createCopy) {
+        this.createCopy = createCopy;
     }
 
     @Override
@@ -211,8 +211,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     @Override
     public CompoundTag getTile(int x, int y, int z) {
         TileEntity tileEntity = getChunk().getTileEntity(new BlockPosition((x & 15) + (
-            chunkX << 4), y, (z & 15) + (
-            chunkZ << 4)));
+                chunkX << 4), y, (z & 15) + (
+                chunkZ << 4)));
         if (tileEntity == null) {
             return null;
         }
@@ -245,7 +245,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             skyLight[layer] = nibbleArray;
         }
         long l = BlockPosition.a(x, y, z);
-        return skyLight[layer].a(SectionPosition.b(BlockPosition.a(l)), SectionPosition.b(BlockPosition.b(l)), SectionPosition.b(BlockPosition.c(l)));
+        return skyLight[layer].a(
+                SectionPosition.b(BlockPosition.a(l)),
+                SectionPosition.b(BlockPosition.b(l)),
+                SectionPosition.b(BlockPosition.c(l))
+        );
     }
 
     @Override
@@ -265,7 +269,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             blockLight[layer] = nibbleArray;
         }
         long l = BlockPosition.a(x, y, z);
-        return blockLight[layer].a(SectionPosition.b(BlockPosition.a(l)), SectionPosition.b(BlockPosition.b(l)), SectionPosition.b(BlockPosition.c(l)));
+        return blockLight[layer].a(
+                SectionPosition.b(BlockPosition.a(l)),
+                SectionPosition.b(BlockPosition.b(l)),
+                SectionPosition.b(BlockPosition.c(l))
+        );
     }
 
     @Override
@@ -344,20 +352,30 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             @NotNull
             @Override
             public Iterator<CompoundTag> iterator() {
-                Iterable<CompoundTag> result = Iterables.transform(Iterables.concat(slices), new com.google.common.base.Function<Entity, CompoundTag>() {
-                    @Nullable
-                    @Override
-                    public CompoundTag apply(@Nullable Entity input) {
-                        NBTTagCompound tag = new NBTTagCompound();
-                        return (CompoundTag) adapter.toNative(input.save(tag));
-                    }
-                });
+                Iterable<CompoundTag> result = Iterables.transform(
+                        Iterables.concat(slices),
+                        new com.google.common.base.Function<Entity, CompoundTag>() {
+                            @Nullable
+                            @Override
+                            public CompoundTag apply(@Nullable Entity input) {
+                                NBTTagCompound tag = new NBTTagCompound();
+                                return (CompoundTag) adapter.toNative(input.save(tag));
+                            }
+                        }
+                );
                 return result.iterator();
             }
         };
     }
 
-    private void updateGet(BukkitGetBlocks_1_17 get, Chunk nmsChunk, ChunkSection[] chunkSections, ChunkSection section, char[] arr, int layer) {
+    private void updateGet(
+            BukkitGetBlocks_1_17 get,
+            Chunk nmsChunk,
+            ChunkSection[] chunkSections,
+            ChunkSection section,
+            char[] arr,
+            int layer
+    ) {
         synchronized (get) {
             if (this.getChunk() != nmsChunk) {
                 this.nmsChunk = nmsChunk;
@@ -459,7 +477,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                             existingSection = sections[layer];
                             if (existingSection == null) {
                                 LOGGER.error("Skipping invalid null section. chunk:" + chunkX + ","
-                                              + chunkZ + " layer: " + layer);
+                                        + chunkZ + " layer: " + layer);
                                 continue;
                             }
                         }
@@ -485,9 +503,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                 this.reset(layer);*/
                             }
                             newSection = BukkitAdapter_1_17
-                                .newChunkSection(layer, this::loadPrivately, setArr, fastmode, adapter);
+                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode, adapter);
                             if (!BukkitAdapter_1_17
-                                .setSectionAtomic(sections, existingSection, newSection, layer)) {
+                                    .setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
                                 updateGet(this, nmsChunk, sections, newSection, setArr, layer);
@@ -899,7 +917,8 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                 try {
                     final DataPaletteBlock<IBlockData> blocksExisting = existing.getBlocks();
 
-                    final DataPalette<IBlockData> palette = (DataPalette<IBlockData>) BukkitAdapter_1_17.fieldPalette.get(blocksExisting);
+                    final DataPalette<IBlockData> palette = (DataPalette<IBlockData>) BukkitAdapter_1_17.fieldPalette.get(
+                            blocksExisting);
                     int paletteSize;
 
                     if (palette instanceof DataPaletteLinear || palette instanceof DataPaletteHash) {
@@ -920,4 +939,5 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             return true;
         }
     }
+
 }

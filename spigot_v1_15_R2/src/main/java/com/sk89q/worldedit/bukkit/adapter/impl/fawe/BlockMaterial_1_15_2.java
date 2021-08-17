@@ -17,6 +17,7 @@ import net.minecraft.server.v1_15_R1.TileEntity;
 import org.bukkit.craftbukkit.v1_15_R1.block.data.CraftBlockData;
 
 public class BlockMaterial_1_15_2 implements BlockMaterial {
+
     private final Block block;
     private final IBlockData defaultState;
     private final Material material;
@@ -38,8 +39,10 @@ public class BlockMaterial_1_15_2 implements BlockMaterial {
         this.craftMaterial = craftBlockData.getMaterial();
         this.isTranslucent = !(boolean) ReflectionUtil.getField(Block.class, block, "v");
         opacity = defaultState.b(BlockAccessAir.INSTANCE, BlockPosition.ZERO);
-        TileEntity tileEntity = !block.isTileEntity() ? null : ((ITileEntity)block).createTile(null);
-        tile = tileEntity == null ? null : new LazyCompoundTag_1_15_2(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
+        TileEntity tileEntity = !block.isTileEntity() ? null : ((ITileEntity) block).createTile(null);
+        tile = tileEntity == null
+                ? null
+                : new LazyCompoundTag_1_15_2(Suppliers.memoize(() -> tileEntity.save(new NBTTagCompound())));
     }
 
     public Block getBlock() {
@@ -172,4 +175,5 @@ public class BlockMaterial_1_15_2 implements BlockMaterial {
     public int getMapColor() {
         return material.i().rgb;
     }
+
 }

@@ -165,6 +165,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotConfig;
 import org.spigotmc.WatchdogThread;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -184,24 +185,32 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
+public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
 
+    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
+            SideEffect.NEIGHBORS,
+            SideEffect.LIGHTING,
+            SideEffect.VALIDATION,
+            SideEffect.ENTITY_AI,
+            SideEffect.EVENTS,
+            SideEffect.UPDATE
+    );
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
-
     private final Field nbtListTagListField;
     private final Field serverWorldsField;
     private final Method getChunkFutureMethod;
     private final Field chunkProviderExecutorField;
-    private final Watchdog watchdog;
 
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
+    private final Watchdog watchdog;
+    private final LoadingCache<WorldServer, FakePlayer_v1_16_R3> fakePlayers
+            = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_16_R3::new));
 
     public Spigot_v1_16_R3() throws NoSuchFieldException, NoSuchMethodException {
         // A simple test
@@ -209,7 +218,9 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
 
 
         int dataVersion = CraftMagicNumbers.INSTANCE.getDataVersion();
-        if (dataVersion != 2584 && dataVersion != 2586) throw new UnsupportedClassVersionError("Not 1.16.4/1.16.5!");
+        if (dataVersion != 2584 && dataVersion != 2586) {
+            throw new UnsupportedClassVersionError("Not 1.16.4/1.16.5!");
+        }
 
         // The list of tags on an NBTTagList
         nbtListTagListField = NBTTagList.class.getDeclaredField("list");
@@ -219,7 +230,8 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         serverWorldsField.setAccessible(true);
 
         getChunkFutureMethod = ChunkProviderServer.class.getDeclaredMethod("getChunkFutureMainThread",
-            int.class, int.class, ChunkStatus.class, boolean.class);
+                int.class, int.class, ChunkStatus.class, boolean.class
+        );
         getChunkFutureMethod.setAccessible(true);
 
         chunkProviderExecutorField = ChunkProviderServer.class.getDeclaredField("serverThreadQueue");
@@ -243,19 +255,15 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         try {
             Class.forName("org.spigotmc.SpigotConfig");
             SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
-        } catch (ClassNotFoundException ignored) {}
-    }
-
-    @Override
-    public DataFixer getDataFixer() {
-        return DataConverters_1_16_R3.INSTANCE;
+        } catch (ClassNotFoundException ignored) {
+        }
     }
 
     /**
      * Read the given NBT data into the given tile entity.
      *
      * @param tileEntity the tile entity
-     * @param tag the tag
+     * @param tag        the tag
      */
     static void readTagIntoTileEntity(NBTTagCompound tag, TileEntity tileEntity) {
         tileEntity.load(tileEntity.getBlock(), tag);
@@ -265,7 +273,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
      * Write the tile entity's NBT data to the given tag.
      *
      * @param tileEntity the tile entity
-     * @param tag the tag
+     * @param tag        the tag
      */
     private static void readTileEntityIntoTag(TileEntity tileEntity, NBTTagCompound tag) {
         tileEntity.save(tag);
@@ -287,7 +295,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
     /**
      * Create an entity using the given entity ID.
      *
-     * @param id the entity ID
+     * @param id    the entity ID
      * @param world the world
      * @return an entity or null
      */
@@ -300,7 +308,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
      * Write the given NBT data into the given entity.
      *
      * @param entity the entity
-     * @param tag the tag
+     * @param tag    the tag
      */
     private static void readTagIntoEntity(NBTTagCompound tag, Entity entity) {
         entity.load(tag);
@@ -310,7 +318,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
      * Write the entity's NBT data to the given tag.
      *
      * @param entity the entity
-     * @param tag the tag
+     * @param tag    the tag
      */
     private static void readEntityIntoTag(Entity entity, NBTTagCompound tag) {
         entity.save(tag);
@@ -322,6 +330,29 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
 
     private static Item getItemFromType(ItemType itemType) {
         return IRegistry.ITEM.get(MinecraftKey.a(itemType.getId()));
+    }
+
+    private static EnumDirection adapt(Direction face) {
+        switch (face) {
+            case NORTH:
+                return EnumDirection.NORTH;
+            case SOUTH:
+                return EnumDirection.SOUTH;
+            case WEST:
+                return EnumDirection.WEST;
+            case EAST:
+                return EnumDirection.EAST;
+            case DOWN:
+                return EnumDirection.DOWN;
+            case UP:
+            default:
+                return EnumDirection.UP;
+        }
+    }
+
+    @Override
+    public DataFixer getDataFixer() {
+        return DataConverters_1_16_R3.INSTANCE;
     }
 
     @Override
@@ -374,24 +405,17 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
 
     @Override
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
-        return new WorldNativeAccess_v1_16_R3(this,
-            new WeakReference<>(((CraftWorld) world).getHandle()));
+        return new WorldNativeAccess_v1_16_R3(
+                this,
+                new WeakReference<>(((CraftWorld) world).getHandle())
+        );
     }
 
-    private static EnumDirection adapt(Direction face) {
-        switch (face) {
-            case NORTH: return EnumDirection.NORTH;
-            case SOUTH: return EnumDirection.SOUTH;
-            case WEST: return EnumDirection.WEST;
-            case EAST: return EnumDirection.EAST;
-            case DOWN: return EnumDirection.DOWN;
-            case UP:
-            default:
-                return EnumDirection.UP;
-        }
-    }
-
-    private IBlockData applyProperties(BlockStateList<Block, IBlockData> stateContainer, IBlockData newState, Map<Property<?>, Object> states) {
+    private IBlockData applyProperties(
+            BlockStateList<Block, IBlockData> stateContainer,
+            IBlockData newState,
+            Map<Property<?>, Object> states
+    ) {
         for (Map.Entry<Property<?>, Object> state : states.entrySet()) {
             IBlockState<?> property = stateContainer.a(state.getKey().getName());
             Comparable<?> value = (Comparable) state.getValue();
@@ -424,7 +448,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
             NBTTagCompound tag = new NBTTagCompound();
             readEntityIntoTag(mcEntity, tag);
             return new BaseEntity(com.sk89q.worldedit.world.entity.EntityTypes.get(id), LazyReference
-                .from(() -> (CompoundBinaryTag) toNativeBinary(tag)));
+                    .from(() -> (CompoundBinaryTag) toNativeBinary(tag)));
         } else {
             return null;
         }
@@ -486,11 +510,19 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
             if (state instanceof BlockStateBoolean) {
                 property = new BooleanProperty(state.getName(), ImmutableList.copyOf(state.getValues()));
             } else if (state instanceof BlockStateDirection) {
-                property = new DirectionalProperty(state.getName(),
-                    (List<Direction>) state.getValues().stream().map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase())).collect(Collectors.toList()));
+                property = new DirectionalProperty(
+                        state.getName(),
+                        (List<Direction>) state
+                                .getValues()
+                                .stream()
+                                .map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase()))
+                                .collect(Collectors.toList())
+                );
             } else if (state instanceof BlockStateEnum) {
-                property = new EnumProperty(state.getName(),
-                    (List<String>) state.getValues().stream().map(e -> ((INamable) e).getName()).collect(Collectors.toList()));
+                property = new EnumProperty(
+                        state.getName(),
+                        (List<String>) state.getValues().stream().map(e -> ((INamable) e).getName()).collect(Collectors.toList())
+                );
             } else if (state instanceof BlockStateInteger) {
                 property = new IntegerProperty(state.getName(), ImmutableList.copyOf(state.getValues()));
             } else {
@@ -505,16 +537,16 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
     @Override
     public void sendFakeNBT(Player player, BlockVector3 pos, CompoundBinaryTag nbtData) {
         ((CraftPlayer) player).getHandle().playerConnection.sendPacket(new PacketPlayOutTileEntityData(
-            new BlockPosition(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()),
-            7,
-            (NBTTagCompound) fromNativeBinary(nbtData)
+                new BlockPosition(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()),
+                7,
+                (NBTTagCompound) fromNativeBinary(nbtData)
         ));
     }
 
     @Override
     public void sendFakeOP(Player player) {
         ((CraftPlayer) player).getHandle().playerConnection.sendPacket(new PacketPlayOutEntityStatus(
-            ((CraftPlayer) player).getHandle(), (byte) 28
+                ((CraftPlayer) player).getHandle(), (byte) 28
         ));
     }
 
@@ -526,8 +558,10 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
     }
 
     @Override
-    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
-        org.bukkit.World bukkitWorld) {
+    public boolean generateTree(
+            TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
+            org.bukkit.World bukkitWorld
+    ) {
         TreeType bukkitType = BukkitWorld.toBukkitTreeType(type);
         if (bukkitType == TreeType.CHORUS_PLANT) {
             pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
@@ -547,7 +581,8 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
                     continue;
                 }
                 editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
-                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData()));
+                        BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData())
+                );
             }
 
             world.capturedBlockStates.clear();
@@ -563,15 +598,12 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         return weStack;
     }
 
-    private LoadingCache<WorldServer, FakePlayer_v1_16_R3> fakePlayers
-        = CacheBuilder.newBuilder().weakKeys().softValues().build(CacheLoader.from(FakePlayer_v1_16_R3::new));
-
     @Override
     public boolean simulateItemUse(org.bukkit.World world, BlockVector3 position, BaseItem item, Direction face) {
         CraftWorld craftWorld = (CraftWorld) world;
         WorldServer worldServer = craftWorld.getHandle();
         ItemStack stack = CraftItemStack.asNMSCopy(BukkitAdapter.adapt(item instanceof BaseItemStack
-            ? ((BaseItemStack) item) : new BaseItemStack(item.getType(), LazyReference.from(item::getNbt), 1)));
+                ? ((BaseItemStack) item) : new BaseItemStack(item.getType(), LazyReference.from(item::getNbt), 1)));
         stack.setTag((NBTTagCompound) fromNativeBinary(item.getNbt()));
 
         FakePlayer_v1_16_R3 fakePlayer;
@@ -582,7 +614,8 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         }
         fakePlayer.a(EnumHand.MAIN_HAND, stack);
         fakePlayer.setLocation(position.getBlockX(), position.getBlockY(), position.getBlockZ(),
-            (float) face.toVector().toYaw(), (float) face.toVector().toPitch());
+                (float) face.toVector().toYaw(), (float) face.toVector().toPitch()
+        );
 
         final BlockPosition blockPos = new BlockPosition(position.getBlockX(), position.getBlockY(), position.getBlockZ());
         final Vec3D blockVec = Vec3D.b(blockPos);
@@ -605,7 +638,10 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
     public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
         int internalId = BlockStateIdAccess.getBlockStateId(blockState);
         IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
+        return blockData.canPlace(
+                ((CraftWorld) world).getHandle(),
+                new BlockPosition(position.getX(), position.getY(), position.getZ())
+        );
     }
 
     @Override
@@ -637,29 +673,31 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
                     ? replaceSeed(originalWorld, seed, originalOpts)
                     : originalOpts;
 
-            WorldSettings newWorldSettings = new WorldSettings("worldeditregentempworld",
-                originalSettings.b.getGameType(),
-                originalSettings.b.isHardcore(),
-                originalSettings.b.getDifficulty(),
-                originalSettings.b.e(),
-                originalSettings.b.getGameRules(),
-                originalSettings.b.g());
+            WorldSettings newWorldSettings = new WorldSettings(
+                    "worldeditregentempworld",
+                    originalSettings.b.getGameType(),
+                    originalSettings.b.isHardcore(),
+                    originalSettings.b.getDifficulty(),
+                    originalSettings.b.e(),
+                    originalSettings.b.getGameRules(),
+                    originalSettings.b.g()
+            );
             WorldDataServer newWorldData = new WorldDataServer(newWorldSettings, newOpts, Lifecycle.stable());
 
             WorldServer freshWorld = new WorldServer(
-                originalWorld.getMinecraftServer(),
-                originalWorld.getMinecraftServer().executorService,
-                session, newWorldData,
-                originalWorld.getDimensionKey(),
-                originalWorld.getDimensionManager(),
-                //originalWorld.getTypeKey(),
-                new NoOpWorldLoadListener(),
-                newOpts.d().a(worldDimKey).c(),
-                originalWorld.isDebugWorld(),
-                seed,
-                ImmutableList.of(),
-                false,
-                env, gen
+                    originalWorld.getMinecraftServer(),
+                    originalWorld.getMinecraftServer().executorService,
+                    session, newWorldData,
+                    originalWorld.getDimensionKey(),
+                    originalWorld.getDimensionManager(),
+                    //originalWorld.getTypeKey(),
+                    new NoOpWorldLoadListener(),
+                    newOpts.d().a(worldDimKey).c(),
+                    originalWorld.isDebugWorld(),
+                    seed,
+                    ImmutableList.of(),
+                    false,
+                    env, gen
             );
             try {
                 regenForWorld(region, extent, freshWorld, options);
@@ -718,7 +756,8 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         return BiomeTypes.get(key.toString());
     }
 
-    private void regenForWorld(Region region, Extent extent, WorldServer serverWorld, RegenOptions options) throws WorldEditException {
+    private void regenForWorld(Region region, Extent extent, WorldServer serverWorld, RegenOptions options) throws
+            WorldEditException {
         List<CompletableFuture<IChunkAccess>> chunkLoadings = submitChunkLoadTasks(region, serverWorld);
         IAsyncTaskHandler executor;
         try {
@@ -729,7 +768,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         executor.awaitTasks(() -> {
             // bail out early if a future fails
             if (chunkLoadings.stream().anyMatch(ftr ->
-                ftr.isDone() && Futures.getUnchecked(ftr) == null
+                    ftr.isDone() && Futures.getUnchecked(ftr) == null
             )) {
                 return false;
             }
@@ -777,9 +816,9 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
             try {
                 //noinspection unchecked
                 chunkLoadings.add(
-                    ((CompletableFuture<Either<IChunkAccess, PlayerChunk.Failure>>)
-                        getChunkFutureMethod.invoke(chunkManager, chunk.getX(), chunk.getZ(), ChunkStatus.FEATURES, true))
-                        .thenApply(either -> either.left().orElse(null))
+                        ((CompletableFuture<Either<IChunkAccess, PlayerChunk.Failure>>)
+                                getChunkFutureMethod.invoke(chunkManager, chunk.getX(), chunk.getZ(), ChunkStatus.FEATURES, true))
+                                .thenApply(either -> either.left().orElse(null))
                 );
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new IllegalStateException("Couldn't load chunk for regen.", e);
@@ -799,15 +838,6 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
                 return WorldDimension.OVERWORLD;
         }
     }
-
-    private static final Set<SideEffect> SUPPORTED_SIDE_EFFECTS = Sets.immutableEnumSet(
-        SideEffect.NEIGHBORS,
-        SideEffect.LIGHTING,
-        SideEffect.VALIDATION,
-        SideEffect.ENTITY_AI,
-        SideEffect.EVENTS,
-        SideEffect.UPDATE
-    );
 
     @Override
     public Set<SideEffect> getSupportedSideEffects() {
@@ -878,12 +908,13 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
      *
      * @param foreign the foreign tag
      * @return the converted tag
-     * @throws NoSuchFieldException on error
-     * @throws SecurityException on error
+     * @throws NoSuchFieldException     on error
+     * @throws SecurityException        on error
      * @throws IllegalArgumentException on error
-     * @throws IllegalAccessException on error
+     * @throws IllegalAccessException   on error
      */
-    private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+    private ListBinaryTag toNativeList(NBTTagList foreign) throws NoSuchFieldException, SecurityException,
+            IllegalArgumentException, IllegalAccessException {
         ListBinaryTag.Builder values = ListBinaryTag.builder();
 
         List foreignList;
@@ -957,7 +988,51 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
         watchdog.tick();
     }
 
+    private static class MojangWatchdog implements Watchdog {
+
+        private final DedicatedServer server;
+        private final Field tickField;
+
+        MojangWatchdog(DedicatedServer server) throws NoSuchFieldException {
+            this.server = server;
+            Field tickField = MinecraftServer.class.getDeclaredField("nextTick");
+            tickField.setAccessible(true);
+            this.tickField = tickField;
+        }
+
+        @Override
+        public void tick() {
+            try {
+                tickField.set(server, SystemUtils.getMonotonicMillis());
+            } catch (IllegalAccessException ignored) {
+            }
+        }
+
+    }
+
+    private static class NoOpWorldLoadListener implements WorldLoadListener {
+
+        @Override
+        public void a(ChunkCoordIntPair chunkCoordIntPair) {
+        }
+
+        @Override
+        public void a(ChunkCoordIntPair chunkCoordIntPair, @Nullable ChunkStatus chunkStatus) {
+        }
+
+        @Override
+        public void b() {
+        }
+
+        @Override
+        public void setChunkRadius(int i) {
+
+        }
+
+    }
+
     private class SpigotWatchdog implements Watchdog {
+
         private final Field instanceField;
         private final Field lastTickField;
 
@@ -982,44 +1057,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase>  {
                 logger.log(Level.WARNING, "Failed to tick watchdog", e);
             }
         }
+
     }
 
-    private static class MojangWatchdog implements Watchdog {
-        private final DedicatedServer server;
-        private final Field tickField;
-
-        MojangWatchdog(DedicatedServer server) throws NoSuchFieldException {
-            this.server = server;
-            Field tickField = MinecraftServer.class.getDeclaredField("nextTick");
-            tickField.setAccessible(true);
-            this.tickField = tickField;
-        }
-
-        @Override
-        public void tick() {
-            try {
-                tickField.set(server, SystemUtils.getMonotonicMillis());
-            } catch (IllegalAccessException ignored) {
-            }
-        }
-    }
-
-    private static class NoOpWorldLoadListener implements WorldLoadListener {
-        @Override
-        public void a(ChunkCoordIntPair chunkCoordIntPair) {
-        }
-
-        @Override
-        public void a(ChunkCoordIntPair chunkCoordIntPair, @Nullable ChunkStatus chunkStatus) {
-        }
-
-        @Override
-        public void b() {
-        }
-
-        @Override
-        public void setChunkRadius(int i) {
-
-        }
-    }
 }
