@@ -23,13 +23,18 @@ import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 import org.bukkit.event.block.BlockPhysicsEvent;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
-    private static final int UPDATE = 1, NOTIFY = 2;
 
+    private static final int UPDATE = 1, NOTIFY = 2;
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.e, EnumDirection.f,
+            EnumDirection.a, EnumDirection.b,
+            EnumDirection.c, EnumDirection.d
+    };
     private final Spigot_v1_17_R1_2 adapter;
     private final WeakReference<World> world;
     private SideEffectSet sideEffectSet;
@@ -118,12 +123,6 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
         }
     }
 
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-            EnumDirection.e, EnumDirection.f,
-            EnumDirection.a, EnumDirection.b,
-            EnumDirection.c, EnumDirection.d
-    };
-
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {
         World world = getWorld();
@@ -151,7 +150,10 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
         if (sideEffectSet.shouldApply(SideEffect.EVENTS)) {
             CraftWorld craftWorld = world.getWorld();
             if (craftWorld != null) {
-                BlockPhysicsEvent event = new BlockPhysicsEvent(craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
+                BlockPhysicsEvent event = new BlockPhysicsEvent(
+                        craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()),
+                        CraftBlockData.fromData(newState)
+                );
                 world.getCraftServer().getPluginManager().callEvent(event);
                 if (event.isCancelled()) {
                     return;
@@ -171,4 +173,5 @@ public class WorldNativeAccess_v1_17_R1_2 implements WorldNativeAccess<Chunk, IB
     public void flush() {
 
     }
+
 }

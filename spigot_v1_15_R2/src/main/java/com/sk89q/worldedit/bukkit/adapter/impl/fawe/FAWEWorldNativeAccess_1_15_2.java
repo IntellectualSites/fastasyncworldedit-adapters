@@ -36,15 +36,20 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IBlockData, BlockPosition> {
+
     private static final int UPDATE = 1;
     private static final int NOTIFY = 2;
-
+    private static final EnumDirection[] NEIGHBOUR_ORDER = {
+            EnumDirection.WEST, EnumDirection.EAST,
+            EnumDirection.DOWN, EnumDirection.UP,
+            EnumDirection.NORTH, EnumDirection.SOUTH
+    };
     private final FAWE_Spigot_v1_15_R2 adapter;
     private final WeakReference<World> world;
-    private SideEffectSet sideEffectSet;
     private final AtomicInteger lastTick;
     private final Set<CachedChange> cachedChanges = new HashSet<>();
     private final Set<IntPair> cachedChunksToSend = new HashSet<>();
+    private SideEffectSet sideEffectSet;
 
     public FAWEWorldNativeAccess_1_15_2(FAWE_Spigot_v1_15_R2 adapter, WeakReference<World> world) {
         this.adapter = adapter;
@@ -87,7 +92,8 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
         int currentTick = MinecraftServer.currentTick;
         if (Fawe.isMainThread()) {
             return chunk.setType(position, state,
-                this.sideEffectSet != null && this.sideEffectSet.shouldApply(SideEffect.UPDATE));
+                    this.sideEffectSet != null && this.sideEffectSet.shouldApply(SideEffect.UPDATE)
+            );
         }
         // Since FAWE is.. Async we need to do it on the main thread (wooooo.. :( )
         cachedChanges.add(new CachedChange(chunk, position, state));
@@ -101,7 +107,6 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
         }
         return state;
     }
-
 
     @Override
     public IBlockData getValidBlockForPosition(IBlockData block, BlockPosition position) {
@@ -150,12 +155,6 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
         }
     }
 
-    private static final EnumDirection[] NEIGHBOUR_ORDER = {
-            EnumDirection.WEST, EnumDirection.EAST,
-            EnumDirection.DOWN, EnumDirection.UP,
-            EnumDirection.NORTH, EnumDirection.SOUTH
-    };
-
     @Override
     public void notifyNeighbors(BlockPosition pos, IBlockData oldState, IBlockData newState) {
         World world = getWorld();
@@ -183,7 +182,10 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
         if (sideEffectSet.shouldApply(SideEffect.EVENTS)) {
             CraftWorld craftWorld = world.getWorld();
             if (craftWorld != null) {
-                BlockPhysicsEvent event = new BlockPhysicsEvent(craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
+                BlockPhysicsEvent event = new BlockPhysicsEvent(
+                        craftWorld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()),
+                        CraftBlockData.fromData(newState)
+                );
                 world.getServer().getPluginManager().callEvent(event);
                 if (event.isCancelled()) {
                     return;
@@ -210,9 +212,11 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
             toSend = Collections.emptySet();
         }
         RunnableVal<Object> r = new RunnableVal<>() {
-            @Override public void run(Object value) {
+            @Override
+            public void run(Object value) {
                 changes.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
-                    sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
+                        sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)
+                ));
                 if (!sendChunks) {
                     return;
                 }
@@ -227,9 +231,11 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
     @Override
     public synchronized void flush() {
         RunnableVal<Object> r = new RunnableVal<>() {
-            @Override public void run(Object value) {
+            @Override
+            public void run(Object value) {
                 cachedChanges.forEach(cc -> cc.chunk.setType(cc.position, cc.blockData,
-                    sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)));
+                        sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)
+                ));
                 for (IntPair chunk : cachedChunksToSend) {
                     BukkitAdapter_1_15_2.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, 0, false);
                 }
@@ -255,5 +261,7 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
             this.position = position;
             this.blockData = blockData;
         }
+
     }
+
 }

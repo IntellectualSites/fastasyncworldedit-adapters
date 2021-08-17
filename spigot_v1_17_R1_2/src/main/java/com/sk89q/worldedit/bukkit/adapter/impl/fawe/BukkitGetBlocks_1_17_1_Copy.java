@@ -6,7 +6,6 @@ import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.IChunkSet;
 import com.google.common.base.Suppliers;
 import com.sk89q.jnbt.CompoundTag;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.nbt.LazyCompoundTag_1_17_1;
@@ -15,16 +14,14 @@ import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
-import net.minecraft.core.IRegistry;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.chunk.BiomeStorage;
-import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,8 +43,10 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     }
 
     protected void storeTile(TileEntity tile) {
-        tiles.put(BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
-                new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tile.save(new NBTTagCompound()))));
+        tiles.put(
+                BlockVector3.at(tile.getPosition().getX(), tile.getPosition().getY(), tile.getPosition().getZ()),
+                new LazyCompoundTag_1_17_1(Suppliers.memoize(() -> tile.save(new NBTTagCompound())))
+        );
     }
 
     @Override
@@ -100,7 +99,6 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
 
     @Override
     public void setCreateCopy(boolean createCopy) {
-
     }
 
     @Override
@@ -228,4 +226,5 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     public boolean trim(boolean aggressive) {
         return false;
     }
+
 }

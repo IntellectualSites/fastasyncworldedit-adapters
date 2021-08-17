@@ -40,7 +40,11 @@ import java.util.OptionalInt;
 import java.util.UUID;
 
 class FakePlayer_v1_15_R2 extends EntityPlayer {
-    private static final GameProfile FAKE_WORLDEDIT_PROFILE = new GameProfile(UUID.nameUUIDFromBytes("worldedit".getBytes()), "[WorldEdit]");
+
+    private static final GameProfile FAKE_WORLDEDIT_PROFILE = new GameProfile(
+            UUID.nameUUIDFromBytes("worldedit".getBytes()),
+            "[WorldEdit]"
+    );
 
     FakePlayer_v1_15_R2(WorldServer world) {
         super(world.getMinecraftServer(), world, FAKE_WORLDEDIT_PROFILE, new PlayerInteractManager(world));
@@ -106,4 +110,5 @@ class FakePlayer_v1_15_R2 extends EntityPlayer {
     @Override
     public void openSign(TileEntitySign tileentitysign) {
     }
+
 }

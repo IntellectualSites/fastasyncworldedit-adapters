@@ -38,7 +38,11 @@ import java.util.OptionalInt;
 import java.util.UUID;
 
 class FakePlayer_v1_17_R1 extends EntityPlayer {
-    private static final GameProfile FAKE_WORLDEDIT_PROFILE = new GameProfile(UUID.nameUUIDFromBytes("worldedit".getBytes()), "[WorldEdit]");
+
+    private static final GameProfile FAKE_WORLDEDIT_PROFILE = new GameProfile(
+            UUID.nameUUIDFromBytes("worldedit".getBytes()),
+            "[WorldEdit]"
+    );
     private static final Vec3D ORIGIN = new Vec3D(0.0D, 0.0D, 0.0D);
 
     FakePlayer_v1_17_R1(WorldServer world) {
@@ -96,4 +100,5 @@ class FakePlayer_v1_17_R1 extends EntityPlayer {
     @Override
     public void openSign(TileEntitySign tileentitysign) {
     }
+
 }
