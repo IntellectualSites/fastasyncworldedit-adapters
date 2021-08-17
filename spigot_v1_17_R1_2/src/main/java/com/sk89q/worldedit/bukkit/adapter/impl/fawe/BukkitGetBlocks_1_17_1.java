@@ -60,6 +60,7 @@ import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -163,19 +164,23 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         heightMap.a(getChunk(), nativeType, bitArray.getData());
     }
 
-    @Override public int getMaxY() {
+    @Override
+    public int getMaxY() {
         return world.getMaxBuildHeight() - 1;
     }
 
-    @Override public int getMinY() {
+    @Override
+    public int getMinY() {
         return world.getMinBuildHeight();
     }
 
-    @Override public int getMaxSectionIndex() {
+    @Override
+    public int getMaxSectionIndex() {
         return getMinSectionIndex() + world.getSectionsCount() - 1;
     }
 
-    @Override public int getMinSectionIndex() {
+    @Override
+    public int getMinSectionIndex() {
         return world.getMinBuildHeight() >> 4;
     }
 
@@ -554,7 +559,11 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     BukkitGetBlocks_1_17_1.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
                 BukkitGetBlocks_1_17_1.this.setLightingToGet(set.getLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
-                BukkitGetBlocks_1_17_1.this.setSkyLightingToGet(set.getSkyLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
+                BukkitGetBlocks_1_17_1.this.setSkyLightingToGet(
+                        set.getSkyLight(),
+                        set.getMinSectionIndex(),
+                        set.getMaxSectionIndex()
+                );
 
                 Runnable[] syncTasks = null;
 
@@ -745,7 +754,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private char[] loadPrivately(int layer) {
-            layer -= getMinSectionIndex();
+        layer -= getMinSectionIndex();
         Section section = super.sections[layer];
         if (super.sections[layer] != null) {
             synchronized (section) {

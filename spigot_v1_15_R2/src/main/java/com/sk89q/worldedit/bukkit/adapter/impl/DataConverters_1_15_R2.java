@@ -744,6 +744,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
                 return cmp;
             }
         }
+
     }
 
     private static class DataInspectorEntity implements DataInspector {
@@ -1230,6 +1231,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterArmorStand implements DataConverter {
@@ -1462,6 +1464,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterSpawnEgg implements DataConverter {
@@ -1569,6 +1572,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterMinecart implements DataConverter {
@@ -2198,6 +2202,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterEntity implements DataConverter {
@@ -2298,6 +2303,7 @@ class DataConverters_1_15_R2 extends DataFixerBuilder implements com.sk89q.world
 
             return cmp;
         }
+
     }
 
     private static class DataConverterPotionWater implements DataConverter {

@@ -118,15 +118,18 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
         return 255;
     }
 
-    @Override public int getMinY() {
+    @Override
+    public int getMinY() {
         return 0;
     }
 
-    @Override public int getMaxSectionIndex() {
+    @Override
+    public int getMaxSectionIndex() {
         return 15;
     }
 
-    @Override public int getMinSectionIndex() {
+    @Override
+    public int getMinSectionIndex() {
         return 0;
     }
 
@@ -164,7 +167,8 @@ public class BukkitGetBlocks_1_16_5_Copy implements IChunkGet {
         return null;
     }
 
-    @Override public int getSectionCount() {
+    @Override
+    public int getSectionCount() {
         return 16;
     }
 

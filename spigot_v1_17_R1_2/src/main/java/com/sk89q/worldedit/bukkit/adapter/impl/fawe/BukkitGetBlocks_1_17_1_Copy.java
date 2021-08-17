@@ -113,19 +113,23 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     public void setHeightmapToGet(HeightMapType type, int[] data) {
     }
 
-    @Override public int getMaxY() {
+    @Override
+    public int getMaxY() {
         return world.getMaxBuildHeight();
     }
 
-    @Override public int getMinY() {
+    @Override
+    public int getMinY() {
         return world.getMinBuildHeight();
     }
 
-    @Override public int getMaxSectionIndex() {
+    @Override
+    public int getMaxSectionIndex() {
         return getMinSectionIndex() + world.getSectionsCount();
     }
 
-    @Override public int getMinSectionIndex() {
+    @Override
+    public int getMinSectionIndex() {
         return getMinY() >> 4;
     }
 
@@ -164,7 +168,8 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
         return null;
     }
 
-    @Override public int getSectionCount() {
+    @Override
+    public int getSectionCount() {
         return world.getSectionsCount();
     }
 

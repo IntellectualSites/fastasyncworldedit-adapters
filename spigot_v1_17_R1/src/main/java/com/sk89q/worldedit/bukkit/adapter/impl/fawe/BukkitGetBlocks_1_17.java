@@ -60,6 +60,7 @@ import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -161,19 +162,23 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         heightMap.a(getChunk(), nativeType, bitArray.getData());
     }
 
-    @Override public int getMaxY() {
+    @Override
+    public int getMaxY() {
         return world.getMaxBuildHeight() - 1;
     }
 
-    @Override public int getMinY() {
+    @Override
+    public int getMinY() {
         return world.getMinBuildHeight();
     }
 
-    @Override public int getMaxSectionIndex() {
+    @Override
+    public int getMaxSectionIndex() {
         return getMinSectionIndex() + world.getSectionsCount() - 1;
     }
 
-    @Override public int getMinSectionIndex() {
+    @Override
+    public int getMinSectionIndex() {
         return world.getMinBuildHeight() >> 4;
     }
 
@@ -514,7 +519,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                 this.reset(layerNo);*/
                             }
                             newSection =
-                                BukkitAdapter_1_17.newChunkSection(layerNo, this::loadPrivately, setArr, fastmode, adapter);
+                                    BukkitAdapter_1_17.newChunkSection(layerNo, this::loadPrivately, setArr, fastmode, adapter);
                             if (!BukkitAdapter_1_17.setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
@@ -550,7 +555,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                     BukkitGetBlocks_1_17.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
                 BukkitGetBlocks_1_17.this.setLightingToGet(set.getLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
-                BukkitGetBlocks_1_17.this.setSkyLightingToGet(set.getSkyLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
+                BukkitGetBlocks_1_17.this.setSkyLightingToGet(
+                        set.getSkyLight(),
+                        set.getMinSectionIndex(),
+                        set.getMaxSectionIndex()
+                );
 
                 Runnable[] syncTasks = null;
 

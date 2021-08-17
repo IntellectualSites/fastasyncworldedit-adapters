@@ -120,13 +120,12 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private final BukkitImplAdapter<NBTBase> parent;
-    private char[] ibdToStateOrdinal = null;
-    private int[] ordinalToIbdID = null;
-
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
     private final MapChunkUtil_1_17 mapUtil = new MapChunkUtil_1_17();
+    private char[] ibdToStateOrdinal = null;
+    private int[] ordinalToIbdID = null;
 
     public FAWE_Spigot_v1_17_R1() throws NoSuchFieldException, NoSuchMethodException {
         this.parent = new Spigot_v1_17_R1();

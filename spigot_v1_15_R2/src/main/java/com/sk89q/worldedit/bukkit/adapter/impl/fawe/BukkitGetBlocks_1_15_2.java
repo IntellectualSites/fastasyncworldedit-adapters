@@ -153,19 +153,23 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         getChunk().heightMap.get(HeightMap.Type.valueOf(type.name())).a(bitArray.getData());
     }
 
-    @Override public int getMaxY() {
+    @Override
+    public int getMaxY() {
         return 255;
     }
 
-    @Override public int getMinY() {
+    @Override
+    public int getMinY() {
         return 0;
     }
 
-    @Override public int getMaxSectionIndex() {
+    @Override
+    public int getMaxSectionIndex() {
         return 15;
     }
 
-    @Override public int getMinSectionIndex() {
+    @Override
+    public int getMinSectionIndex() {
         return 0;
     }
 
