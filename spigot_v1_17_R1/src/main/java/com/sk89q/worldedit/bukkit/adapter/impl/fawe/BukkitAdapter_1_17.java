@@ -364,13 +364,13 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
     static void removeBeacon(TileEntity beacon, Chunk nmsChunk) {
         try {
             // Do the method ourselves to avoid trying to reflect generic method parameters
-            if (nmsChunk.h || nmsChunk.i.isClientSide()) {
+            if (nmsChunk.h || nmsChunk.level.isClientSide()) {
                 TileEntity tileentity = nmsChunk.l.remove(beacon.getPosition());
                 if (tileentity != null) {
-                    if (!nmsChunk.i.y) {
+                    if (!nmsChunk.level.y) {
                         Block block = beacon.getBlock().getBlock();
                         if (block instanceof ITileEntity) {
-                            GameEventListener gameeventlistener = ((ITileEntity) block).a(nmsChunk.i, beacon);
+                            GameEventListener gameeventlistener = ((ITileEntity) block).a(nmsChunk.level, beacon);
                             if (gameeventlistener != null) {
                                 int i = SectionPosition.a(beacon.getPosition().getY());
                                 GameEventDispatcher gameeventdispatcher = nmsChunk.a(i);
