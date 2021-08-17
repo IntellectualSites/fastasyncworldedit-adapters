@@ -28,15 +28,14 @@ import net.minecraft.server.v1_16_R3.DataPaletteHash;
 import net.minecraft.server.v1_16_R3.DataPaletteLinear;
 import net.minecraft.server.v1_16_R3.GameProfileSerializer;
 import net.minecraft.server.v1_16_R3.IBlockData;
+import net.minecraft.server.v1_16_R3.IChunkAccess;
 import net.minecraft.server.v1_16_R3.PacketPlayOutLightUpdate;
 import net.minecraft.server.v1_16_R3.PacketPlayOutMapChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunk;
 import net.minecraft.server.v1_16_R3.PlayerChunkMap;
 import net.minecraft.server.v1_16_R3.TileEntity;
-import net.minecraft.server.v1_16_R3.World;
 import net.minecraft.server.v1_16_R3.WorldServer;
 import org.bukkit.craftbukkit.v1_16_R3.CraftChunk;
-import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import sun.misc.Unsafe;
 
 import java.lang.invoke.MethodHandle;
@@ -152,17 +151,29 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
         }
     }
 
-    public static Chunk ensureLoaded(World nmsWorld, int chunkX, int chunkZ) {
-        Chunk nmsChunk = nmsWorld.getChunkProvider().getChunkAt(chunkX, chunkZ, false);
-        if (nmsChunk != null) {
-            return nmsChunk;
-        }
-        if (Fawe.isMainThread()) {
-            return nmsWorld.getChunkAt(chunkX, chunkZ);
-        }
-        if (PaperLib.isPaper()) {
-            CraftWorld craftWorld = nmsWorld.getWorld();
-            CompletableFuture<org.bukkit.Chunk> future = craftWorld.getChunkAtAsync(chunkX, chunkZ, true, true);
+    public static Chunk ensureLoaded(WorldServer world, int chunkX, int chunkZ) {
+        if (!PaperLib.isPaper()) {
+            Chunk nmsChunk = world.getChunkProvider().getChunkAt(chunkX, chunkZ, false);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            if (Fawe.isMainThread()) {
+                return world.getChunkAt(chunkX, chunkZ);
+            }
+        } else {
+            IChunkAccess iChunkAccess = world.getChunkProvider().getChunkAtImmediately(chunkX, chunkZ);
+            if (iChunkAccess instanceof Chunk) {
+                return (Chunk) iChunkAccess;
+            }
+            Chunk nmsChunk = world.getChunkProvider().getChunkAtIfCachedImmediately(chunkX, chunkZ);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            nmsChunk = world.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            CompletableFuture<org.bukkit.Chunk> future = world.getWorld().getChunkAtAsync(chunkX, chunkZ, true, true);
             try {
                 CraftChunk chunk = (CraftChunk) future.get();
                 return chunk.getHandle();
@@ -170,8 +181,7 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
                 e.printStackTrace();
             }
         }
-        // TODO optimize
-        return TaskManager.IMP.sync(() -> nmsWorld.getChunkAt(chunkX, chunkZ));
+        return TaskManager.IMP.sync(() -> world.getChunkAt(chunkX, chunkZ));
     }
 
     public static PlayerChunk getPlayerChunk(WorldServer nmsWorld, final int chunkX, final int chunkZ) {
