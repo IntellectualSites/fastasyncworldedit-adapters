@@ -400,7 +400,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         entity.die();
     }
 
-    public Chunk ensureLoaded(net.minecraft.world.level.World nmsWorld, int chunkX, int chunkZ) {
+    public Chunk ensureLoaded(WorldServer nmsWorld, int chunkX, int chunkZ) {
         return BukkitAdapter_1_17.ensureLoaded(nmsWorld, chunkX, chunkZ);
     }
 

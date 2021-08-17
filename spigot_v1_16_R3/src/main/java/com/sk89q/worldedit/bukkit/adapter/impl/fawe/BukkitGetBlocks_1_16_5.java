@@ -394,7 +394,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         entity.die();
     }
 
-    public Chunk ensureLoaded(net.minecraft.server.v1_16_R3.World nmsWorld, int chunkX, int chunkZ) {
+    public Chunk ensureLoaded(WorldServer nmsWorld, int chunkX, int chunkZ) {
         return BukkitAdapter_1_16_5.ensureLoaded(nmsWorld, chunkX, chunkZ);
     }
 
