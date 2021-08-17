@@ -391,7 +391,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
     protected IChunkCache<IChunkGet> initSourceQueueCache() {
         return (chunkX, chunkZ) -> new BukkitGetBlocks_1_17(freshNMSWorld, chunkX, chunkZ) {
             @Override
-            public Chunk ensureLoaded(World nmsWorld, int x, int z) {
+            public Chunk ensureLoaded(WorldServer nmsWorld, int x, int z) {
                 return getChunkAt(x, z);
             }
         };

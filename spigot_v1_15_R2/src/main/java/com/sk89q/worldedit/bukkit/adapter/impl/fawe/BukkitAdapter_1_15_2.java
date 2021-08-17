@@ -1,5 +1,6 @@
 package com.sk89q.worldedit.bukkit.adapter.impl.fawe;
 
+import com.fastasyncworldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.fastasyncworldedit.bukkit.adapter.DelegateLock;
 import com.fastasyncworldedit.bukkit.adapter.NMSAdapter;
 import com.fastasyncworldedit.core.Fawe;
@@ -23,19 +24,19 @@ import net.minecraft.server.v1_15_R1.ChunkSection;
 import net.minecraft.server.v1_15_R1.DataBits;
 import net.minecraft.server.v1_15_R1.DataPalette;
 import net.minecraft.server.v1_15_R1.DataPaletteBlock;
+import net.minecraft.server.v1_15_R1.DataPaletteHash;
 import net.minecraft.server.v1_15_R1.DataPaletteLinear;
 import net.minecraft.server.v1_15_R1.GameProfileSerializer;
 import net.minecraft.server.v1_15_R1.IBlockData;
+import net.minecraft.server.v1_15_R1.IChunkAccess;
 import net.minecraft.server.v1_15_R1.LightEngineStorage;
 import net.minecraft.server.v1_15_R1.NibbleArray;
 import net.minecraft.server.v1_15_R1.PacketPlayOutLightUpdate;
 import net.minecraft.server.v1_15_R1.PacketPlayOutMapChunk;
 import net.minecraft.server.v1_15_R1.PlayerChunk;
 import net.minecraft.server.v1_15_R1.PlayerChunkMap;
-import net.minecraft.server.v1_15_R1.World;
 import net.minecraft.server.v1_15_R1.WorldServer;
 import org.bukkit.craftbukkit.v1_15_R1.CraftChunk;
-import org.bukkit.craftbukkit.v1_15_R1.CraftWorld;
 import sun.misc.Unsafe;
 
 import java.lang.invoke.MethodHandle;
@@ -51,7 +52,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 public final class BukkitAdapter_1_15_2 extends NMSAdapter {
-
     /*
     NMS fields
     */
@@ -98,8 +98,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             declaredGetVisibleChunk.setAccessible(true);
             methodGetVisibleChunk = MethodHandles.lookup().unreflect(declaredGetVisibleChunk);
 
-            Method declaredSetLightNibbleArray =
-                    LightEngineStorage.class.getDeclaredMethod("a", long.class, NibbleArray.class);
+            Method declaredSetLightNibbleArray = LightEngineStorage.class.getDeclaredMethod("a", long.class, NibbleArray.class);
             declaredSetLightNibbleArray.setAccessible(true);
             methodSetLightNibbleArray = MethodHandles.lookup().unreflect(declaredSetLightNibbleArray);
 
@@ -121,10 +120,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         }
     }
 
-    protected static boolean setSectionAtomic(
-            ChunkSection[] sections, ChunkSection expected, ChunkSection value,
-            int layer
-    ) {
+    static boolean setSectionAtomic(ChunkSection[] sections, ChunkSection expected, ChunkSection value, int layer) {
         long offset = ((long) layer << CHUNKSECTION_SHIFT) + CHUNKSECTION_BASE;
         if (layer >= 0 && layer < sections.length) {
             return UnsafeUtility.getUNSAFE().compareAndSwapObject(sections, offset, expected, value);
@@ -132,7 +128,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         return false;
     }
 
-    protected static DelegateLock applyLock(ChunkSection section) {
+    static DelegateLock applyLock(ChunkSection section) {
         //todo there has to be a better way to do this. Maybe using a() in DataPaletteBlock which acquires the lock in NMS?
         try {
             synchronized (section) {
@@ -152,17 +148,25 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         }
     }
 
-    public static Chunk ensureLoaded(World nmsWorld, int chunkX, int chunkZ) {
-        Chunk nmsChunk = nmsWorld.getChunkIfLoaded(chunkX, chunkZ);
-        if (nmsChunk != null) {
-            return nmsChunk;
-        }
-        if (Fawe.isMainThread()) {
-            return nmsWorld.getChunkAt(chunkX, chunkZ);
-        }
-        if (PaperLib.isPaper()) {
-            CraftWorld craftWorld = nmsWorld.getWorld();
-            CompletableFuture<org.bukkit.Chunk> future = craftWorld.getChunkAtAsync(chunkX, chunkZ, true);
+    public static Chunk ensureLoaded(WorldServer world, int chunkX, int chunkZ) {
+        if (!PaperLib.isPaper()) {
+            Chunk nmsChunk = world.getChunkProvider().getChunkAt(chunkX, chunkZ, false);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            if (Fawe.isMainThread()) {
+                return world.getChunkAt(chunkX, chunkZ);
+            }
+        } else {
+            Chunk nmsChunk = world.getChunkProvider().getChunkAtIfCachedImmediately(chunkX, chunkZ);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            nmsChunk = world.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ);
+            if (nmsChunk != null) {
+                return nmsChunk;
+            }
+            CompletableFuture<org.bukkit.Chunk> future = world.getWorld().getChunkAtAsync(chunkX, chunkZ, true, true);
             try {
                 CraftChunk chunk = (CraftChunk) future.get();
                 return chunk.getHandle();
@@ -170,8 +174,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                 e.printStackTrace();
             }
         }
-        // TODO optimize
-        return TaskManager.IMP.sync(() -> nmsWorld.getChunkAt(chunkX, chunkZ));
+        return TaskManager.IMP.sync(() -> world.getChunkAt(chunkX, chunkZ));
     }
 
     public static PlayerChunk getPlayerChunk(WorldServer nmsWorld, final int cx, final int cz) {
@@ -192,14 +195,13 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         Optional<Chunk> optional = ((Either) playerChunk.a().getNow(PlayerChunk.UNLOADED_CHUNK)).left();
         if (PaperLib.isPaper()) {
             // getChunkAtIfLoadedImmediately is paper only
-            optional = optional
-                    .or(() -> Optional.ofNullable(nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
+            optional = optional.or(() -> Optional.ofNullable(nmsWorld.getChunkProvider().getChunkAtIfLoadedImmediately(chunkX, chunkZ)));
         }
         if (optional.isEmpty()) {
             return;
         }
         Chunk chunk = optional.get();
-        TaskManager.IMP.sync(() -> {
+        TaskManager.IMP.task(() -> {
             PacketPlayOutMapChunk chunkPacket = new PacketPlayOutMapChunk(chunk, 65535);
             playerChunk.players.a(chunkCoordIntPair, false).forEach(p -> {
                 p.playerConnection.sendPacket(chunkPacket);
@@ -211,21 +213,17 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                     p.playerConnection.sendPacket(packet);
                 });
             }
-            return null;
         });
     }
 
     /*
     NMS conversion
      */
-    public static ChunkSection newChunkSection(final int layer, final char[] blocks, boolean fastmode) {
-        return newChunkSection(layer, null, blocks, fastmode);
+    public static ChunkSection newChunkSection(final int layer, final char[] blocks, boolean fastmode, CachedBukkitAdapter adapter) {
+        return newChunkSection(layer, null, blocks, fastmode, adapter);
     }
 
-    public static ChunkSection newChunkSection(
-            final int layer, final Function<Integer, char[]> get, char[] set,
-            boolean fastmode
-    ) {
+    public static ChunkSection newChunkSection(final int layer, final Function<Integer, char[]> get, char[] set, boolean fastmode, CachedBukkitAdapter adapter) {
         if (set == null) {
             return newChunkSection(layer);
         }
@@ -238,13 +236,11 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             Map<BlockVector3, Integer> ticking_blocks = new HashMap<>();
             int air;
             if (get == null) {
-                air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer, set, ticking_blocks,
-                        fastmode
-                );
+                air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer,
+                    set, ticking_blocks, fastmode, adapter);
             } else {
-                air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer, get, set,
-                        ticking_blocks, fastmode
-                );
+                air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy,
+                    num_palette_buffer, get, set, ticking_blocks, fastmode, adapter);
             }
             int num_palette = num_palette_buffer[0];
             // BlockStates
@@ -253,6 +249,9 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                 bitsPerEntry = Math.max(bitsPerEntry, 4); // Protocol support breaks <4 bits per entry
             } else {
                 bitsPerEntry = Math.max(bitsPerEntry, 1); // For some reason minecraft needs 4096 bits to store 0 entries
+            }
+            if (bitsPerEntry > 8) {
+                bitsPerEntry = MathMan.log2nlz(Block.REGISTRY_ID.a() - 1);
             }
 
             final int blockBitArrayEnd = (bitsPerEntry * 4096) >> 6;
@@ -273,15 +272,23 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             final long[] bits = Arrays.copyOfRange(blockStates, 0, blockBitArrayEnd);
             final DataBits nmsBits = new DataBits(bitsPerEntry, 4096, bits);
             final DataPalette<IBlockData> palette;
-            palette = new DataPaletteLinear<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d);
+            if (bitsPerEntry <= 4) {
+                palette = new DataPaletteLinear<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d);
+            } else if (bitsPerEntry < 9) {
+                palette = new DataPaletteHash<>(Block.REGISTRY_ID, bitsPerEntry, dataPaletteBlocks, GameProfileSerializer::d, GameProfileSerializer::a);
+            } else {
+                palette = ChunkSection.GLOBAL_PALETTE;
+            }
 
-            // set palette
-            for (int i = 0; i < num_palette; i++) {
-                final int ordinal = paletteToBlock[i];
-                blockToPalette[ordinal] = Integer.MAX_VALUE;
-                final BlockState state = BlockTypesCache.states[ordinal];
-                final IBlockData ibd = ((BlockMaterial_1_15_2) state.getMaterial()).getState();
-                palette.a(ibd);
+            // set palette if required
+            if (bitsPerEntry < 9) {
+                for (int i = 0; i < num_palette; i++) {
+                    final int ordinal = paletteToBlock[i];
+                    blockToPalette[ordinal] = Integer.MAX_VALUE;
+                    final BlockState state = BlockTypesCache.states[ordinal];
+                    final IBlockData ibd = ((BlockMaterial_1_15_2) state.getMaterial()).getState();
+                    palette.a(ibd);
+                }
             }
             try {
                 fieldBits.set(dataPaletteBlocks, nmsBits);
@@ -290,7 +297,8 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
                 setCount(ticking_blocks.size(), 4096 - air, section);
                 if (!fastmode) {
                     ticking_blocks.forEach((pos, ordinal) -> section
-                            .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(), Block.getByCombinedId(ordinal)));
+                        .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(),
+                            Block.getByCombinedId(ordinal)));
                 }
             } catch (final IllegalAccessException | NoSuchFieldException e) {
                 throw new RuntimeException(e);
@@ -307,8 +315,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         return new ChunkSection(layer << 4);
     }
 
-    public static void setCount(final int tickingBlockCount, final int nonEmptyBlockCount, final ChunkSection section)
-            throws NoSuchFieldException, IllegalAccessException {
+    public static void setCount(final int tickingBlockCount, final int nonEmptyBlockCount, final ChunkSection section) throws NoSuchFieldException, IllegalAccessException {
         fieldFluidCount.setShort(section, (short) 0); // TODO FIXME
         fieldTickingBlockCount.setShort(section, (short) tickingBlockCount);
         fieldNonEmptyBlockCount.setShort(section, (short) nonEmptyBlockCount);
@@ -322,5 +329,4 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             return null;
         }
     }
-
 }

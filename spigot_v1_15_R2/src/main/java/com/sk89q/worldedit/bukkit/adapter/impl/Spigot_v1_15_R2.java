@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BaseItemStack;
@@ -49,6 +50,7 @@ import com.sk89q.worldedit.registry.state.IntegerProperty;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.SideEffect;
+import com.sk89q.worldedit.util.TreeGenerator;
 import com.sk89q.worldedit.util.concurrency.LazyReference;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
@@ -126,10 +128,13 @@ import net.minecraft.server.v1_15_R1.WorldNBTStorage;
 import net.minecraft.server.v1_15_R1.WorldServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.TreeType;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_15_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_15_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_15_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_15_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_15_R1.entity.CraftPlayer;
@@ -505,6 +510,36 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
         ItemStack stack = new ItemStack(IRegistry.ITEM.get(MinecraftKey.a(item.getType().getId())), item.getAmount());
         stack.setTag(((NBTTagCompound) fromNativeBinary(item.getNbt())));
         return CraftItemStack.asCraftMirror(stack);
+    }
+
+    @Override
+    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
+        org.bukkit.World bukkitWorld) {
+        TreeType bukkitType = BukkitWorld.toBukkitTreeType(type);
+        if (bukkitType == TreeType.CHORUS_PLANT) {
+            pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
+        }
+        WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+        world.captureTreeGeneration = true;
+        world.captureBlockStates = true;
+        boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, pt), bukkitType);
+        world.captureBlockStates = false;
+        world.captureTreeGeneration = false;
+        if (!grownTree) {
+            world.capturedBlockStates.clear();
+            return false;
+        } else {
+            for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
+                if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
+                    continue;
+                }
+                editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
+                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData()));
+            }
+
+            world.capturedBlockStates.clear();
+            return true;
+        }
     }
 
     @Override

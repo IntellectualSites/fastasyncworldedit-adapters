@@ -23,7 +23,6 @@ import com.fastasyncworldedit.bukkit.adapter.CachedBukkitAdapter;
 import com.fastasyncworldedit.bukkit.adapter.IDelegateBukkitImplAdapter;
 import com.fastasyncworldedit.bukkit.adapter.NMSRelighterFactory;
 import com.fastasyncworldedit.core.FaweCache;
-import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
@@ -31,13 +30,16 @@ import com.google.common.base.Preconditions;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
+import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.blocks.TileEntityBlock;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.impl.Spigot_v1_16_R3;
 import com.sk89q.worldedit.bukkit.adapter.impl.fawe.regen.Regen_v1_16_R3;
 import com.sk89q.worldedit.entity.BaseEntity;
+import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.internal.block.BlockStateIdAccess;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
@@ -47,6 +49,7 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
+import com.sk89q.worldedit.util.TreeGenerator;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.world.RegenOptions;
 import com.sk89q.worldedit.world.biome.BiomeType;
@@ -84,10 +87,13 @@ import net.minecraft.server.v1_16_R3.WorldServer;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R3.CraftChunk;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_16_R3.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
@@ -97,6 +103,7 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -108,8 +115,8 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private final Spigot_v1_16_R3 parent;
-    private char[] ibdToStateOrdinal;
-    private int[] ordinalToIbdID;
+    private char[] ibdToStateOrdinal = null;
+    private int[] ordinalToIbdID = null;
 
     // ------------------------------------------------------------------------
     // Code that may break between versions of Minecraft
@@ -174,7 +181,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         BlockState state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
         if (state.getBlockType().getMaterial().hasContainer()) {
 
-            // Read the NBT data
+        // Read the NBT data
             TileEntity te = chunk.a(blockPos, Chunk.EnumTileEntityState.CHECK);
             if (te != null) {
                 NBTTagCompound tag = new NBTTagCompound();
@@ -212,7 +219,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
 
         nmsChunk.removeTileEntity(blockPos); // Force delete the old tile entity
 
-        CompoundTag nativeTag = state instanceof BaseBlock ? ((BaseBlock) state).getNbtData() : null;
+        CompoundTag nativeTag = state instanceof BaseBlock ? ((BaseBlock)state).getNbtData() : null;
         if (nativeTag != null || existing instanceof TileEntityBlock) {
             nmsWorld.setTypeAndData(blockPos, blockData, 0);
             // remove tile
@@ -248,10 +255,8 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
 
     @Override
     public WorldNativeAccess<?, ?, ?> createWorldNativeAccess(org.bukkit.World world) {
-        return new FAWEWorldNativeAccess_1_16_R3(
-                this,
-                new WeakReference<>(((CraftWorld) world).getHandle())
-        );
+        return new FAWEWorldNativeAccess_1_16_R3(this,
+                new WeakReference<>(((CraftWorld)world).getHandle()));
     }
 
     @Nullable
@@ -323,47 +328,77 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         return BlockTypesCache.states[adaptToChar(ibd)];
     }
 
-    /**
-     * @deprecated Method unused. Use #adaptToChar(IBlockData).
-     */
-    @Deprecated
-    public int adaptToInt(IBlockData ibd) {
-        synchronized (this) {
-            try {
-                int id = Block.REGISTRY_ID.getId(ibd);
-                return ibdToStateOrdinal[id];
-            } catch (NullPointerException e) {
-                init();
-                return adaptToInt(ibd);
-            }
-        }
-    }
-
     public char adaptToChar(IBlockData ibd) {
+        int id = Block.REGISTRY_ID.getId(ibd);
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal[id];
+        }
         synchronized (this) {
-            try {
-                int id = Block.REGISTRY_ID.getId(ibd);
+            if (ibdToStateOrdinal != null) {
                 return ibdToStateOrdinal[id];
-            } catch (NullPointerException e) {
+            }
+            try {
                 init();
-                return adaptToChar(ibd);
+                return ibdToStateOrdinal[id];
             } catch (ArrayIndexOutOfBoundsException e1) {
                 LOGGER.error("Attempted to convert {} with ID {} to char. ibdToStateOrdinal length: {}. Defaulting to air!",
-                        ibd.getBlock(), Block.REGISTRY_ID.getId(ibd), ibdToStateOrdinal.length, e1
-                );
+                    ibd.getBlock(), Block.REGISTRY_ID.getId(ibd), ibdToStateOrdinal.length, e1);
                 return 0;
             }
         }
     }
 
-    public int ordinalToIbdID(char ordinal) {
+    public char ibdIDToOrdinal(int id) {
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal[id];
+        }
         synchronized (this) {
-            try {
-                return ordinalToIbdID[ordinal];
-            } catch (NullPointerException e) {
-                init();
-                return ordinalToIbdID(ordinal);
+            if (ibdToStateOrdinal != null) {
+                return ibdToStateOrdinal[id];
             }
+            init();
+            return ibdToStateOrdinal[id];
+        }
+    }
+
+    @Override
+    public char[] getIbdToStateOrdinal() {
+        if (ibdToStateOrdinal != null) {
+            return ibdToStateOrdinal;
+        }
+        synchronized (this) {
+            if (ibdToStateOrdinal != null) {
+                return ibdToStateOrdinal;
+            }
+            init();
+            return ibdToStateOrdinal;
+        }
+    }
+
+    public int ordinalToIbdID(char ordinal) {
+        if (ordinalToIbdID != null) {
+            return ordinalToIbdID[ordinal];
+        }
+        synchronized (this) {
+            if (ordinalToIbdID != null) {
+                return ordinalToIbdID[ordinal];
+            }
+            init();
+            return ordinalToIbdID[ordinal];
+        }
+    }
+
+    @Override
+    public int[] getOrdinalToIbdID() {
+        if (ordinalToIbdID != null) {
+            return ordinalToIbdID;
+        }
+        synchronized (this) {
+            if (ordinalToIbdID != null) {
+                return ordinalToIbdID;
+            }
+            init();
+            return ordinalToIbdID;
         }
     }
 
@@ -373,7 +408,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         return material.getCraftBlockData();
     }
 
-    private final MapChunkUtil_1_16_5 mapUtil = new MapChunkUtil_1_16_5();
+    private MapChunkUtil_1_16_5 mapUtil = new MapChunkUtil_1_16_5();
 
     @Override
     public void sendFakeChunk(org.bukkit.World world, Player player, ChunkPacket packet) {
@@ -390,7 +425,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
                         synchronized (packet) {
                             PacketPlayOutMapChunk nmsPacket = (PacketPlayOutMapChunk) packet.getNativePacket();
                             if (nmsPacket == null) {
-                                nmsPacket = mapUtil.create(this, packet);
+                                nmsPacket = mapUtil.create( this, packet);
                                 packet.setNativePacket(nmsPacket);
                             }
                             try {
@@ -413,10 +448,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     public boolean canPlaceAt(org.bukkit.World world, BlockVector3 position, BlockState blockState) {
         int internalId = BlockStateIdAccess.getBlockStateId(blockState);
         IBlockData blockData = Block.getByCombinedId(internalId);
-        return blockData.canPlace(
-                ((CraftWorld) world).getHandle(),
-                new BlockPosition(position.getX(), position.getY(), position.getZ())
-        );
+        return blockData.canPlace(((CraftWorld) world).getHandle(), new BlockPosition(position.getX(), position.getY(), position.getZ()));
     }
 
     @Override
@@ -424,6 +456,41 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         ItemStack stack = new ItemStack(IRegistry.ITEM.get(MinecraftKey.a(item.getType().getId())), item.getAmount());
         stack.setTag(((NBTTagCompound) fromNative(item.getNbtData())));
         return CraftItemStack.asCraftMirror(stack);
+    }
+
+    @Override
+    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, BlockVector3 pt,
+        org.bukkit.World bukkitWorld) {
+        TreeType bukkitType = BukkitWorld.toBukkitTreeType(type);
+        if (bukkitType == TreeType.CHORUS_PLANT) {
+            pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
+        }
+        WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+        world.captureTreeGeneration = true;
+        world.captureBlockStates = true;
+        boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, pt), bukkitType);
+        world.captureBlockStates = false;
+        world.captureTreeGeneration = false;
+        if (!grownTree) {
+            world.capturedBlockStates.clear();
+            return false;
+        } else {
+            for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
+                if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
+                    continue;
+                }
+                editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
+                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData()));
+            }
+
+            world.capturedBlockStates.clear();
+            return true;
+        }
+    }
+
+    @Override
+    public List<org.bukkit.entity.Entity> getEntities(org.bukkit.World world) {
+        return world.getEntities();
     }
 
     @Override
@@ -439,7 +506,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         return parent.toNative(foreign);
     }
 
-    @Override
+        @Override
     public boolean regenerate(org.bukkit.World bukkitWorld, Region region, Extent target, RegenOptions options) throws Exception {
         return new Regen_v1_16_R3(bukkitWorld, region, target, options).regenerate();
     }
@@ -451,10 +518,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
 
     @Override
     public int getInternalBiomeId(BiomeType biome) {
-        BiomeBase base = CraftBlock.biomeToBiomeBase(
-                MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay),
-                BukkitAdapter.adapt(biome)
-        );
+        BiomeBase base = CraftBlock.biomeToBiomeBase(MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay), BukkitAdapter.adapt(biome));
         return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay).a(base);
     }
 
@@ -472,5 +536,4 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         }
         return new NMSRelighterFactory();
     }
-
 }
