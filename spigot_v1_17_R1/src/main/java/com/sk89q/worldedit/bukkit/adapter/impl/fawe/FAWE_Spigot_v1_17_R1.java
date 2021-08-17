@@ -549,7 +549,7 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     @Override
     public RelighterFactory getRelighterFactory() {
         try {
-            Class.forName("ca.spottedleaf.starlight.light.StarLightEngine");
+            Class.forName("com.tuinity.tuinity.config.TuinityConfig");
             if (TuinityRelighter_1_17.isUsable()) {
                 return new TuinityRelighterFactory_1_17();
             }
