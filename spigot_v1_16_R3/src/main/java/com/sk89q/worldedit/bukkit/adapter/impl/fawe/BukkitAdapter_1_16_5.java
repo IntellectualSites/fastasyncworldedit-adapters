@@ -161,10 +161,6 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
                 return world.getChunkAt(chunkX, chunkZ);
             }
         } else {
-            IChunkAccess iChunkAccess = world.getChunkProvider().getChunkAtImmediately(chunkX, chunkZ);
-            if (iChunkAccess instanceof Chunk) {
-                return (Chunk) iChunkAccess;
-            }
             Chunk nmsChunk = world.getChunkProvider().getChunkAtIfCachedImmediately(chunkX, chunkZ);
             if (nmsChunk != null) {
                 return nmsChunk;
