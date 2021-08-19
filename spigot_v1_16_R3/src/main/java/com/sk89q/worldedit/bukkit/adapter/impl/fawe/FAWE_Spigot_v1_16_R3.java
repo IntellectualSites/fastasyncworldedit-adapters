@@ -93,6 +93,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R3.CraftChunk;
+import org.bukkit.craftbukkit.v1_16_R3.CraftServer;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlockState;
@@ -537,15 +538,14 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     }
 
     @Override
-    public Iterable<NamespacedKey> getRegisteredBiomes(org.bukkit.World world) {
-        WorldServer worldServer = ((CraftWorld) world).getHandle();
-        IRegistryWritable<BiomeBase> biomeRegistry = worldServer.r().b(IRegistry.ay);
+    public Iterable<NamespacedKey> getRegisteredBiomes() {
+        IRegistryWritable<BiomeBase> biomeRegistry = ((CraftServer) Bukkit.getServer()).getServer().getCustomRegistry().b(
+                IRegistry.ay);
         return biomeRegistry.g()
                 .map(biomeRegistry::getKey)
                 .map(CraftNamespacedKey::fromMinecraft)
                 .collect(Collectors.toList());
     }
-
 
     @Override
     public RelighterFactory getRelighterFactory() {
