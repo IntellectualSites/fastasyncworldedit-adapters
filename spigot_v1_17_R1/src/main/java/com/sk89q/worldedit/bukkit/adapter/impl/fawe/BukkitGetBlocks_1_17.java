@@ -543,6 +543,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                 final BiomeType biome = biomes[i];
                                 if (biome != null) {
                                     BiomeBase nmsBiome = nmsWorld.t().b(IRegistry.aO).get(MinecraftKey.a(biome.getId()));
+                                    if (nmsBiome == null) {
+                                        throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                                    }
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }

@@ -531,6 +531,9 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                                 if (biome != null) {
                                     final Biome craftBiome = BukkitAdapter.adapt(biome);
                                     BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(craftBiome);
+                                    if (nmsBiome == null) {
+                                        throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                                    }
                                     currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
