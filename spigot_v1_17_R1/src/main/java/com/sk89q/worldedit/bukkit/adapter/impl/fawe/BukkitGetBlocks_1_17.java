@@ -37,6 +37,7 @@ import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.sounds.SoundEffects;
 import net.minecraft.util.DataBits;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.EnumSkyBlock;
@@ -155,11 +156,15 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
     @Override
     public void setHeightmapToGet(HeightMapType type, int[] data) {
-        BitArrayUnstretched bitArray = new BitArrayUnstretched(9, 256);
+        BitArrayUnstretched bitArray = new BitArrayUnstretched(heightmapBitsPerEntry(), 256);
         bitArray.fromRaw(data);
         HeightMap.Type nativeType = HeightMap.Type.valueOf(type.name());
         HeightMap heightMap = getChunk().j.get(nativeType);
         heightMap.a(getChunk(), nativeType, bitArray.getData());
+    }
+
+    private int heightmapBitsPerEntry() {
+        return MathHelper.e(nmsChunk.getHeight() + 1);
     }
 
     @Override
@@ -294,7 +299,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     @Override
     public int[] getHeightMap(HeightMapType type) {
         long[] longArray = getChunk().j.get(HeightMap.Type.valueOf(type.name())).a();
-        BitArrayUnstretched bitArray = new BitArrayUnstretched(9, 256, longArray);
+        BitArrayUnstretched bitArray = new BitArrayUnstretched(heightmapBitsPerEntry(), 256, longArray);
         return bitArray.toRaw(new int[256]);
     }
 
