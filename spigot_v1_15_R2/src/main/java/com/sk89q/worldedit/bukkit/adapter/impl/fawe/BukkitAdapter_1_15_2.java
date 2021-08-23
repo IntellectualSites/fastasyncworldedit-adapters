@@ -162,6 +162,10 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             if (nmsChunk != null) {
                 return nmsChunk;
             }
+            // Avoid "async" methods from the main thread.
+            if (Fawe.isMainThread()) {
+                return world.getChunkAt(chunkX, chunkZ);
+            }
             CompletableFuture<org.bukkit.Chunk> future = world.getWorld().getChunkAtAsync(chunkX, chunkZ, true, true);
             try {
                 CraftChunk chunk = (CraftChunk) future.get();
