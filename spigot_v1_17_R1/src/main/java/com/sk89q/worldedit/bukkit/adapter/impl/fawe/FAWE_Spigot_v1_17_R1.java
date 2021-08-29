@@ -127,6 +127,7 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     private final MapChunkUtil_1_17 mapUtil = new MapChunkUtil_1_17();
     private char[] ibdToStateOrdinal = null;
     private int[] ordinalToIbdID = null;
+    private boolean initialised = false;
 
     public FAWE_Spigot_v1_17_R1() throws NoSuchFieldException, NoSuchMethodException {
         this.parent = new Spigot_v1_17_R1();
@@ -161,6 +162,7 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
             ibdToStateOrdinal[id] = ordinal;
             ordinalToIbdID[ordinal] = id;
         }
+        initialised = true;
         return true;
     }
 
@@ -338,11 +340,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
 
     public char adaptToChar(IBlockData ibd) {
         int id = Block.p.getId(ibd);
-        if (ibdToStateOrdinal != null) {
+        if (initialised) {
             return ibdToStateOrdinal[id];
         }
         synchronized (this) {
-            if (ibdToStateOrdinal != null) {
+            if (initialised) {
                 return ibdToStateOrdinal[id];
             }
             try {
@@ -358,11 +360,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     }
 
     public char ibdIDToOrdinal(int id) {
-        if (ibdToStateOrdinal != null) {
+        if (initialised) {
             return ibdToStateOrdinal[id];
         }
         synchronized (this) {
-            if (ibdToStateOrdinal != null) {
+            if (initialised) {
                 return ibdToStateOrdinal[id];
             }
             init();
@@ -372,11 +374,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
 
     @Override
     public char[] getIbdToStateOrdinal() {
-        if (ibdToStateOrdinal != null) {
+        if (initialised) {
             return ibdToStateOrdinal;
         }
         synchronized (this) {
-            if (ibdToStateOrdinal != null) {
+            if (initialised) {
                 return ibdToStateOrdinal;
             }
             init();
@@ -385,11 +387,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
     }
 
     public int ordinalToIbdID(char ordinal) {
-        if (ordinalToIbdID != null) {
+        if (initialised) {
             return ordinalToIbdID[ordinal];
         }
         synchronized (this) {
-            if (ordinalToIbdID != null) {
+            if (initialised) {
                 return ordinalToIbdID[ordinal];
             }
             init();
@@ -399,11 +401,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
 
     @Override
     public int[] getOrdinalToIbdID() {
-        if (ordinalToIbdID != null) {
+        if (initialised) {
             return ordinalToIbdID;
         }
         synchronized (this) {
-            if (ordinalToIbdID != null) {
+            if (initialised) {
                 return ordinalToIbdID;
             }
             init();
