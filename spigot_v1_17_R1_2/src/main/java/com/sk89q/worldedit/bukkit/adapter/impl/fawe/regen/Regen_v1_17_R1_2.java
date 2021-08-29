@@ -238,7 +238,8 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
                 ImmutableList.of(),
                 false,
                 env,
-                gen
+                gen,
+                originalBukkitWorld.getBiomeProvider()
         ) {
             private final BiomeBase singleBiome = options.hasBiomeType() ? RegistryGeneration.i.get(MinecraftKey.a(options
                     .getBiomeType()

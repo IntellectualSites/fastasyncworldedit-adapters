@@ -700,7 +700,8 @@ public final class Spigot_v1_17_R1_2 implements BukkitImplAdapter<NBTBase> {
                     seed,
                     ImmutableList.of(),
                     false,
-                    env, gen
+                    env, gen,
+                    bukkitWorld.getBiomeProvider()
             );
             try {
                 regenForWorld(region, extent, freshWorld, options);
