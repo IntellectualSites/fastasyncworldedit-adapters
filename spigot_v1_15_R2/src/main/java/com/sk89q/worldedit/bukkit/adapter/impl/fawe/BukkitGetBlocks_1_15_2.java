@@ -745,6 +745,16 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         BukkitAdapter_1_15_2.sendChunk(world, chunkX, chunkZ, mask, lighting);
     }
 
+    /**
+     * Update a given (nullable) data array to the current data stored in the server's chunk, associated with this
+     * {@link BukkitAdapter_1_15_2} instance. Not synchronised to the {@link BukkitAdapter_1_15_2} instance as synchronisation
+     * is handled where necessary in the method, and should otherwise be handled correctly by this method's caller.
+     *
+     * @param layer      layer index
+     * @param data       array to be updated/filled with data or null
+     * @param aggressive if the cached section array should be re-acquired.
+     * @return the given array to be filled with data, or a new array if null is given.
+     */
     @Override
     public char[] update(int layer, char[] data, boolean aggressive) {
         ChunkSection section = getSections(aggressive)[layer];
@@ -753,6 +763,10 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
             data = new char[4096];
             Arrays.fill(data, (char) 1);
             return data;
+        }
+        if (data != null && data.length != 4096) {
+            data = new char[4096];
+            Arrays.fill(data, (char) 1);
         }
         if (data == null || data == FaweCache.IMP.EMPTY_CHAR_4096) {
             data = new char[4096];
