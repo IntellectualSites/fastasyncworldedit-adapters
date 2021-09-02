@@ -456,30 +456,29 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                         copy.storeSection(layer, copyArr);
                     }
 
-                    ChunkSection newSection;
-                    ChunkSection existingSection = sections[layer];
-                    if (existingSection == null) {
-                        newSection = BukkitAdapter_1_16_5.newChunkSection(layer, setArr, fastmode, adapter);
-                        if (BukkitAdapter_1_16_5.setSectionAtomic(sections, null, newSection, layer)) {
-                            updateGet(nmsChunk, sections, newSection, setArr, layer);
-                            continue;
-                        } else {
-                            existingSection = sections[layer];
-                            if (existingSection == null) {
-                                LOGGER.error("Skipping invalid null section. chunk:" + chunkX + ","
-                                        + chunkZ + " layer: " + layer);
-                                continue;
-                            }
-                        }
-                    }
-                    BukkitAdapter_1_16_5.fieldTickingBlockCount.set(existingSection, (short) 0);
-
-                    //ensure that the server doesn't try to tick the chunksection while we're editing it.
-                    DelegateLock lock = BukkitAdapter_1_16_5.applyLock(existingSection);
-
                     // synchronise on internal section to avoid circular locking with a continuing edit if the chunk was
                     // submitted to keep loaded internal chunks to queue target size.
                     synchronized (super.sections[layer]) {
+                        ChunkSection newSection;
+                        ChunkSection existingSection = sections[layer];
+                        if (existingSection == null) {
+                            newSection = BukkitAdapter_1_16_5.newChunkSection(layer, setArr, fastmode, adapter);
+                            if (BukkitAdapter_1_16_5.setSectionAtomic(sections, null, newSection, layer)) {
+                                updateGet(nmsChunk, sections, newSection, setArr, layer);
+                                continue;
+                            } else {
+                                existingSection = sections[layer];
+                                if (existingSection == null) {
+                                    LOGGER.error("Skipping invalid null section. chunk:" + chunkX + ","
+                                            + chunkZ + " layer: " + layer);
+                                    continue;
+                                }
+                            }
+                        }
+                        BukkitAdapter_1_16_5.fieldTickingBlockCount.set(existingSection, (short) 0);
+
+                        //ensure that the server doesn't try to tick the chunksection while we're editing it.
+                        DelegateLock lock = BukkitAdapter_1_16_5.applyLock(existingSection);
                         synchronized (lock) {
                             lock.untilFree();
                             try {
@@ -952,7 +951,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public boolean trim(boolean aggressive) {
+    public synchronized boolean trim(boolean aggressive) {
         skyLight = new NibbleArray[16];
         blockLight = new NibbleArray[16];
         if (aggressive) {
