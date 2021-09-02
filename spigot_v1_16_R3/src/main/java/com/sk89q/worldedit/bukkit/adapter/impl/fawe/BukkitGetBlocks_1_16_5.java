@@ -75,6 +75,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
 public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBlocks {
@@ -85,13 +87,14 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     private static final Function<TileEntity, CompoundTag> nmsTile2We = tileEntity -> new LazyCompoundTag_1_16_5(Suppliers.memoize(
             () -> tileEntity.save(new NBTTagCompound())));
     private final FAWE_Spigot_v1_16_R3 adapter = ((FAWE_Spigot_v1_16_R3) WorldEditPlugin.getInstance().getBukkitImplAdapter());
-    public ChunkSection[] sections;
-    public Chunk nmsChunk;
-    public WorldServer world;
-    public int chunkX;
-    public int chunkZ;
-    public NibbleArray[] blockLight = new NibbleArray[16];
-    public NibbleArray[] skyLight = new NibbleArray[16];
+    private final ReadWriteLock sectionLock = new ReentrantReadWriteLock();
+    private final WorldServer world;
+    private final int chunkX;
+    private final int chunkZ;
+    private ChunkSection[] sections;
+    private Chunk nmsChunk;
+    private NibbleArray[] blockLight = new NibbleArray[16];
+    private NibbleArray[] skyLight = new NibbleArray[16];
     private boolean createCopy = false;
     private BukkitGetBlocks_1_16_5_Copy copy = null;
     private boolean forceLoadSections = true;
@@ -110,6 +113,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
 
     public int getChunkX() {
         return chunkX;
+    }
+
+    public int getChunkZ() {
+        return chunkZ;
     }
 
     @Override
@@ -176,10 +183,6 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     @Override
     public int getMinSectionIndex() {
         return 0;
-    }
-
-    public int getChunkZ() {
-        return chunkZ;
     }
 
     @Override
@@ -382,33 +385,6 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         };
     }
 
-    private void updateGet(
-            BukkitGetBlocks_1_16_5 get,
-            Chunk nmsChunk,
-            ChunkSection[] chunkSections,
-            ChunkSection section,
-            char[] arr,
-            int layer
-    ) {
-        synchronized (get) {
-            if (this.getChunk() != nmsChunk) {
-                this.nmsChunk = nmsChunk;
-                this.sections = new ChunkSection[chunkSections.length];
-                System.arraycopy(chunkSections, 0, this.sections, 0, chunkSections.length);
-                this.reset();
-            }
-            if (this.sections == null) {
-                this.sections = new ChunkSection[chunkSections.length];
-                System.arraycopy(chunkSections, 0, this.sections, 0, chunkSections.length);
-            }
-            if (this.sections[layer] != section) {
-                // Not sure why it's funky, but it's what I did in commit fda7d00747abe97d7891b80ed8bb88d97e1c70d1 and I don't want to touch it >dords
-                this.sections[layer] = new ChunkSection[]{section}.clone()[0];
-            }
-            this.blocks[layer] = arr;
-        }
-    }
-
     private void removeEntity(Entity entity) {
         entity.die();
     }
@@ -485,7 +461,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                     if (existingSection == null) {
                         newSection = BukkitAdapter_1_16_5.newChunkSection(layer, setArr, fastmode, adapter);
                         if (BukkitAdapter_1_16_5.setSectionAtomic(sections, null, newSection, layer)) {
-                            updateGet(this, nmsChunk, sections, newSection, setArr, layer);
+                            updateGet(nmsChunk, sections, newSection, setArr, layer);
                             continue;
                         } else {
                             existingSection = sections[layer];
@@ -501,28 +477,39 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                     //ensure that the server doesn't try to tick the chunksection while we're editing it.
                     DelegateLock lock = BukkitAdapter_1_16_5.applyLock(existingSection);
 
-                    synchronized (this) {
+                    // synchronise on internal section to avoid circular locking with a continuing edit if the chunk was
+                    // submitted to keep loaded internal chunks to queue target size.
+                    synchronized (super.sections[layer]) {
                         synchronized (lock) {
                             lock.untilFree();
-                            if (this.getChunk() != nmsChunk) {
-                                this.nmsChunk = nmsChunk;
-                                this.sections = null;
-                                this.reset();
-                            } else if (existingSection != getSections(false)[layer]) {
-                                this.sections[layer] = existingSection;
-                                this.reset();
-                            } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layer))) {
-                                this.reset(layer);
-                            } else if (lock.isModified()) {
-                                this.reset(layer);
+                            try {
+                                sectionLock.writeLock().lock();
+                                if (this.getChunk() != nmsChunk) {
+                                    this.nmsChunk = nmsChunk;
+                                    this.sections = null;
+                                    this.reset();
+                                } else if (existingSection != getSections(false)[layer]) {
+                                    this.sections[layer] = existingSection;
+                                    this.reset();
+                                } else if (!Arrays.equals(update(layer, new char[4096], true), loadPrivately(layer))) {
+                                    this.reset(layer);
+                                } else if (lock.isModified()) {
+                                    this.reset(layer);
+                                }
+                            } finally {
+                                sectionLock.writeLock().unlock();
                             }
-                            newSection = BukkitAdapter_1_16_5
-                                    .newChunkSection(layer, this::loadPrivately, setArr, fastmode, adapter);
-                            if (!BukkitAdapter_1_16_5
-                                    .setSectionAtomic(sections, existingSection, newSection, layer)) {
+                            newSection = BukkitAdapter_1_16_5.newChunkSection(
+                                    layer,
+                                    this::loadPrivately,
+                                    setArr,
+                                    fastmode,
+                                    adapter
+                            );
+                            if (!BukkitAdapter_1_16_5.setSectionAtomic(sections, existingSection, newSection, layer)) {
                                 LOGGER.error("Failed to set chunk section:" + chunkX + "," + chunkZ + " layer: " + layer);
                             } else {
-                                updateGet(this, nmsChunk, sections, newSection, setArr, layer);
+                                updateGet(nmsChunk, sections, newSection, setArr, layer);
                             }
                         }
                     }
@@ -747,10 +734,38 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         }
     }
 
+    private void updateGet(
+            Chunk nmsChunk,
+            ChunkSection[] chunkSections,
+            ChunkSection section,
+            char[] arr,
+            int layer
+    ) {
+        try {
+            sectionLock.writeLock().lock();
+            if (this.getChunk() != nmsChunk) {
+                this.nmsChunk = nmsChunk;
+                this.sections = new ChunkSection[chunkSections.length];
+                System.arraycopy(chunkSections, 0, this.sections, 0, chunkSections.length);
+                this.reset();
+            }
+            if (this.sections == null) {
+                this.sections = new ChunkSection[chunkSections.length];
+                System.arraycopy(chunkSections, 0, this.sections, 0, chunkSections.length);
+            }
+            if (this.sections[layer] != section) {
+                // Not sure why it's funky, but it's what I did in commit fda7d00747abe97d7891b80ed8bb88d97e1c70d1 and I don't want to touch it >dords
+                this.sections[layer] = new ChunkSection[]{section}.clone()[0];
+            }
+        } finally {
+            sectionLock.writeLock().unlock();
+        }
+        this.blocks[layer] = arr;
+    }
+
     private char[] loadPrivately(int layer) {
-        Section section = super.sections[layer];
         if (super.sections[layer] != null) {
-            synchronized (section) {
+            synchronized (super.sections[layer]) {
                 if (super.sections[layer].isFull() && super.blocks[layer] != null) {
                     char[] blocks = new char[4096];
                     System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
@@ -767,7 +782,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public synchronized char[] update(int layer, char[] data, boolean aggressive) {
+    public char[] update(int layer, char[] data, boolean aggressive) {
         ChunkSection section = getSections(aggressive)[layer];
         // Section is null, return empty array
         if (section == null) {
@@ -851,7 +866,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         }
     }
 
-    private final char ordinal(IBlockData ibd, FAWE_Spigot_v1_16_R3 adapter) {
+    private char ordinal(IBlockData ibd, FAWE_Spigot_v1_16_R3 adapter) {
         if (ibd == null) {
             return BlockTypes.AIR.getDefaultState().getOrdinalChar();
         } else {
@@ -860,22 +875,22 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     public ChunkSection[] getSections(boolean force) {
-        if (force && forceLoadSections) {
-            ChunkSection[] sections = getChunk().getSections();
-            ChunkSection[] copy = new ChunkSection[sections.length];
-            System.arraycopy(sections, 0, copy, 0, sections.length);
-            return copy;
-        }
+        force &= forceLoadSections;
+        sectionLock.readLock().lock();
         ChunkSection[] tmp = sections;
-        if (tmp == null) {
-            synchronized (this) {
+        sectionLock.readLock().unlock();
+        if (tmp == null || force) {
+            try {
+                sectionLock.writeLock().lock();
                 tmp = sections;
-                if (tmp == null) {
+                if (tmp == null || force) {
                     ChunkSection[] chunkSections = getChunk().getSections();
                     tmp = new ChunkSection[chunkSections.length];
                     System.arraycopy(chunkSections, 0, tmp, 0, chunkSections.length);
                     sections = tmp;
                 }
+            } finally {
+                sectionLock.writeLock().unlock();
             }
         }
         return tmp;
@@ -927,8 +942,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
         skyLight = new NibbleArray[16];
         blockLight = new NibbleArray[16];
         if (aggressive) {
+            sectionLock.writeLock().lock();
             sections = null;
             nmsChunk = null;
+            sectionLock.writeLock().unlock();
             return super.trim(true);
         } else {
             for (int i = 0; i < 16; i++) {
