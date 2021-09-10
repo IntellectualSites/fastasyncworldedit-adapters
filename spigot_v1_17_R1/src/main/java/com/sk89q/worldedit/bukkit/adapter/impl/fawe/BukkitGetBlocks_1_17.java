@@ -962,6 +962,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             nmsChunk = null;
             sectionLock.writeLock().unlock();
             return super.trim(true);
+        } else if (sections == null) {
+            // don't bother trimming if there are no sections stored.
+            return true;
         } else {
             for (int i = getMinSectionIndex(); i <= getMaxSectionIndex(); i++) {
                 int layer = i - getMinSectionIndex();
