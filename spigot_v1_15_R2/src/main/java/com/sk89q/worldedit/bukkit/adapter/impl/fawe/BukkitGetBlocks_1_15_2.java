@@ -171,12 +171,12 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public int getMaxSectionIndex() {
+    public int getMaxSectionPosition() {
         return 15;
     }
 
     @Override
-    public int getMinSectionIndex() {
+    public int getMinSectionPosition() {
         return 0;
     }
 

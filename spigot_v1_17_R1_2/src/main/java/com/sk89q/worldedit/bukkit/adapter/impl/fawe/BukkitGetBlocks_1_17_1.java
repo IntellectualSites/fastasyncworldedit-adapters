@@ -182,12 +182,12 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public int getMaxSectionIndex() {
-        return getMinSectionIndex() + world.getSectionsCount() - 1;
+    public int getMaxSectionPosition() {
+        return getMinSectionPosition() + world.getSectionsCount() - 1;
     }
 
     @Override
-    public int getMinSectionIndex() {
+    public int getMinSectionPosition() {
         return world.getMinBuildHeight() >> 4;
     }
 
@@ -259,7 +259,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     @Override
     public int getSkyLight(int x, int y, int z) {
         int layer = y >> 4;
-        int alayer = layer - getMinSectionIndex();
+        int alayer = layer - getMinSectionPosition();
         if (skyLight[alayer] == null) {
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
             NibbleArray nibbleArray = world.getChunkProvider().getLightEngine().a(EnumSkyBlock.a).a(sectionPosition);
@@ -279,7 +279,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     @Override
     public int getEmittedLight(int x, int y, int z) {
         int layer = y >> 4;
-        int alayer = layer - getMinSectionIndex();
+        int alayer = layer - getMinSectionPosition();
         if (blockLight[alayer] == null) {
             world.getLightLevel(new BlockPosition(1, 1, 1), 5);
             SectionPosition sectionPosition = SectionPosition.a(getChunk().getPos(), layer);
@@ -443,11 +443,11 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             synchronized (nmsChunk) {
                 ChunkSection[] sections = nmsChunk.getSections();
 
-                for (int layerNo = getMinSectionIndex(); layerNo <= getMaxSectionIndex(); layerNo++) {
+                for (int layerNo = getMinSectionPosition(); layerNo <= getMaxSectionPosition(); layerNo++) {
                     if (!set.hasSection(layerNo)) {
                         continue;
                     }
-                    int layer = layerNo - getMinSectionIndex();
+                    int layer = layerNo - getMinSectionPosition();
 
                     bitMask |= 1 << layer;
 
@@ -543,11 +543,15 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                 for (Map.Entry<HeightMapType, int[]> entry : heightMaps.entrySet()) {
                     BukkitGetBlocks_1_17_1.this.setHeightmapToGet(entry.getKey(), entry.getValue());
                 }
-                BukkitGetBlocks_1_17_1.this.setLightingToGet(set.getLight(), set.getMinSectionIndex(), set.getMaxSectionIndex());
+                BukkitGetBlocks_1_17_1.this.setLightingToGet(
+                        set.getLight(),
+                        set.getMinSectionPosition(),
+                        set.getMaxSectionPosition()
+                );
                 BukkitGetBlocks_1_17_1.this.setSkyLightingToGet(
                         set.getSkyLight(),
-                        set.getMinSectionIndex(),
-                        set.getMaxSectionIndex()
+                        set.getMinSectionPosition(),
+                        set.getMaxSectionPosition()
                 );
 
                 Runnable[] syncTasks = null;
@@ -768,7 +772,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     }
 
     private char[] loadPrivately(int layer) {
-        layer -= getMinSectionIndex();
+        layer -= getMinSectionPosition();
         if (super.sections[layer] != null) {
             synchronized (super.sections[layer]) {
                 if (super.sections[layer].isFull() && super.blocks[layer] != null) {
@@ -958,7 +962,7 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
 
     @Override
     public boolean hasSection(int layer) {
-        layer -= getMinSectionIndex();
+        layer -= getMinSectionPosition();
         return getSections(false)[layer] != null;
     }
 
@@ -976,8 +980,8 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
             // don't bother trimming if there are no sections stored.
             return true;
         } else {
-            for (int i = getMinSectionIndex(); i <= getMaxSectionIndex(); i++) {
-                int layer = i - getMinSectionIndex();
+            for (int i = getMinSectionPosition(); i <= getMaxSectionPosition(); i++) {
+                int layer = i - getMinSectionPosition();
                 if (!hasSection(i) || !super.sections[layer].isFull()) {
                     continue;
                 }
