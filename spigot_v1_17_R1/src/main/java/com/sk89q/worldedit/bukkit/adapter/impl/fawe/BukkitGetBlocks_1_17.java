@@ -137,11 +137,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
+    public void setLightingToGet(char[][] light, int minSectionPosition, int maxSectionPosition) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.b, minSectionIndex, maxSectionIndex);
+                fillLightNibble(light, EnumSkyBlock.b, minSectionPosition, maxSectionPosition);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -149,11 +149,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
+    public void setSkyLightingToGet(char[][] light, int minSectionPosition, int maxSectionPosition) {
         if (light != null) {
             lightUpdate = true;
             try {
-                fillLightNibble(light, EnumSkyBlock.a, minSectionIndex, maxSectionIndex);
+                fillLightNibble(light, EnumSkyBlock.a, minSectionPosition, maxSectionPosition);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -928,12 +928,12 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
         return tmp;
     }
 
-    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock, int minSectionIndex, int maxSectionIndex) {
-        for (int Y = 0; Y < maxSectionIndex - minSectionIndex; Y++) {
+    private void fillLightNibble(char[][] light, EnumSkyBlock skyBlock, int minSectionPosition, int maxSectionPosition) {
+        for (int Y = 0; Y < maxSectionPosition - minSectionPosition; Y++) {
             if (light[Y] == null) {
                 continue;
             }
-            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y + minSectionIndex);
+            SectionPosition sectionPosition = SectionPosition.a(nmsChunk.getPos(), Y + minSectionPosition);
             NibbleArray nibble = world.getChunkProvider().getLightEngine().a(skyBlock).a(sectionPosition);
             if (nibble == null) {
                 byte[] a = new byte[2048];

@@ -130,7 +130,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
+    public void setLightingToGet(char[][] light, int minSectionPosition, int maxSectionPosition) {
         if (light != null) {
             lightUpdate = true;
             try {
@@ -142,7 +142,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public void setSkyLightingToGet(char[][] light, int minSectionIndex, int maxSectionIndex) {
+    public void setSkyLightingToGet(char[][] light, int minSectionPosition, int maxSectionPosition) {
         if (light != null) {
             lightUpdate = true;
             try {
