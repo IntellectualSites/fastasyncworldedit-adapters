@@ -196,6 +196,12 @@ public class BukkitGetBlocks_1_17_1_Copy implements IChunkGet {
     }
 
     @Override
+    public char[] loadIfPresent(int layer) {
+        layer -= getMinSectionPosition();
+        return blocks[layer];
+    }
+
+    @Override
     public BlockState getBlock(int x, int y, int z) {
         return BlockTypesCache.states[get(x, y, z)];
     }
