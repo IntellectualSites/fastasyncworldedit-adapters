@@ -448,7 +448,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
                     // synchronise on internal section to avoid circular locking with a continuing edit if the chunk was
                     // submitted to keep loaded internal chunks to queue target size.
-                    synchronized (super.sections[layer]) {
+                    synchronized (super.sectionLocks[layer]) {
                         if (createCopy) {
                             char[] tmpLoad = loadPrivately(layerNo);
                             char[] copyArr = new char[4096];
@@ -765,7 +765,7 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
     private char[] loadPrivately(int layer) {
         layer -= getMinSectionPosition();
         if (super.sections[layer] != null) {
-            synchronized (super.sections[layer]) {
+            synchronized (super.sectionLocks[layer]) {
                 if (super.sections[layer].isFull() && super.blocks[layer] != null) {
                     char[] blocks = new char[4096];
                     System.arraycopy(super.blocks[layer], 0, blocks, 0, 4096);
