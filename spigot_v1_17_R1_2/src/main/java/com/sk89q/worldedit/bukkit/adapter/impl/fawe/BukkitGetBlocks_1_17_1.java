@@ -454,16 +454,17 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
                     char[] tmp = set.load(layerNo);
                     char[] setArr = new char[4096];
                     System.arraycopy(tmp, 0, setArr, 0, 4096);
-                    if (createCopy) {
-                        char[] tmpLoad = loadPrivately(layerNo);
-                        char[] copyArr = new char[4096];
-                        System.arraycopy(tmpLoad, 0, copyArr, 0, 4096);
-                        copy.storeSection(layer, copyArr);
-                    }
 
                     // synchronise on internal section to avoid circular locking with a continuing edit if the chunk was
                     // submitted to keep loaded internal chunks to queue target size.
                     synchronized (super.sections[layer]) {
+                        if (createCopy) {
+                            char[] tmpLoad = loadPrivately(layerNo);
+                            char[] copyArr = new char[4096];
+                            System.arraycopy(tmpLoad, 0, copyArr, 0, 4096);
+                            copy.storeSection(layer, copyArr);
+                        }
+
                         ChunkSection newSection;
                         ChunkSection existingSection = sections[layer];
                         if (existingSection == null) {
