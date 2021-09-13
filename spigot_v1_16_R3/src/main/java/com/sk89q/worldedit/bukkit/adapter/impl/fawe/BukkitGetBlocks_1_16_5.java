@@ -176,16 +176,6 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     @Override
-    public int getMaxSectionPosition() {
-        return 15;
-    }
-
-    @Override
-    public int getMinSectionPosition() {
-        return 0;
-    }
-
-    @Override
     public BiomeType getBiomeType(int x, int y, int z) {
         BiomeStorage index = getChunk().getBiomeIndex();
         BiomeBase base = null;

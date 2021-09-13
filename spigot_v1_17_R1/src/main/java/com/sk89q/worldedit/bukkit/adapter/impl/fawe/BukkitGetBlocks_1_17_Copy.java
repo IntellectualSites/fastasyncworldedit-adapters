@@ -35,10 +35,14 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     private final Set<CompoundTag> entities = new HashSet<>();
     private final char[][] blocks;
     private final WorldServer world;
+    private final int minHeight;
+    private final int maxHeight;
     private BiomeStorage biomeStorage;
 
     protected BukkitGetBlocks_1_17_Copy(WorldServer world) {
         this.world = world;
+        this.minHeight = world.getMinBuildHeight();
+        this.maxHeight = world.getMaxBuildHeight() - 1; // Minecraft max limit is exclusive.
         this.blocks = new char[getSectionCount()][];
     }
 
@@ -115,22 +119,22 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
 
     @Override
     public int getMaxY() {
-        return world.getMaxBuildHeight();
+        return maxHeight;
     }
 
     @Override
     public int getMinY() {
-        return world.getMinBuildHeight();
+        return minHeight;
     }
 
     @Override
     public int getMaxSectionPosition() {
-        return getMinSectionPosition() + world.getSectionsCount();
+        return maxHeight >> 4;
     }
 
     @Override
     public int getMinSectionPosition() {
-        return getMinY() >> 4;
+        return minHeight >> 4;
     }
 
     protected void storeBiomes(BiomeStorage biomeStorage) {

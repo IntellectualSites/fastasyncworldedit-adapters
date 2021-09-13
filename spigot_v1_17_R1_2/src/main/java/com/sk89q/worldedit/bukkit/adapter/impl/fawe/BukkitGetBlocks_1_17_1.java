@@ -93,6 +93,10 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
     private final WorldServer world;
     private final int chunkX;
     private final int chunkZ;
+    private final int minHeight;
+    private final int maxHeight;
+    private final int minSectionPosition;
+    private final int maxSectionPosition;
     private ChunkSection[] sections;
     private Chunk nmsChunk;
     private NibbleArray[] blockLight;
@@ -111,6 +115,10 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
+        this.minHeight = world.getMinBuildHeight();
+        this.maxHeight = world.getMaxBuildHeight() - 1; // Minecraft max limit is exclusive.
+        this.minSectionPosition = minHeight >> 4;
+        this.maxSectionPosition = maxHeight >> 4;
         this.skyLight = new NibbleArray[getSectionCount()];
         this.blockLight = new NibbleArray[getSectionCount()];
     }
@@ -173,22 +181,12 @@ public class BukkitGetBlocks_1_17_1 extends CharGetBlocks implements BukkitGetBl
 
     @Override
     public int getMaxY() {
-        return world.getMaxBuildHeight() - 1;
+        return maxHeight;
     }
 
     @Override
     public int getMinY() {
-        return world.getMinBuildHeight();
-    }
-
-    @Override
-    public int getMaxSectionPosition() {
-        return getMinSectionPosition() + world.getSectionsCount() - 1;
-    }
-
-    @Override
-    public int getMinSectionPosition() {
-        return world.getMinBuildHeight() >> 4;
+        return minHeight;
     }
 
     @Override
