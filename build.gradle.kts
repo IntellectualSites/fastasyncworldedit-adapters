@@ -20,8 +20,8 @@ subprojects {
     }
 
     dependencies {
-        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-253")
-        implementation("com.fastasyncworldedit:FAWE-Core:1.17-253")
+        implementation("com.fastasyncworldedit:FAWE-Bukkit:1.17-257")
+        implementation("com.fastasyncworldedit:FAWE-Core:1.17-257")
         compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
         compileOnly("io.papermc:paperlib:1.0.6") {
             because("Shading is done in FAWE")
