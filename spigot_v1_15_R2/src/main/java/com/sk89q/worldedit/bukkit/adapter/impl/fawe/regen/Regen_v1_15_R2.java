@@ -87,31 +87,31 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
     private static final Map<ChunkStatus, Concurrency> chunkStati = new LinkedHashMap<>();
 
     static {
-        chunkStati.put(ChunkStatus.EMPTY, Concurrency.FULL);                  // radius -1, does nothing
-        chunkStati.put(ChunkStatus.STRUCTURE_STARTS, Concurrency.NONE);       // uses unsynchronized maps
+        chunkStati.put(ChunkStatus.EMPTY, Concurrency.FULL);            // radius -1, does nothing
+        chunkStati.put(ChunkStatus.STRUCTURE_STARTS, Concurrency.NONE); // uses unsynchronized maps
         chunkStati.put(
                 ChunkStatus.STRUCTURE_REFERENCES,
                 Concurrency.FULL
-        );   // radius 8, but no writes to other chunks, only current chunk
-        chunkStati.put(ChunkStatus.BIOMES, Concurrency.FULL);                 // radius 0
-        chunkStati.put(ChunkStatus.NOISE, Concurrency.RADIUS);                // radius 8
-        chunkStati.put(ChunkStatus.SURFACE, Concurrency.FULL);                // radius 0
-        chunkStati.put(ChunkStatus.CARVERS, Concurrency.NONE);                // radius 0, but RADIUS and FULL change results
-        chunkStati.put(ChunkStatus.LIQUID_CARVERS, Concurrency.NONE);         // radius 0, but RADIUS and FULL change results
-        chunkStati.put(ChunkStatus.FEATURES, Concurrency.NONE);               // uses unsynchronized maps
+        );                                                              // radius 8, but no writes to other chunks, only current chunk
+        chunkStati.put(ChunkStatus.BIOMES, Concurrency.FULL);           // radius 0
+        chunkStati.put(ChunkStatus.NOISE, Concurrency.RADIUS);          // radius 8
+        chunkStati.put(ChunkStatus.SURFACE, Concurrency.FULL);          // radius 0
+        chunkStati.put(ChunkStatus.CARVERS, Concurrency.NONE);          // radius 0, but RADIUS and FULL change results
+        chunkStati.put(ChunkStatus.LIQUID_CARVERS, Concurrency.NONE);   // radius 0, but RADIUS and FULL change results
+        chunkStati.put(ChunkStatus.FEATURES, Concurrency.NONE);         // uses unsynchronized maps
         chunkStati.put(
                 ChunkStatus.LIGHT,
                 Concurrency.FULL
-        );                  // radius 1, but no writes to other chunks, only current chunk
-        chunkStati.put(ChunkStatus.SPAWN, Concurrency.FULL);                  // radius 0
-        chunkStati.put(ChunkStatus.HEIGHTMAPS, Concurrency.FULL);             // radius 0
+        );                                                              // radius 1, but no writes to other chunks, only current chunk
+        chunkStati.put(ChunkStatus.SPAWN, Concurrency.FULL);            // radius 0
+        chunkStati.put(ChunkStatus.HEIGHTMAPS, Concurrency.FULL);       // radius 0
 
         try {
             serverWorldsField = CraftServer.class.getDeclaredField("worlds");
             serverWorldsField.setAccessible(true);
 
-            Field tmpPaperConfigField = null;
-            Field tmpFlatBedrockField = null;
+            Field tmpPaperConfigField;
+            Field tmpFlatBedrockField;
             try { //only present on paper
                 tmpPaperConfigField = World.class.getDeclaredField("paperConfig");
                 tmpPaperConfigField.setAccessible(true);
@@ -161,9 +161,11 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         }
 
         //flat bedrock? (only on paper)
-        try {
-            generateFlatBedrock = flatBedrockField.getBoolean(worldPaperConfigField.get(originalNMSWorld));
-        } catch (Exception ignored) {
+        if (worldPaperConfigField != null) {
+            try {
+                generateFlatBedrock = flatBedrockField.getBoolean(worldPaperConfigField.get(originalNMSWorld));
+            } catch (Exception ignored) {
+            }
         }
 
         seed = options.getSeed().orElse(originalNMSWorld.getSeed());
@@ -195,64 +197,6 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 server,
                 server.dataConverterManager
         );
-
-        //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
-                server,
-                server.executorService,
-                saveHandler,
-                newWorldData,
-                originalNMSWorld.worldProvider.getDimensionManager(),
-                originalNMSWorld.getMethodProfiler(),
-                new RegenNoOpWorldLoadListener(),
-                env,
-                gen
-        ) {
-            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options
-                    .getBiomeType()
-                    .getId())) : null;
-
-            @Override
-            public void doTick(BooleanSupplier booleansupplier) { //no ticking
-            }
-
-            @Override
-            public BiomeBase a(int i, int k, int j) {
-                if (options.hasBiomeType()) {
-                    return singleBiome;
-                }
-                return this.getChunkProvider().getChunkGenerator().getWorldChunkManager().getBiome(i, j, k);
-            }
-        }).get();
-        freshNMSWorld.savingDisabled = true;
-        removeWorldFromWorldsMap();
-        newWorldData.checkName(originalNMSWorld.getWorldData().getName()); //rename to original world name
-
-        try { //flat bedrock (paper only)
-            Object paperconf = worldPaperConfigField.get(freshNMSWorld);
-            flatBedrockField.setBoolean(paperconf, generateFlatBedrock);
-        } catch (Exception e) {
-        }
-
-        DefinedStructureManager tmpStructureManager = saveHandler.f();
-        freshChunkProvider = new ChunkProviderServer(
-                freshNMSWorld,
-                saveHandler.getDirectory(),
-                server.aC(),
-                tmpStructureManager,
-                server.executorService,
-                originalChunkProvider.chunkGenerator,
-                freshNMSWorld.spigotConfig.viewDistance,
-                new RegenNoOpWorldLoadListener(),
-                () -> freshNMSWorld.getWorldPersistentData()
-        ) {
-            // redirect to our protoChunks list
-            @Override
-            public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean flag) {
-                return getProtoChunkAt(x, z);
-            }
-        };
-        chunkProviderField.set(freshNMSWorld, freshChunkProvider);
 
         //generator
         if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
@@ -288,17 +232,69 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                     settings
             );
         } else if (originalChunkProvider.getChunkGenerator() instanceof CustomChunkGenerator) {
-            ChunkGenerator delegate = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
-            generator = delegate;
+            generator = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
         } else {
             System.out.println("Unsupported generator type " + originalChunkProvider.getChunkGenerator().getClass().getName());
             return false;
         }
         if (originalNMSWorld.generator != null) {
-            // wrap custom world generator
-            generator = new CustomChunkGenerator(freshNMSWorld, originalNMSWorld.generator);
             generateConcurrent = originalNMSWorld.generator.isParallelCapable();
         }
+
+        //init world
+        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
+                server,
+                server.executorService,
+                saveHandler,
+                newWorldData,
+                originalNMSWorld.worldProvider.getDimensionManager(),
+                originalNMSWorld.getMethodProfiler(),
+                new RegenNoOpWorldLoadListener(),
+                env,
+                gen
+        ) {
+            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options
+                    .getBiomeType()
+                    .getId())) : null;
+
+            @Override
+            public void doTick(BooleanSupplier booleansupplier) { //no ticking
+            }
+
+            @Override
+            public BiomeBase a(int i, int k, int j) {
+                if (options.hasBiomeType()) {
+                    return singleBiome;
+                }
+                return this.getChunkProvider().getChunkGenerator().getWorldChunkManager().getBiome(i, j, k);
+            }
+        }).get();
+        freshNMSWorld.savingDisabled = true;
+        removeWorldFromWorldsMap();
+        newWorldData.checkName(originalNMSWorld.getWorldData().getName()); //rename to original world name
+        if (worldPaperConfigField != null) {
+            worldPaperConfigField.set(freshNMSWorld, originalNMSWorld.paperConfig);
+        }
+
+        DefinedStructureManager tmpStructureManager = saveHandler.f();
+        freshChunkProvider = new ChunkProviderServer(
+                freshNMSWorld,
+                saveHandler.getDirectory(),
+                server.aC(),
+                tmpStructureManager,
+                server.executorService,
+                generator,
+                freshNMSWorld.spigotConfig.viewDistance,
+                new RegenNoOpWorldLoadListener(),
+                () -> freshNMSWorld.getWorldPersistentData()
+        ) {
+            // redirect to our protoChunks list
+            @Override
+            public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean flag) {
+                return getProtoChunkAt(x, z);
+            }
+        };
+        chunkProviderField.set(freshNMSWorld, freshChunkProvider);
 
         //lets start then
         structureManager = tmpStructureManager;
@@ -447,20 +443,28 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             this.perlinNoise = new NoiseGeneratorPerlin(new Random(seed));
         }
 
-        private static long mix(long seed, long lconst) {
-            long l1 = lconst;
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            l1 = LinearCongruentialGenerator.a(l1, lconst);
-            long l2 = seed;
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            l2 = LinearCongruentialGenerator.a(l2, l1);
-            return l2;
+        private static long mix(long seed, long salt) {
+            long l = LinearCongruentialGenerator.a(salt, salt);
+            l = LinearCongruentialGenerator.a(l, salt);
+            l = LinearCongruentialGenerator.a(l, salt);
+            long m = LinearCongruentialGenerator.a(seed, l);
+            m = LinearCongruentialGenerator.a(m, l);
+            m = LinearCongruentialGenerator.a(m, l);
+            return m;
         }
 
         @Override
         public FastAreaLazy a(AreaTransformer8 var0) {
+            return new FastAreaLazy(sharedAreaMap, var0);
+        }
+
+        @Override
+        public FastAreaLazy a(AreaTransformer8 var0, FastAreaLazy parent) {
+            return new FastAreaLazy(sharedAreaMap, var0);
+        }
+
+        @Override
+        public FastAreaLazy a(AreaTransformer8 var0, FastAreaLazy firstParent, FastAreaLazy secondParent) {
             return new FastAreaLazy(sharedAreaMap, var0);
         }
 
@@ -494,7 +498,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
         private final FastAreaLazy areaLazy;
 
-        public FastGenLayer(AreaFactory<FastAreaLazy> factory) throws Exception {
+        public FastGenLayer(AreaFactory<FastAreaLazy> factory) {
             super(() -> null);
             this.areaLazy = factory.make();
         }
@@ -513,7 +517,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
     private static class FastAreaLazy implements Area {
 
         private final AreaTransformer8 transformer;
-        //ConcurrentHashMap is 50% faster that Long2IntLinkedOpenHashMap in a syncronized context
+        //ConcurrentHashMap is 50% faster that Long2IntLinkedOpenHashMap in a synchronized context
         //using a map for each thread worsens the performance significantly due to cache misses (factor 5)
         private final ConcurrentHashMap<Long, Integer> sharedMap;
 
@@ -572,8 +576,8 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         }
 
         @Override
-        public void processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
-            chunkStatus.a(
+        public CompletableFuture<?> processChunk(Long xz, List<IChunkAccess> accessibleChunks) {
+            return chunkStatus.a(
                     freshNMSWorld,
                     generator,
                     structureManager,
