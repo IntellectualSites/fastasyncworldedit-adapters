@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-public class TuinityRelighter_1_17_1 implements Relighter {
+public class StarlightRelighter_1_17_1 implements Relighter {
 
     public static final MethodHandle RELIGHT;
     private static final Logger LOGGER = LogManagerCompat.getLogger();
@@ -71,7 +71,7 @@ public class TuinityRelighter_1_17_1 implements Relighter {
     private final ReentrantLock areaLock = new ReentrantLock();
     private final NMSRelighter delegate;
 
-    public TuinityRelighter_1_17_1(WorldServer world, IQueueExtent<IQueueChunk> queue) {
+    public StarlightRelighter_1_17_1(WorldServer world, IQueueExtent<IQueueChunk> queue) {
         this.world = world;
         this.delegate = new NMSRelighter(queue);
     }

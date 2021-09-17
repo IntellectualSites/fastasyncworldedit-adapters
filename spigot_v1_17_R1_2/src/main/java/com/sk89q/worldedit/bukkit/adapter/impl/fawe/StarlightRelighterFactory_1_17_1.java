@@ -12,7 +12,7 @@ import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 
 import javax.annotation.Nonnull;
 
-public class TuinityRelighterFactory_1_17_1 implements RelighterFactory {
+public class StarlightRelighterFactory_1_17_1 implements RelighterFactory {
 
     @Override
     public @Nonnull
@@ -21,7 +21,7 @@ public class TuinityRelighterFactory_1_17_1 implements RelighterFactory {
         if (w == null) {
             return NullRelighter.INSTANCE;
         }
-        return new TuinityRelighter_1_17_1(((CraftWorld) w).getHandle(), queue);
+        return new StarlightRelighter_1_17_1(((CraftWorld) w).getHandle(), queue);
     }
 
 }
