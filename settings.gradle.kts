@@ -28,3 +28,6 @@ listOf(
     Ver(17, "1_2")
 )
     .forEach { include("spigot_v1_${it.minor}_R${it.rel}") }
+
+enableFeaturePreview("VERSION_CATALOGS")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
