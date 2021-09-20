@@ -102,7 +102,7 @@ public class LazyCompoundTag_1_17_1 extends LazyCompoundTag {
             NBTTagList nbtList = (NBTTagList) tag;
             for (NBTBase elem : nbtList) {
                 if (elem instanceof NBTTagCompound) {
-                    list.add(new LazyCompoundTag_1_17((NBTTagCompound) elem));
+                    list.add(new LazyCompoundTag_1_17_1((NBTTagCompound) elem));
                 } else {
                     list.add(WorldEditPlugin.getInstance().getBukkitImplAdapter().toNative(elem));
                 }
