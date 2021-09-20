@@ -1,6 +1,10 @@
 {
   "extends": [
     "config:base",
-    ":disableDependencyDashboard"
+    ":disableDependencyDashboard"  
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": [
+    "on monday after 9am"
   ]
 }
