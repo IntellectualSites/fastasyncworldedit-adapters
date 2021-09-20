@@ -26,6 +26,8 @@ import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
@@ -44,7 +46,12 @@ import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.registry.state.BooleanProperty;
+import com.sk89q.worldedit.registry.state.DirectionalProperty;
+import com.sk89q.worldedit.registry.state.EnumProperty;
+import com.sk89q.worldedit.registry.state.IntegerProperty;
 import com.sk89q.worldedit.registry.state.Property;
+import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
 import com.sk89q.worldedit.util.TreeGenerator;
@@ -63,6 +70,11 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.server.v1_15_R1.BiomeBase;
 import net.minecraft.server.v1_15_R1.Block;
 import net.minecraft.server.v1_15_R1.BlockPosition;
+import net.minecraft.server.v1_15_R1.BlockProperties;
+import net.minecraft.server.v1_15_R1.BlockStateBoolean;
+import net.minecraft.server.v1_15_R1.BlockStateDirection;
+import net.minecraft.server.v1_15_R1.BlockStateEnum;
+import net.minecraft.server.v1_15_R1.BlockStateInteger;
 import net.minecraft.server.v1_15_R1.Chunk;
 import net.minecraft.server.v1_15_R1.ChunkCoordIntPair;
 import net.minecraft.server.v1_15_R1.ChunkSection;
@@ -70,6 +82,8 @@ import net.minecraft.server.v1_15_R1.Entity;
 import net.minecraft.server.v1_15_R1.EntityPlayer;
 import net.minecraft.server.v1_15_R1.EntityTypes;
 import net.minecraft.server.v1_15_R1.IBlockData;
+import net.minecraft.server.v1_15_R1.IBlockState;
+import net.minecraft.server.v1_15_R1.INamable;
 import net.minecraft.server.v1_15_R1.IRegistry;
 import net.minecraft.server.v1_15_R1.ItemStack;
 import net.minecraft.server.v1_15_R1.MinecraftKey;
@@ -99,12 +113,15 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements IDelegateBukkitImplAdapter<NBTBase> {
@@ -119,6 +136,8 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     private char[] ibdToStateOrdinal = null;
     private int[] ordinalToIbdID = null;
     private boolean initialised = false;
+    private Map<String, Property<?>> allBlockProperties = null;
+
 
     public FAWE_Spigot_v1_15_R2() throws NoSuchFieldException, NoSuchMethodException {
         this.parent = new Spigot_v1_15_R2();
@@ -152,6 +171,49 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
             char ordinal = state.getOrdinalChar();
             ibdToStateOrdinal[id] = ordinal;
             ordinalToIbdID[ordinal] = id;
+        }
+        ImmutableMap.Builder<String, Property<?>> builder = ImmutableMap.builder();
+        try {
+            for (Field field : BlockProperties.class.getDeclaredFields()) {
+                Object obj = field.get(null);
+                if (!(obj instanceof IBlockState)) {
+                    continue;
+                }
+                IBlockState<?> state = (IBlockState<?>) obj;
+                Property<?> property;
+                if (state instanceof BlockStateBoolean) {
+                    property = new BooleanProperty(state.a(), (List<Boolean>) ImmutableList.copyOf(state.getValues()));
+                } else if (state instanceof BlockStateDirection) {
+                    property = new DirectionalProperty(
+                            state.a(),
+                            (List<Direction>) state
+                                    .getValues()
+                                    .stream()
+                                    .map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase()))
+                                    .collect(Collectors.toList())
+                    );
+                } else if (state instanceof BlockStateEnum) {
+                    property = new EnumProperty(
+                            state.a(),
+                            (List<String>) state
+                                    .getValues()
+                                    .stream()
+                                    .map(e -> ((INamable) e).getName())
+                                    .collect(Collectors.toList())
+                    );
+                } else if (state instanceof BlockStateInteger) {
+                    property = new IntegerProperty(state.a(), (List<Integer>) ImmutableList.copyOf(state.getValues()));
+                } else {
+                    throw new IllegalArgumentException("WorldEdit needs an update to support " + state
+                            .getClass()
+                            .getSimpleName());
+                }
+                builder.put(property.getName().toLowerCase(Locale.ROOT), property);
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } finally {
+            allBlockProperties = builder.build();
         }
         initialised = true;
         return true;
@@ -527,6 +589,20 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     public int getInternalBiomeId(BiomeType biome) {
         BiomeBase base = CraftBlock.biomeToBiomeBase(BukkitAdapter.adapt(biome));
         return IRegistry.BIOME.a(base);
+    }
+
+    @Override
+    public Map<String, ? extends Property<?>> getAllProperties() {
+        if (initialised) {
+            return allBlockProperties;
+        }
+        synchronized (this) {
+            if (initialised) {
+                return allBlockProperties;
+            }
+            init();
+            return allBlockProperties;
+        }
     }
 
 }

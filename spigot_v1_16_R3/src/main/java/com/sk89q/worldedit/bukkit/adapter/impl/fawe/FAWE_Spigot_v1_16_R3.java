@@ -28,6 +28,8 @@ import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
@@ -46,7 +48,12 @@ import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.registry.state.BooleanProperty;
+import com.sk89q.worldedit.registry.state.DirectionalProperty;
+import com.sk89q.worldedit.registry.state.EnumProperty;
+import com.sk89q.worldedit.registry.state.IntegerProperty;
 import com.sk89q.worldedit.registry.state.Property;
+import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
 import com.sk89q.worldedit.util.TreeGenerator;
@@ -65,6 +72,11 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.server.v1_16_R3.BiomeBase;
 import net.minecraft.server.v1_16_R3.Block;
 import net.minecraft.server.v1_16_R3.BlockPosition;
+import net.minecraft.server.v1_16_R3.BlockProperties;
+import net.minecraft.server.v1_16_R3.BlockStateBoolean;
+import net.minecraft.server.v1_16_R3.BlockStateDirection;
+import net.minecraft.server.v1_16_R3.BlockStateEnum;
+import net.minecraft.server.v1_16_R3.BlockStateInteger;
 import net.minecraft.server.v1_16_R3.Chunk;
 import net.minecraft.server.v1_16_R3.ChunkCoordIntPair;
 import net.minecraft.server.v1_16_R3.ChunkSection;
@@ -72,6 +84,8 @@ import net.minecraft.server.v1_16_R3.Entity;
 import net.minecraft.server.v1_16_R3.EntityPlayer;
 import net.minecraft.server.v1_16_R3.EntityTypes;
 import net.minecraft.server.v1_16_R3.IBlockData;
+import net.minecraft.server.v1_16_R3.IBlockState;
+import net.minecraft.server.v1_16_R3.INamable;
 import net.minecraft.server.v1_16_R3.IRegistry;
 import net.minecraft.server.v1_16_R3.IRegistryWritable;
 import net.minecraft.server.v1_16_R3.ItemStack;
@@ -106,8 +120,10 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -127,6 +143,8 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     private char[] ibdToStateOrdinal = null;
     private int[] ordinalToIbdID = null;
     private boolean initialised = false;
+    private Map<String, Property<?>> allBlockProperties = null;
+
 
     public FAWE_Spigot_v1_16_R3() throws NoSuchFieldException, NoSuchMethodException {
         this.parent = new Spigot_v1_16_R3();
@@ -160,6 +178,49 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
             char ordinal = state.getOrdinalChar();
             ibdToStateOrdinal[id] = ordinal;
             ordinalToIbdID[ordinal] = id;
+        }
+        ImmutableMap.Builder<String, Property<?>> builder = ImmutableMap.builder();
+        try {
+            for (Field field : BlockProperties.class.getDeclaredFields()) {
+                Object obj = field.get(null);
+                if (!(obj instanceof IBlockState)) {
+                    continue;
+                }
+                IBlockState<?> state = (IBlockState<?>) obj;
+                Property<?> property;
+                if (state instanceof BlockStateBoolean) {
+                    property = new BooleanProperty(state.getName(), (List<Boolean>) ImmutableList.copyOf(state.getValues()));
+                } else if (state instanceof BlockStateDirection) {
+                    property = new DirectionalProperty(
+                            state.getName(),
+                            (List<Direction>) state
+                                    .getValues()
+                                    .stream()
+                                    .map(e -> Direction.valueOf(((INamable) e).getName().toUpperCase()))
+                                    .collect(Collectors.toList())
+                    );
+                } else if (state instanceof BlockStateEnum) {
+                    property = new EnumProperty(
+                            state.getName(),
+                            (List<String>) state
+                                    .getValues()
+                                    .stream()
+                                    .map(e -> ((INamable) e).getName())
+                                    .collect(Collectors.toList())
+                    );
+                } else if (state instanceof BlockStateInteger) {
+                    property = new IntegerProperty(state.getName(), (List<Integer>) ImmutableList.copyOf(state.getValues()));
+                } else {
+                    throw new IllegalArgumentException("WorldEdit needs an update to support " + state
+                            .getClass()
+                            .getSimpleName());
+                }
+                builder.put(property.getName().toLowerCase(Locale.ROOT), property);
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } finally {
+            allBlockProperties = builder.build();
         }
         initialised = true;
         return true;
@@ -562,6 +623,20 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
 
         }
         return new NMSRelighterFactory();
+    }
+
+    @Override
+    public Map<String, ? extends Property<?>> getAllProperties() {
+        if (initialised) {
+            return allBlockProperties;
+        }
+        synchronized (this) {
+            if (initialised) {
+                return allBlockProperties;
+            }
+            init();
+            return allBlockProperties;
+        }
     }
 
 }
