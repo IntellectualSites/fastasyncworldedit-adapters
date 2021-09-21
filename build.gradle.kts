@@ -20,8 +20,7 @@ subprojects {
     }
 
     dependencies {
-        compileOnly(rootProject.project.libs.faweBukkit)
-        compileOnly(rootProject.project.libs.faweCore)
+        compileOnly(rootProject.project.libs.bundles.fawe)
         compileOnly(rootProject.project.libs.paper)
         compileOnly(rootProject.project.libs.paperlib) {
             because("Shading is done in FAWE")

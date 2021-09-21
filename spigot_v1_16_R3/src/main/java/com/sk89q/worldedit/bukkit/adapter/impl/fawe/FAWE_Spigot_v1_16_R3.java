@@ -121,6 +121,8 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -143,7 +145,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     private char[] ibdToStateOrdinal = null;
     private int[] ordinalToIbdID = null;
     private boolean initialised = false;
-    private Map<String, Property<?>> allBlockProperties = null;
+    private Map<String, List<Property<?>>> allBlockProperties = null;
 
 
     public FAWE_Spigot_v1_16_R3() throws NoSuchFieldException, NoSuchMethodException {
@@ -179,7 +181,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
             ibdToStateOrdinal[id] = ordinal;
             ordinalToIbdID[ordinal] = id;
         }
-        ImmutableMap.Builder<String, Property<?>> builder = ImmutableMap.builder();
+        Map<String, List<Property<?>>> properties = new HashMap<>();
         try {
             for (Field field : BlockProperties.class.getDeclaredFields()) {
                 Object obj = field.get(null);
@@ -215,12 +217,19 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
                             .getClass()
                             .getSimpleName());
                 }
-                builder.put(property.getName().toLowerCase(Locale.ROOT), property);
+                properties.compute(property.getName().toLowerCase(Locale.ROOT), (k, v) -> {
+                    if (v == null) {
+                        v = new ArrayList<>(Collections.singletonList(property));
+                    } else {
+                        v.add(property);
+                    }
+                    return v;
+                });
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } finally {
-            allBlockProperties = builder.build();
+            allBlockProperties = ImmutableMap.copyOf(properties);
         }
         initialised = true;
         return true;
@@ -626,7 +635,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
     }
 
     @Override
-    public Map<String, ? extends Property<?>> getAllProperties() {
+    public Map<String, List<Property<?>>> getAllProperties() {
         if (initialised) {
             return allBlockProperties;
         }
