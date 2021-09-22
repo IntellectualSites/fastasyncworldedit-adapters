@@ -198,6 +198,41 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 server.dataConverterManager
         );
 
+        //init world
+        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
+                server,
+                server.executorService,
+                saveHandler,
+                newWorldData,
+                originalNMSWorld.worldProvider.getDimensionManager(),
+                originalNMSWorld.getMethodProfiler(),
+                new RegenNoOpWorldLoadListener(),
+                env,
+                gen
+        ) {
+            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options
+                    .getBiomeType()
+                    .getId())) : null;
+
+            @Override
+            public void doTick(BooleanSupplier booleansupplier) { //no ticking
+            }
+
+            @Override
+            public BiomeBase a(int i, int k, int j) {
+                if (options.hasBiomeType()) {
+                    return singleBiome;
+                }
+                return this.getChunkProvider().getChunkGenerator().getWorldChunkManager().getBiome(i, j, k);
+            }
+        }).get();
+        freshNMSWorld.savingDisabled = true;
+        removeWorldFromWorldsMap();
+        newWorldData.checkName(originalNMSWorld.getWorldData().getName()); //rename to original world name
+        if (worldPaperConfigField != null) {
+            worldPaperConfigField.set(freshNMSWorld, originalNMSWorld.paperConfig);
+        }
+
         //generator
         if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
             GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) originalChunkProvider
@@ -237,43 +272,9 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             System.out.println("Unsupported generator type " + originalChunkProvider.getChunkGenerator().getClass().getName());
             return false;
         }
-        if (originalNMSWorld.generator != null) {
-            generateConcurrent = originalNMSWorld.generator.isParallelCapable();
-        }
-
-        //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
-                server,
-                server.executorService,
-                saveHandler,
-                newWorldData,
-                originalNMSWorld.worldProvider.getDimensionManager(),
-                originalNMSWorld.getMethodProfiler(),
-                new RegenNoOpWorldLoadListener(),
-                env,
-                gen
-        ) {
-            private final BiomeBase singleBiome = options.hasBiomeType() ? IRegistry.BIOME.get(MinecraftKey.a(options
-                    .getBiomeType()
-                    .getId())) : null;
-
-            @Override
-            public void doTick(BooleanSupplier booleansupplier) { //no ticking
-            }
-
-            @Override
-            public BiomeBase a(int i, int k, int j) {
-                if (options.hasBiomeType()) {
-                    return singleBiome;
-                }
-                return this.getChunkProvider().getChunkGenerator().getWorldChunkManager().getBiome(i, j, k);
-            }
-        }).get();
-        freshNMSWorld.savingDisabled = true;
-        removeWorldFromWorldsMap();
-        newWorldData.checkName(originalNMSWorld.getWorldData().getName()); //rename to original world name
-        if (worldPaperConfigField != null) {
-            worldPaperConfigField.set(freshNMSWorld, originalNMSWorld.paperConfig);
+        if (gen != null) {
+            generateConcurrent = gen.isParallelCapable();
+            generator = new CustomChunkGenerator(freshNMSWorld, gen);
         }
 
         DefinedStructureManager tmpStructureManager = saveHandler.f();

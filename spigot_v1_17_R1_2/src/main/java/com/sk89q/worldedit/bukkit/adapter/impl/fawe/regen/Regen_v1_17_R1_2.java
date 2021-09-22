@@ -225,29 +225,6 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
         );
         WorldDataServer newWorldData = new WorldDataServer(newWorldSettings, newOpts, Lifecycle.stable());
 
-        //generator
-        if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
-            GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) generatorSettingFlatField.get(
-                    originalChunkProvider.getChunkGenerator());
-            generator = new ChunkProviderFlat(generatorSettingFlat);
-        } else if (originalChunkProvider.getChunkGenerator() instanceof ChunkGeneratorAbstract) {
-            Supplier<GeneratorSettingBase> generatorSettingBaseSupplier = (Supplier<GeneratorSettingBase>) generatorSettingBaseSupplierField
-                    .get(originalChunkProvider.getChunkGenerator());
-            WorldChunkManager chunkManager = originalChunkProvider.getChunkGenerator().getWorldChunkManager();
-            if (chunkManager instanceof WorldChunkManagerOverworld) {
-                chunkManager = fastOverWorldChunkManager(chunkManager);
-            }
-            generator = new ChunkGeneratorAbstract(chunkManager, seed, generatorSettingBaseSupplier);
-        } else if (originalChunkProvider.getChunkGenerator() instanceof CustomChunkGenerator) {
-            generator = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
-        } else {
-            System.out.println("Unsupported generator type " + originalChunkProvider.getChunkGenerator().getClass().getName());
-            return false;
-        }
-        if (originalNMSWorld.generator != null) {
-            generateConcurrent = originalNMSWorld.generator.isParallelCapable();
-        }
-
         //init world
         freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
                 server,
@@ -257,7 +234,8 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
                 originalNMSWorld.getDimensionKey(),
                 originalNMSWorld.getDimensionManager(),
                 new RegenNoOpWorldLoadListener(),
-                generator,
+                // placeholder. Required for new ChunkProviderServer, but we create and then set it later
+                newOpts.d().a(worldDimKey).c(),
                 originalNMSWorld.isDebugWorld(),
                 seed,
                 ImmutableList.of(),
@@ -287,6 +265,30 @@ public class Regen_v1_17_R1_2 extends Regenerator<IChunkAccess, ProtoChunk, Chun
         newWorldData.checkName(originalNMSWorld.E.getName()); //rename to original world name
         if (worldPaperConfigField != null) {
             worldPaperConfigField.set(freshNMSWorld, originalNMSWorld.paperConfig);
+        }
+
+        //generator
+        if (originalChunkProvider.getChunkGenerator() instanceof ChunkProviderFlat) {
+            GeneratorSettingsFlat generatorSettingFlat = (GeneratorSettingsFlat) generatorSettingFlatField.get(
+                    originalChunkProvider.getChunkGenerator());
+            generator = new ChunkProviderFlat(generatorSettingFlat);
+        } else if (originalChunkProvider.getChunkGenerator() instanceof ChunkGeneratorAbstract) {
+            Supplier<GeneratorSettingBase> generatorSettingBaseSupplier = (Supplier<GeneratorSettingBase>) generatorSettingBaseSupplierField
+                    .get(originalChunkProvider.getChunkGenerator());
+            WorldChunkManager chunkManager = originalChunkProvider.getChunkGenerator().getWorldChunkManager();
+            if (chunkManager instanceof WorldChunkManagerOverworld) {
+                chunkManager = fastOverWorldChunkManager(chunkManager);
+            }
+            generator = new ChunkGeneratorAbstract(chunkManager, seed, generatorSettingBaseSupplier);
+        } else if (originalChunkProvider.getChunkGenerator() instanceof CustomChunkGenerator) {
+            generator = (ChunkGenerator) delegateField.get(originalChunkProvider.getChunkGenerator());
+        } else {
+            System.out.println("Unsupported generator type " + originalChunkProvider.getChunkGenerator().getClass().getName());
+            return false;
+        }
+        if (gen != null) {
+            generator = new CustomChunkGenerator(freshNMSWorld, generator, gen);
+            generateConcurrent = gen.isParallelCapable();
         }
 
         freshChunkProvider = new ChunkProviderServer(
