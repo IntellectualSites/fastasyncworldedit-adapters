@@ -24,8 +24,7 @@ data class Ver(val minor: Int, val rel: String)
 listOf(
     Ver(15, "2"),
     Ver(16, "3"),
-    Ver(17, "1"),
-    Ver(17, "1_2")
+    Ver(17, "1")
 )
     .forEach { include("spigot_v1_${it.minor}_R${it.rel}") }
 
