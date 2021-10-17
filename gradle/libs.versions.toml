@@ -3,7 +3,7 @@
 paper = "1.17.1-R0.1-SNAPSHOT"
 
 # Plugins
-fawe = "1.17-336"
+fawe = "1.17-355"
 
 # Third party
 paperlib = "1.0.6"
