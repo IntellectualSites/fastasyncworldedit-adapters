@@ -567,7 +567,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         }
 
         @Override
-        public int requiredNeigborChunkRadius() {
+        public int requiredNeighborChunkRadius() {
             return chunkStatus.f();
         }
 

@@ -3,7 +3,7 @@
 paper = "1.17.1-R0.1-SNAPSHOT"
 
 # Plugins
-fawe = "1.17-336"
+fawe = "1.17-356"
 
 # Third party
 paperlib = "1.0.6"
@@ -15,10 +15,9 @@ paper = { group = "io.papermc.paper", name = "paper-api", version.ref = "paper" 
 # Plugins
 faweBukkit = { group = "com.fastasyncworldedit", name = "FastAsyncWorldEdit-Bukkit", version.ref = "fawe" }
 faweCore = { group = "com.fastasyncworldedit", name = "FastAsyncWorldEdit-Core", version.ref = "fawe" }
-faweLibsCore = { group = "com.fastasyncworldedit", name = "FastAsyncWorldEdit-Libs-Core", version.ref = "fawe" }
 
 # Third party
 paperlib = { group = "io.papermc", name = "paperlib", version.ref = "paperlib" }
 
 [bundles]
-fawe = ["faweBukkit", "faweCore", "faweLibsCore"]
+fawe = ["faweBukkit", "faweCore"]
