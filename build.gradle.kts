@@ -50,7 +50,6 @@ mapOf(
 
 mapOf(
         "spigot_v1_17_R1" to "1_17_r1",
-        "spigot_v1_17_R1_2" to "1_17_r1_2",
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
         dependencies.compileOnly("io.papermc.paperv$dep:paperv$dep:$dep")
