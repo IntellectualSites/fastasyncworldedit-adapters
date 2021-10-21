@@ -8,8 +8,8 @@ import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.math.BitArray;
 import com.fastasyncworldedit.core.util.MathMan;
+import com.fastasyncworldedit.core.util.ReflectionUtils;
 import com.fastasyncworldedit.core.util.TaskManager;
-import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.block.BlockState;
@@ -98,7 +98,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             declaredSetLightNibbleArray.setAccessible(true);
             methodSetLightNibbleArray = MethodHandles.lookup().unreflect(declaredSetLightNibbleArray);
 
-            Unsafe unsafe = UnsafeUtility.getUNSAFE();
+            Unsafe unsafe = ReflectionUtils.getUnsafe();
             fieldLock = DataPaletteBlock.class.getDeclaredField("j");
             fieldLockOffset = unsafe.objectFieldOffset(fieldLock);
 
@@ -119,7 +119,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
     static boolean setSectionAtomic(ChunkSection[] sections, ChunkSection expected, ChunkSection value, int layer) {
         long offset = ((long) layer << CHUNKSECTION_SHIFT) + CHUNKSECTION_BASE;
         if (layer >= 0 && layer < sections.length) {
-            return UnsafeUtility.getUNSAFE().compareAndSwapObject(sections, offset, expected, value);
+            return ReflectionUtils.getUnsafe().compareAndSwapObject(sections, offset, expected, value);
         }
         return false;
     }
@@ -128,7 +128,7 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         //todo there has to be a better way to do this. Maybe using a() in DataPaletteBlock which acquires the lock in NMS?
         try {
             synchronized (section) {
-                Unsafe unsafe = UnsafeUtility.getUNSAFE();
+                Unsafe unsafe = ReflectionUtils.getUnsafe();
                 DataPaletteBlock<IBlockData> blocks = section.getBlocks();
                 ReentrantLock currentLock = (ReentrantLock) unsafe.getObject(blocks, fieldLockOffset);
                 if (currentLock instanceof DelegateLock) {

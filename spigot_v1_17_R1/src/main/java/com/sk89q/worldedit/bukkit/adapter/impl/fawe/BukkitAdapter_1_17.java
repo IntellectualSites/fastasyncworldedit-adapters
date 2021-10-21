@@ -8,8 +8,8 @@ import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.math.BitArrayUnstretched;
 import com.fastasyncworldedit.core.util.MathMan;
+import com.fastasyncworldedit.core.util.ReflectionUtils;
 import com.fastasyncworldedit.core.util.TaskManager;
-import com.fastasyncworldedit.core.util.UnsafeUtility;
 import com.mojang.datafixers.util.Either;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.biome.BiomeType;
@@ -120,7 +120,7 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
             declaredGetVisibleChunk.setAccessible(true);
             methodGetVisibleChunk = MethodHandles.lookup().unreflect(declaredGetVisibleChunk);
 
-            Unsafe unsafe = UnsafeUtility.getUNSAFE();
+            Unsafe unsafe = ReflectionUtils.getUnsafe();
             fieldLock = DataPaletteBlock.class.getDeclaredField("m");
             fieldLockOffset = unsafe.objectFieldOffset(fieldLock);
 
@@ -150,7 +150,7 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
     static boolean setSectionAtomic(ChunkSection[] sections, ChunkSection expected, ChunkSection value, int layer) {
         long offset = ((long) layer << CHUNKSECTION_SHIFT) + CHUNKSECTION_BASE;
         if (layer >= 0 && layer < sections.length) {
-            return UnsafeUtility.getUNSAFE().compareAndSwapObject(sections, offset, expected, value);
+            return ReflectionUtils.getUnsafe().compareAndSwapObject(sections, offset, expected, value);
         }
         return false;
     }
@@ -159,7 +159,7 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         //todo there has to be a better way to do this. Maybe using a() in DataPaletteBlock which acquires the lock in NMS?
         try {
             synchronized (section) {
-                Unsafe unsafe = UnsafeUtility.getUNSAFE();
+                Unsafe unsafe = ReflectionUtils.getUnsafe();
                 DataPaletteBlock<IBlockData> blocks = section.getBlocks();
                 Semaphore currentLock = (Semaphore) unsafe.getObject(blocks, fieldLockOffset);
                 if (currentLock instanceof DelegateSemaphore) {
