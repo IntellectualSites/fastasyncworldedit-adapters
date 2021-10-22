@@ -602,11 +602,22 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
 
     @Override
     public int getInternalBiomeId(BiomeType biome) {
-        BiomeBase base = CraftBlock.biomeToBiomeBase(
-                MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay),
-                BukkitAdapter.adapt(biome)
-        );
-        return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay).a(base);
+        if (biome.getId().startsWith("minecraft:")) {
+            BiomeBase base = CraftBlock.biomeToBiomeBase(
+                    MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay),
+                    BukkitAdapter.adapt(biome)
+            );
+            return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.ay).a(base);
+        } else {
+            IRegistryWritable<BiomeBase> biomeRegistry = MinecraftServer.getServer().getCustomRegistry()
+                    .b(IRegistry.ay);
+
+            MinecraftKey resourceLocation = biomeRegistry.keySet().stream()
+                    .filter(resource -> resource.toString().equals(biome.getId()))
+                    .findAny().orElse(null);
+
+            return biomeRegistry.a(biomeRegistry.get(resourceLocation));
+        }
     }
 
     @Override
