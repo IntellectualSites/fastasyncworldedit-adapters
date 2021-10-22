@@ -73,6 +73,7 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
@@ -623,11 +624,22 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
 
     @Override
     public int getInternalBiomeId(BiomeType biome) {
-        BiomeBase base = CraftBlock.biomeToBiomeBase(
-                MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO),
-                BukkitAdapter.adapt(biome)
-        );
-        return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO).getId(base);
+        if (biome.getId().startsWith("minecraft:")) {
+            BiomeBase base = CraftBlock.biomeToBiomeBase(
+                    MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO),
+                    BukkitAdapter.adapt(biome)
+            );
+            return MinecraftServer.getServer().getCustomRegistry().b(IRegistry.aO).getId(base);
+        } else {
+            IRegistryWritable<BiomeBase> biomeRegistry = MinecraftServer.getServer().getCustomRegistry()
+                    .b(IRegistry.aO);
+
+            MinecraftKey resourceLocation = biomeRegistry.keySet().stream()
+                    .filter(resource -> resource.toString().equals(biome.getId()))
+                    .findAny().orElse(null);
+
+            return biomeRegistry.getId(biomeRegistry.get(resourceLocation));
+        }
     }
 
     @Override
