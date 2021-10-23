@@ -4,6 +4,7 @@ import com.fastasyncworldedit.bukkit.adapter.Regenerator;
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.queue.IChunkCache;
 import com.fastasyncworldedit.core.queue.IChunkGet;
+import com.fastasyncworldedit.core.util.TaskManager;
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
@@ -305,7 +306,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
             // redirect to our protoChunks list
             @Override
             public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean flag) {
-                return getProtoChunkAt(x, z);
+                return Regen_v1_17_R1.this.getChunkAt(x, z);
             }
         };
         chunkProviderField.set(freshNMSWorld, freshChunkProvider);
@@ -387,7 +388,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     @Override
     protected void populate(Chunk chunk, Random random, BlockPopulator pop) {
-        pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk);
+        TaskManager.IMP.task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
     }
 
     @Override
