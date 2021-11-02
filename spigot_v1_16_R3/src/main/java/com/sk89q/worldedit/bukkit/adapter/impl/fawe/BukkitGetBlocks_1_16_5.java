@@ -105,7 +105,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
     }
 
     public BukkitGetBlocks_1_16_5(WorldServer world, int chunkX, int chunkZ) {
-        super(0, 255);
+        super(0, 15);
         this.world = world;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
