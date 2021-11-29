@@ -6,7 +6,7 @@ paper = "1.17.1-R0.1-SNAPSHOT"
 fawe = "1.17-409"
 
 # Third party
-paperlib = "1.0.6"
+paperlib = "1.0.7"
 
 [libraries]
 # Platform expectations
