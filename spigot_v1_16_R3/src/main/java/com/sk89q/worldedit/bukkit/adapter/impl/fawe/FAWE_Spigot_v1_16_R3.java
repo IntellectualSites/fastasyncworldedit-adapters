@@ -251,9 +251,8 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         return IRegistry.BLOCK.get(new MinecraftKey(blockType.getNamespace(), blockType.getResource()));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public BaseBlock getBlock(Location location) {
+    public BlockState getBlock(Location location) {
         Preconditions.checkNotNull(location);
 
         CraftWorld craftWorld = ((CraftWorld) location.getWorld());
@@ -264,8 +263,29 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         final WorldServer handle = craftWorld.getHandle();
         Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
         final BlockPosition blockPos = new BlockPosition(x, y, z);
-        org.bukkit.block.Block bukkitBlock = location.getBlock();
-        BlockState state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
+        IBlockData blockData = chunk.getBlockData(blockPos);
+        BlockState state = adapt(blockData);
+        if (state == null) {
+            org.bukkit.block.Block bukkitBlock = location.getBlock();
+            state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
+        }
+        return state;
+    }
+
+    @Override
+    public BaseBlock getFullBlock(final Location location) {
+        Preconditions.checkNotNull(location);
+
+        CraftWorld craftWorld = ((CraftWorld) location.getWorld());
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+
+        final WorldServer handle = craftWorld.getHandle();
+        Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
+        final BlockPosition blockPos = new BlockPosition(x, y, z);
+
+        BlockState state = getBlock(location);
         if (state.getBlockType().getMaterial().hasContainer()) {
 
             // Read the NBT data

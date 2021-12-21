@@ -485,24 +485,29 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                 }
 
                 // Biomes
-                BiomeType[] biomes = set.getBiomes();
+                BiomeType[][] biomes = set.getBiomes();
                 if (biomes != null) {
                     // set biomes
                     BiomeStorage currentBiomes = nmsChunk.getBiomeIndex();
                     if (createCopy) {
                         copy.storeBiomes(currentBiomes);
                     }
-                    for (int y = 0, i = 0; y < 64; y++) {
-                        for (int z = 0; z < 4; z++) {
-                            for (int x = 0; x < 4; x++, i++) {
-                                final BiomeType biome = biomes[i];
-                                if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(craftBiome);
-                                    if (nmsBiome == null) {
-                                        throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                    for (int layer = 0; layer < 16; layer++) {
+                        if (biomes[layer] == null) {
+                            continue;
+                        }
+                        for (int y = 0, i = 0; y < 4; y++) {
+                            for (int z = 0; z < 4; z++) {
+                                for (int x = 0; x < 4; x++, i++) {
+                                    final BiomeType biome = biomes[layer][i];
+                                    if (biome != null) {
+                                        final Biome craftBiome = BukkitAdapter.adapt(biome);
+                                        BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(craftBiome);
+                                        if (nmsBiome == null) {
+                                            throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                                        }
+                                        currentBiomes.setBiome(x, (layer << 2) + y, z, nmsBiome);
                                     }
-                                    currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
                         }

@@ -5,10 +5,10 @@ plugins {
 subprojects {
     apply(plugin = "java")
     group = "com.sk89q.worldedit.adapters"
-    version = "1.0"
+    version = "2.0.0"
 
     java {
-        toolchain.languageVersion.set(JavaLanguageVersion.of(16))
+        toolchain.languageVersion.set(JavaLanguageVersion.of(17))
     }
 
     repositories {
@@ -17,6 +17,7 @@ subprojects {
         maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
         maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
         maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
+        maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/") }
     }
 
     dependencies {
@@ -28,11 +29,11 @@ subprojects {
     }
 
     configurations.all {
-        attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 16)
+        attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 17)
     }
 
     tasks.compileJava.configure {
-        options.release.set(11)
+        options.release.set(17)
     }
 
 }

@@ -375,7 +375,7 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
     }
 
     @Override
-    public BaseBlock getBlock(Location location) {
+    public BlockState getBlock(Location location) {
         checkNotNull(location);
 
         CraftWorld craftWorld = ((CraftWorld) location.getWorld());
@@ -386,13 +386,27 @@ public final class Spigot_v1_17_R1<T> implements BukkitImplAdapter<NBTBase> {
         final WorldServer handle = craftWorld.getHandle();
         Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
         final BlockPosition blockPos = new BlockPosition(x, y, z);
-        final IBlockData blockData = chunk.getType(blockPos);
-        int internalId = Block.getCombinedId(blockData);
-        BlockState state = BlockStateIdAccess.getBlockStateById(internalId);
+        final CraftBlockData blockData = chunk.getType(blockPos).createCraftBlockData();
+        BlockState state = BukkitAdapter.adapt(blockData);
         if (state == null) {
             org.bukkit.block.Block bukkitBlock = location.getBlock();
             state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
         }
+        return state;
+    }
+
+    @Override
+    public BaseBlock getFullBlock(Location location) {
+        BlockState state = getBlock(location);
+
+        CraftWorld craftWorld = ((CraftWorld) location.getWorld());
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+
+        final WorldServer handle = craftWorld.getHandle();
+        Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
+        final BlockPosition blockPos = new BlockPosition(x, y, z);
 
         // Read the NBT data
         TileEntity te = chunk.a(blockPos, Chunk.EnumTileEntityState.c);
