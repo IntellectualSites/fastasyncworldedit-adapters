@@ -28,8 +28,6 @@ import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.sk89q.jnbt.CompoundTag;
-import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.blocks.BaseItemStack;
@@ -56,6 +54,9 @@ import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.SideEffectSet;
 import com.sk89q.worldedit.util.TreeGenerator;
 import com.sk89q.worldedit.util.formatting.text.Component;
+import com.sk89q.worldedit.util.nbt.BinaryTag;
+import com.sk89q.worldedit.util.nbt.CompoundBinaryTag;
+import com.sk89q.worldedit.util.nbt.StringBinaryTag;
 import com.sk89q.worldedit.world.RegenOptions;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BaseBlock;
@@ -286,7 +287,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
             if (te != null) {
                 NBTTagCompound tag = new NBTTagCompound();
                 te.save(tag); // readTileEntityIntoTag - load data
-                return state.toBaseBlock((CompoundTag) toNative(tag));
+                return state.toBaseBlock((CompoundBinaryTag) toNativeBinary(tag));
             }
         }
 
@@ -319,7 +320,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
 
         nmsChunk.removeTileEntity(blockPos); // Force delete the old tile entity
 
-        CompoundTag nativeTag = state instanceof BaseBlock ? state.getNbtData() : null;
+        CompoundBinaryTag nativeTag = state instanceof BaseBlock ? state.getNbt() : null;
         if (nativeTag != null || existing instanceof TileEntityBlock) {
             nmsWorld.setTypeAndData(blockPos, blockData, 0);
             // remove tile
@@ -328,7 +329,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                 // though we do not do this on the Forge version
                 TileEntity tileEntity = nmsWorld.getTileEntity(blockPos);
                 if (tileEntity != null) {
-                    NBTTagCompound tag = (NBTTagCompound) fromNative(nativeTag);
+                    NBTTagCompound tag = (NBTTagCompound) fromNativeBinary(nativeTag);
                     tag.set("x", NBTTagInt.a(x));
                     tag.set("y", NBTTagInt.a(y));
                     tag.set("z", NBTTagInt.a(z));
@@ -372,14 +373,15 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
 
         if (id != null) {
             EntityType type = com.sk89q.worldedit.world.entity.EntityTypes.get(id);
-            Supplier<CompoundTag> saveTag = () -> {
+            Supplier<CompoundBinaryTag> saveTag = () -> {
                 final NBTTagCompound minecraftTag = new NBTTagCompound();
                 readEntityIntoTag(mcEntity, minecraftTag);
                 //add Id for AbstractChangeSet to work
-                final CompoundTag tag = (CompoundTag) toNative(minecraftTag);
-                final Map<String, Tag> tags = new HashMap<>(tag.getValue());
-                tags.put("Id", new StringTag(id));
-                return new CompoundTag(tags);
+                final CompoundBinaryTag tag = (CompoundBinaryTag) toNativeBinary(minecraftTag);
+                final Map<String, BinaryTag> tags = new HashMap<>();
+                tag.keySet().forEach(key -> tags.put(key, tag.get(key)));
+                tags.put("Id", StringBinaryTag.of(id));
+                return CompoundBinaryTag.from(tags);
             };
             return new LazyBaseEntity(type, saveTag);
         } else {
@@ -436,7 +438,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                 LOGGER.error("Attempted to convert {} with ID {} to char. ibdToStateOrdinal length: {}. Defaulting to air!",
                         ibd.getBlock(), Block.REGISTRY_ID.getId(ibd), ibdToStateOrdinal.length, e1
                 );
-                return 0;
+                return BlockTypesCache.ReservedIDs.AIR;
             }
         }
     }
@@ -520,10 +522,10 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
                                 packet.setNativePacket(nmsPacket);
                             }
                             try {
-                                FaweCache.IMP.CHUNK_FLAG.get().set(true);
+                                FaweCache.INSTANCE.CHUNK_FLAG.get().set(true);
                                 entityPlayer.playerConnection.sendPacket(nmsPacket);
                             } finally {
-                                FaweCache.IMP.CHUNK_FLAG.get().set(false);
+                                FaweCache.INSTANCE.CHUNK_FLAG.get().set(false);
                             }
                         }
                     });
@@ -594,7 +596,7 @@ public final class FAWE_Spigot_v1_15_R2 extends CachedBukkitAdapter implements I
     public BaseItemStack adapt(org.bukkit.inventory.ItemStack itemStack) {
         final ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
         final BaseItemStack weStack = new BaseItemStack(BukkitAdapter.asItemType(itemStack.getType()), itemStack.getAmount());
-        weStack.setNbtData(((CompoundTag) toNative(nmsStack.getTag())));
+        weStack.setNbt(((CompoundBinaryTag) toNativeBinary(nmsStack.getTag())));
         return weStack;
     }
 

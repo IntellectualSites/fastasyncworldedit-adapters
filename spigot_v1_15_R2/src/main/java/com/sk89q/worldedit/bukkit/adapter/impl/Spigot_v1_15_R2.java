@@ -219,7 +219,7 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
 
         try {
             Class.forName("org.spigotmc.SpigotConfig");
-            SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
+            SpigotConfig.config.set("world-settings.faweregentempworld.verbose", false);
         } catch (ClassNotFoundException ignored) {
         }
     }
@@ -640,7 +640,7 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
             WorldData newWorldData = new WorldData(originalWorld.worldData.a((NBTTagCompound) null),
                     server.dataConverterManager, CraftMagicNumbers.INSTANCE.getDataVersion(), null
             );
-            newWorldData.setName("worldeditregentempworld");
+            newWorldData.setName("faweregentempworld");
             WorldNBTStorage saveHandler = new WorldNBTStorage(saveFolder,
                     originalWorld.getDataManager().getDirectory().getName(), server, server.dataConverterManager
             );
@@ -675,7 +675,7 @@ public final class Spigot_v1_15_R2 implements BukkitImplAdapter<NBTBase> {
             saveFolder.delete();
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
-                map.remove("worldeditregentempworld");
+                map.remove("faweregentempworld");
             } catch (IllegalAccessException ignored) {
             }
         }

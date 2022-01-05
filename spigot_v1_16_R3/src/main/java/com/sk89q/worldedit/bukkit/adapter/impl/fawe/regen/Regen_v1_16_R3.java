@@ -203,7 +203,7 @@ public class Regen_v1_16_R3 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         org.bukkit.generator.ChunkGenerator gen = originalBukkitWorld.getGenerator();
         Convertable convertable = Convertable.a(tempDir);
         ResourceKey<WorldDimension> worldDimKey = getWorldDimKey(env);
-        session = convertable.c("worldeditregentempworld", worldDimKey);
+        session = convertable.c("faweregentempworld", worldDimKey);
         WorldDataServer originalWorldData = originalNMSWorld.worldDataServer;
 
         MinecraftServer server = originalNMSWorld.getServer().getServer();
@@ -223,7 +223,7 @@ public class Regen_v1_16_R3 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 .result()
                 .orElseThrow(() -> new IllegalStateException("Unable to map GeneratorOptions"));
         WorldSettings newWorldSettings = new WorldSettings(
-                "worldeditregentempworld",
+                "faweregentempworld",
                 originalWorldData.b.getGameType(),
                 originalWorldData.b.hardcore,
                 originalWorldData.b.getDifficulty(),
@@ -390,7 +390,7 @@ public class Regen_v1_16_R3 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     @Override
     protected void populate(Chunk chunk, Random random, BlockPopulator pop) {
-        TaskManager.IMP.task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
+        TaskManager.taskManager().task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
     }
 
     @Override
@@ -408,7 +408,7 @@ public class Regen_v1_16_R3 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         Fawe.get().getQueueHandler().sync(() -> {
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
-                map.remove("worldeditregentempworld");
+                map.remove("faweregentempworld");
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
