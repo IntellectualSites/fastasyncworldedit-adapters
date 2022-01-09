@@ -222,11 +222,11 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
                     return;
                 }
                 for (IntPair chunk : toSend) {
-                    BukkitAdapter_1_16_5.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
+                    BukkitAdapter_1_16_5.sendChunk(getWorld().getWorld().getHandle(), chunk.x(), chunk.z(), false);
                 }
             }
         };
-        TaskManager.IMP.async(() -> TaskManager.IMP.sync(r));
+        TaskManager.taskManager().async(() -> TaskManager.taskManager().sync(r));
     }
 
     @Override
@@ -238,30 +238,20 @@ public class FAWEWorldNativeAccess_1_16_R3 implements WorldNativeAccess<Chunk, I
                         sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)
                 ));
                 for (IntPair chunk : cachedChunksToSend) {
-                    BukkitAdapter_1_16_5.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, false);
+                    BukkitAdapter_1_16_5.sendChunk(getWorld().getWorld().getHandle(), chunk.x(), chunk.z(), false);
                 }
             }
         };
         if (Fawe.isMainThread()) {
             r.run();
         } else {
-            TaskManager.IMP.sync(r);
+            TaskManager.taskManager().sync(r);
         }
         cachedChanges.clear();
         cachedChunksToSend.clear();
     }
 
-    private static final class CachedChange {
-
-        private final Chunk chunk;
-        private final BlockPosition position;
-        private final IBlockData blockData;
-
-        private CachedChange(Chunk chunk, BlockPosition position, IBlockData blockData) {
-            this.chunk = chunk;
-            this.position = position;
-            this.blockData = blockData;
-        }
+    private record CachedChange(Chunk chunk, BlockPosition position, IBlockData blockData) {
 
     }
 

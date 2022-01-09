@@ -191,7 +191,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 CraftMagicNumbers.INSTANCE.getDataVersion(),
                 null
         );
-        newWorldData.setName("worldeditregentempworld");
+        newWorldData.setName("faweregentempworld");
         WorldNBTStorage saveHandler = new WorldNBTStorage(
                 new File(tempDir.toUri()),
                 originalNMSWorld.getDataManager().getDirectory().getName(),
@@ -200,7 +200,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         );
 
         //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
+        freshNMSWorld = Fawe.instance().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
                 server,
                 server.executorService,
                 saveHandler,
@@ -309,7 +309,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
     protected void cleanup() {
         //shutdown chunk provider
         try {
-            Fawe.get().getQueueHandler().sync(() -> {
+            Fawe.instance().getQueueHandler().sync(() -> {
                 try {
                     freshChunkProvider.close(false);
                 } catch (IOException e) {
@@ -358,7 +358,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     @Override
     protected void populate(Chunk chunk, Random random, BlockPopulator pop) {
-        TaskManager.IMP.task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
+        TaskManager.taskManager().task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
     }
 
     @Override
@@ -373,10 +373,10 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     //util
     private void removeWorldFromWorldsMap() {
-        Fawe.get().getQueueHandler().sync(() -> {
+        Fawe.instance().getQueueHandler().sync(() -> {
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
-                map.remove("worldeditregentempworld");
+                map.remove("faweregentempworld");
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

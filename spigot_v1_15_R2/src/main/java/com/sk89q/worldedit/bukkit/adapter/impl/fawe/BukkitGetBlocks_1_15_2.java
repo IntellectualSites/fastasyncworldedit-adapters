@@ -26,6 +26,7 @@ import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BlockTypes;
+import com.sk89q.worldedit.world.block.BlockTypesCache;
 import io.papermc.lib.PaperLib;
 import net.minecraft.server.v1_15_R1.BiomeBase;
 import net.minecraft.server.v1_15_R1.BiomeStorage;
@@ -380,7 +381,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         try {
             WorldServer nmsWorld = world;
             Chunk nmsChunk = ensureLoaded(nmsWorld, chunkX, chunkZ);
-            boolean fastmode = set.isFastMode() && Settings.IMP.QUEUE.NO_TICK_FASTMODE;
+            boolean fastmode = set.isFastMode() && Settings.settings().QUEUE.NO_TICK_FASTMODE;
 
             // Remove existing tiles
             {
@@ -485,24 +486,29 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                 }
 
                 // Biomes
-                BiomeType[] biomes = set.getBiomes();
+                BiomeType[][] biomes = set.getBiomes();
                 if (biomes != null) {
                     // set biomes
                     BiomeStorage currentBiomes = nmsChunk.getBiomeIndex();
                     if (createCopy) {
                         copy.storeBiomes(currentBiomes);
                     }
-                    for (int y = 0, i = 0; y < 64; y++) {
-                        for (int z = 0; z < 4; z++) {
-                            for (int x = 0; x < 4; x++, i++) {
-                                final BiomeType biome = biomes[i];
-                                if (biome != null) {
-                                    final Biome craftBiome = BukkitAdapter.adapt(biome);
-                                    BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(craftBiome);
-                                    if (nmsBiome == null) {
-                                        throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                    for (int layer = 0; layer < 16; layer++) {
+                        if (biomes[layer] == null) {
+                            continue;
+                        }
+                        for (int y = 0, i = 0; y < 4; y++) {
+                            for (int z = 0; z < 4; z++) {
+                                for (int x = 0; x < 4; x++, i++) {
+                                    final BiomeType biome = biomes[layer][i];
+                                    if (biome != null) {
+                                        final Biome craftBiome = BukkitAdapter.adapt(biome);
+                                        BiomeBase nmsBiome = CraftBlock.biomeToBiomeBase(craftBiome);
+                                        if (nmsBiome == null) {
+                                            throw new NullPointerException("BiomeBase null for BiomeType " + biome.getId());
+                                        }
+                                        currentBiomes.setBiome(x, (layer << 2) + y, z, nmsBiome);
                                     }
-                                    currentBiomes.setBiome(x, y, z, nmsBiome);
                                 }
                             }
                         }
@@ -634,7 +640,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                         nmsChunk.mustNotSave = false;
                         nmsChunk.markDirty();
                         // send to player
-                        if (Settings.IMP.LIGHTING.MODE == 0 || !Settings.IMP.LIGHTING.DELAY_PACKET_SENDING) {
+                        if (Settings.settings().LIGHTING.MODE == 0 || !Settings.settings().LIGHTING.DELAY_PACKET_SENDING) {
                             this.send(finalMask, finalLightUpdate);
                         }
                         if (finalizer != null) {
@@ -643,7 +649,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                     };
                 }
                 if (syncTasks != null) {
-                    QueueHandler queueHandler = Fawe.get().getQueueHandler();
+                    QueueHandler queueHandler = Fawe.instance().getQueueHandler();
                     Runnable[] finalSyncTasks = syncTasks;
 
                     // Chain the sync tasks and the callback
@@ -668,6 +674,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                             throw e;
                         }
                     };
+                    //noinspection unchecked - required at compile time
                     return (T) (Future) queueHandler.sync(chain);
                 } else {
                     if (callback == null) {
@@ -751,16 +758,16 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
         // Section is null, return empty array
         if (section == null) {
             data = new char[4096];
-            Arrays.fill(data, (char) 1);
+            Arrays.fill(data, (char) BlockTypesCache.ReservedIDs.AIR);
             return data;
         }
         if (data != null && data.length != 4096) {
             data = new char[4096];
-            Arrays.fill(data, (char) 1);
+            Arrays.fill(data, (char) BlockTypesCache.ReservedIDs.AIR);
         }
-        if (data == null || data == FaweCache.IMP.EMPTY_CHAR_4096) {
+        if (data == null || data == FaweCache.INSTANCE.EMPTY_CHAR_4096) {
             data = new char[4096];
-            Arrays.fill(data, (char) 1);
+            Arrays.fill(data, (char) BlockTypesCache.ReservedIDs.AIR);
         }
         DelegateLock lock = BukkitAdapter_1_15_2.applyLock(section);
         synchronized (lock) {
@@ -786,13 +793,12 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                     for (int i = 0; i < 4096; i++) {
                         char paletteVal = data[i];
                         char ordinal = adapter.ibdIDToOrdinal(paletteVal);
-                        // Don't read "empty".
-                        data[i] = ordinal == 0 ? 1 : ordinal;
+                        data[i] = ordinal;
                     }
                     return data;
                 }
 
-                char[] paletteToOrdinal = FaweCache.IMP.PALETTE_TO_BLOCK_CHAR.get();
+                char[] paletteToOrdinal = FaweCache.INSTANCE.PALETTE_TO_BLOCK_CHAR.get();
                 try {
                     if (num_palette != 1) {
                         for (int i = 0; i < num_palette; i++) {
@@ -806,18 +812,10 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                                 val = ordinal(palette.a(i), adapter);
                                 paletteToOrdinal[i] = val;
                             }
-                            // Don't read "empty".
-                            if (val == 0) {
-                                val = 1;
-                            }
                             data[i] = val;
                         }
                     } else {
                         char ordinal = ordinal(palette.a(0), adapter);
-                        // Don't read "empty".
-                        if (ordinal == 0) {
-                            ordinal = 1;
-                        }
                         Arrays.fill(data, ordinal);
                     }
                 } finally {
@@ -835,7 +833,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
 
     private char ordinal(IBlockData ibd, FAWE_Spigot_v1_15_R2 adapter) {
         if (ibd == null) {
-            return BlockTypes.AIR.getDefaultState().getOrdinalChar();
+            return BlockTypesCache.ReservedIDs.AIR;
         } else {
             return adapter.adaptToChar(ibd);
         }

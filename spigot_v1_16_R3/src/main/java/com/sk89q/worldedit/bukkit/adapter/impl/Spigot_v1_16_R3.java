@@ -255,7 +255,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
 
         try {
             Class.forName("org.spigotmc.SpigotConfig");
-            SpigotConfig.config.set("world-settings.worldeditregentempworld.verbose", false);
+            SpigotConfig.config.set("world-settings.faweregentempworld.verbose", false);
         } catch (ClassNotFoundException ignored) {
         }
     }
@@ -374,7 +374,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
     }
 
     @Override
-    public BaseBlock getBlock(Location location) {
+    public BlockState getBlock(Location location) {
         checkNotNull(location);
 
         CraftWorld craftWorld = ((CraftWorld) location.getWorld());
@@ -385,13 +385,28 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
         final WorldServer handle = craftWorld.getHandle();
         Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
         final BlockPosition blockPos = new BlockPosition(x, y, z);
-        final IBlockData blockData = chunk.getType(blockPos);
-        int internalId = Block.getCombinedId(blockData);
-        BlockState state = BlockStateIdAccess.getBlockStateById(internalId);
+        final CraftBlockData blockData = chunk.getType(blockPos).createCraftBlockData();
+        BlockState state = BukkitAdapter.adapt(blockData);
         if (state == null) {
             org.bukkit.block.Block bukkitBlock = location.getBlock();
             state = BukkitAdapter.adapt(bukkitBlock.getBlockData());
         }
+        return state;
+    }
+
+    @Override
+    public BaseBlock getFullBlock(Location location) {
+        BlockState state = getBlock(location);
+
+        CraftWorld craftWorld = ((CraftWorld) location.getWorld());
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+
+        final WorldServer handle = craftWorld.getHandle();
+        Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
+        final BlockPosition blockPos = new BlockPosition(x, y, z);
+
 
         // Read the NBT data
         TileEntity te = chunk.a(blockPos, Chunk.EnumTileEntityState.CHECK);
@@ -663,7 +678,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
         Path tempDir = Files.createTempDirectory("WorldEditWorldGen");
         Convertable convertable = Convertable.a(tempDir);
         ResourceKey<WorldDimension> worldDimKey = getWorldDimKey(env);
-        try (Convertable.ConversionSession session = convertable.c("worldeditregentempworld", worldDimKey)) {
+        try (Convertable.ConversionSession session = convertable.c("faweregentempworld", worldDimKey)) {
             WorldServer originalWorld = ((CraftWorld) bukkitWorld).getHandle();
             WorldDataServer originalSettings = originalWorld.worldDataServer;
             GeneratorSettings originalOpts = originalSettings.getGeneratorSettings();
@@ -675,7 +690,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
                     : originalOpts;
 
             WorldSettings newWorldSettings = new WorldSettings(
-                    "worldeditregentempworld",
+                    "faweregentempworld",
                     originalSettings.b.getGameType(),
                     originalSettings.b.isHardcore(),
                     originalSettings.b.getDifficulty(),
@@ -708,7 +723,7 @@ public final class Spigot_v1_16_R3 implements BukkitImplAdapter<NBTBase> {
         } finally {
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
-                map.remove("worldeditregentempworld");
+                map.remove("faweregentempworld");
             } catch (IllegalAccessException ignored) {
             }
             SafeFiles.tryHardToDeleteDir(tempDir);

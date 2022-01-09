@@ -198,7 +198,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         org.bukkit.generator.ChunkGenerator gen = originalBukkitWorld.getGenerator();
         Convertable convertable = Convertable.a(tempDir);
         ResourceKey<WorldDimension> worldDimKey = getWorldDimKey(env);
-        session = convertable.c("worldeditregentempworld", worldDimKey);
+        session = convertable.c("faweregentempworld", worldDimKey);
         WorldDataServer originalWorldData = originalNMSWorld.E;
 
         MinecraftServer server = originalNMSWorld.getCraftServer().getServer();
@@ -214,7 +214,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
                 .result()
                 .orElseThrow(() -> new IllegalStateException("Unable to map GeneratorOptions"));
         WorldSettings newWorldSettings = new WorldSettings(
-                "worldeditregentempworld",
+                "faweregentempworld",
                 originalWorldData.e.getGameType(),
                 originalWorldData.e.isHardcore(),
                 originalWorldData.e.getDifficulty(),
@@ -225,7 +225,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         WorldDataServer newWorldData = new WorldDataServer(newWorldSettings, newOpts, Lifecycle.stable());
 
         //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
+        freshNMSWorld = Fawe.instance().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
                 server,
                 server.aA,
                 session,
@@ -327,7 +327,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
         //shutdown chunk provider
         try {
-            Fawe.get().getQueueHandler().sync(() -> {
+            Fawe.instance().getQueueHandler().sync(() -> {
                 try {
                     freshChunkProvider.close(false);
                 } catch (IOException e) {
@@ -339,7 +339,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
         //remove world from server
         try {
-            Fawe.get().getQueueHandler().sync(() -> {
+            Fawe.instance().getQueueHandler().sync(() -> {
                 removeWorldFromWorldsMap();
             });
         } catch (Exception e) {
@@ -388,7 +388,7 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     @Override
     protected void populate(Chunk chunk, Random random, BlockPopulator pop) {
-        TaskManager.IMP.task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
+        TaskManager.taskManager().task(() -> pop.populate(freshNMSWorld.getWorld(), random, chunk.bukkitChunk));
     }
 
     @Override
@@ -403,10 +403,10 @@ public class Regen_v1_17_R1 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     //util
     private void removeWorldFromWorldsMap() {
-        Fawe.get().getQueueHandler().sync(() -> {
+        Fawe.instance().getQueueHandler().sync(() -> {
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
-                map.remove("worldeditregentempworld");
+                map.remove("faweregentempworld");
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
