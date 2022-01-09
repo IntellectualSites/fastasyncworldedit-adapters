@@ -221,7 +221,7 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
                     return;
                 }
                 for (IntPair chunk : toSend) {
-                    BukkitAdapter_1_15_2.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, 0, false);
+                    BukkitAdapter_1_15_2.sendChunk(getWorld().getWorld().getHandle(), chunk.x(), chunk.z(), 0, false);
                 }
             }
         };
@@ -237,7 +237,7 @@ public class FAWEWorldNativeAccess_1_15_2 implements WorldNativeAccess<Chunk, IB
                         sideEffectSet != null && sideEffectSet.shouldApply(SideEffect.UPDATE)
                 ));
                 for (IntPair chunk : cachedChunksToSend) {
-                    BukkitAdapter_1_15_2.sendChunk(getWorld().getWorld().getHandle(), chunk.x, chunk.z, 0, false);
+                    BukkitAdapter_1_15_2.sendChunk(getWorld().getWorld().getHandle(), chunk.x(), chunk.z(), 0, false);
                 }
             }
         };

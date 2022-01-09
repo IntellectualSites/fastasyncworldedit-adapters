@@ -685,7 +685,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                     };
                 }
                 if (syncTasks != null) {
-                    QueueHandler queueHandler = Fawe.get().getQueueHandler();
+                    QueueHandler queueHandler = Fawe.instance().getQueueHandler();
                     Runnable[] finalSyncTasks = syncTasks;
 
                     // Chain the sync tasks and the callback

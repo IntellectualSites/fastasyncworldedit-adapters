@@ -200,7 +200,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         );
 
         //init world
-        freshNMSWorld = Fawe.get().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
+        freshNMSWorld = Fawe.instance().getQueueHandler().sync((Supplier<WorldServer>) () -> new WorldServer(
                 server,
                 server.executorService,
                 saveHandler,
@@ -309,7 +309,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
     protected void cleanup() {
         //shutdown chunk provider
         try {
-            Fawe.get().getQueueHandler().sync(() -> {
+            Fawe.instance().getQueueHandler().sync(() -> {
                 try {
                     freshChunkProvider.close(false);
                 } catch (IOException e) {
@@ -373,7 +373,7 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
 
     //util
     private void removeWorldFromWorldsMap() {
-        Fawe.get().getQueueHandler().sync(() -> {
+        Fawe.instance().getQueueHandler().sync(() -> {
             try {
                 Map<String, org.bukkit.World> map = (Map<String, org.bukkit.World>) serverWorldsField.get(Bukkit.getServer());
                 map.remove("faweregentempworld");
