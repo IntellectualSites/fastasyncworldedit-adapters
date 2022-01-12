@@ -12,10 +12,8 @@ subprojects {
     }
 
     repositories {
-        mavenLocal()
         mavenCentral()
         maven { url = uri("https://ci.athion.net/plugin/repository/tools/") }
-        maven { url = uri("https://mvn.intellectualsites.com/content/groups/public/") }
         maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
         maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/") }
     }
