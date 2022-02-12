@@ -421,6 +421,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
 
                     bitMask |= 1 << layer;
 
+                    // Changes may still be written to chunk SET
                     char[] tmp = set.load(layer);
                     char[] setArr = new char[4096];
                     System.arraycopy(tmp, 0, setArr, 0, 4096);
@@ -437,6 +438,11 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
 
                         ChunkSection newSection;
                         ChunkSection existingSection = sections[layer];
+                        // Don't attempt to tick section whilst we're editing
+                        if (existingSection != null) {
+                            BukkitAdapter_1_15_2.clearCounts(existingSection);
+                        }
+
                         if (existingSection == null) {
                             newSection = BukkitAdapter_1_15_2.newChunkSection(layer, setArr, fastmode, adapter);
                             if (BukkitAdapter_1_15_2.setSectionAtomic(sections, null, newSection, layer)) {
@@ -451,10 +457,10 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                                 }
                             }
                         }
-                        BukkitAdapter_1_15_2.fieldTickingBlockCount.set(existingSection, (short) 0);
 
-                        //ensure that the server doesn't try to tick the chunksection while we're editing it.
+                        //ensure that the server doesn't try to tick the chunksection while we're editing it (again).
                         DelegateLock lock = BukkitAdapter_1_15_2.applyLock(existingSection);
+                        BukkitAdapter_1_15_2.clearCounts(existingSection);
                         synchronized (lock) {
                             lock.untilFree();
                             try {

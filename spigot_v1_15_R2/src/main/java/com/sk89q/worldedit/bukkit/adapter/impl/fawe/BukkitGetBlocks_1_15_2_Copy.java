@@ -17,6 +17,7 @@ import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypesCache;
 import net.minecraft.server.v1_15_R1.BiomeBase;
 import net.minecraft.server.v1_15_R1.BiomeStorage;
+import net.minecraft.server.v1_15_R1.Chunk;
 import net.minecraft.server.v1_15_R1.Entity;
 import net.minecraft.server.v1_15_R1.NBTTagCompound;
 import net.minecraft.server.v1_15_R1.TileEntity;
@@ -37,7 +38,7 @@ public class BukkitGetBlocks_1_15_2_Copy implements IChunkGet {
     private final Map<BlockVector3, CompoundTag> tiles = new HashMap<>();
     private final Set<CompoundTag> entities = new HashSet<>();
     private final char[][] blocks = new char[16][];
-    private final WorldServer world;
+    final WorldServer world;
     private BiomeStorage biomeStorage;
 
     protected BukkitGetBlocks_1_15_2_Copy(WorldServer world) {

@@ -453,6 +453,11 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
 
                         ChunkSection newSection;
                         ChunkSection existingSection = sections[layer];
+                        // Don't attempt to tick section whilst we're editing
+                        if (existingSection != null) {
+                            BukkitAdapter_1_16_5.clearCounts(existingSection);
+                        }
+
                         if (existingSection == null) {
                             newSection = BukkitAdapter_1_16_5.newChunkSection(layer, setArr, fastmode, adapter);
                             if (BukkitAdapter_1_16_5.setSectionAtomic(sections, null, newSection, layer)) {
@@ -467,10 +472,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
                                 }
                             }
                         }
-                        BukkitAdapter_1_16_5.fieldTickingBlockCount.set(existingSection, (short) 0);
 
-                        //ensure that the server doesn't try to tick the chunksection while we're editing it.
+                        //ensure that the server doesn't try to tick the chunksection while we're editing it (again).
                         DelegateLock lock = BukkitAdapter_1_16_5.applyLock(existingSection);
+                        BukkitAdapter_1_16_5.clearCounts(existingSection);
                         synchronized (lock) {
                             lock.untilFree();
                             try {

@@ -20,6 +20,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.chunk.BiomeStorage;
+import net.minecraft.world.level.chunk.Chunk;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class BukkitGetBlocks_1_17_Copy implements IChunkGet {
     private final Map<BlockVector3, CompoundTag> tiles = new HashMap<>();
     private final Set<CompoundTag> entities = new HashSet<>();
     private final char[][] blocks;
-    private final WorldServer world;
+    final WorldServer world;
     private final int minHeight;
     private final int maxHeight;
     private BiomeStorage biomeStorage;
