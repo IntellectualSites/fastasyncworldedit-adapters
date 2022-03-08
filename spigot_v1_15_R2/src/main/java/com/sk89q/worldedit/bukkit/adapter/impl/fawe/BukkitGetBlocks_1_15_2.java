@@ -56,7 +56,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_15_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlock;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import javax.annotation.Nullable;
 import java.util.AbstractSet;
@@ -347,7 +347,7 @@ public class BukkitGetBlocks_1_15_2 extends CharGetBlocks implements BukkitGetBl
                 return false;
             }
 
-            @NotNull
+            @Nonnull
             @Override
             public Iterator<CompoundTag> iterator() {
                 Iterable<CompoundTag> result = Iterables.transform(
