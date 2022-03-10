@@ -11,7 +11,6 @@ import com.fastasyncworldedit.core.util.MathMan;
 import com.fastasyncworldedit.core.util.ReflectionUtils;
 import com.fastasyncworldedit.core.util.TaskManager;
 import com.mojang.datafixers.util.Either;
-import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.biome.BiomeTypes;
 import com.sk89q.worldedit.world.block.BlockState;
@@ -47,9 +46,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
@@ -66,9 +63,9 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
 
     public static final Field fieldBitsPerEntry;
 
-    public static final Field fieldFluidCount;
-    public static final Field fieldTickingBlockCount;
-    public static final Field fieldNonEmptyBlockCount;
+    private static final Field fieldFluidCount;
+    private static final Field fieldTickingBlockCount;
+    private static final Field fieldNonEmptyBlockCount;
 
     private static final Field fieldBiomeArray;
 
@@ -262,19 +259,12 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
         final long[] blockStates = FaweCache.INSTANCE.BLOCK_STATES.get();
         final int[] blocksCopy = FaweCache.INSTANCE.SECTION_BLOCKS.get();
         try {
-            int[] num_palette_buffer = new int[1];
-            Map<BlockVector3, Integer> ticking_blocks = new HashMap<>();
-            int air;
+            int num_palette;
             if (get == null) {
-                air = createPalette(blockToPalette, paletteToBlock, blocksCopy, num_palette_buffer,
-                        set, ticking_blocks, fastmode, adapter
-                );
+                num_palette = createPalette(blockToPalette, paletteToBlock, blocksCopy, set, adapter);
             } else {
-                air = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy,
-                        num_palette_buffer, get, set, ticking_blocks, fastmode, adapter
-                );
+                num_palette = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy, get, set, adapter);
             }
-            int num_palette = num_palette_buffer[0];
             // BlockStates
             int bitsPerEntry = MathMan.log2nlz(num_palette - 1);
             if (Settings.settings().PROTOCOL_SUPPORT_FIX || num_palette != 1) {
@@ -334,17 +324,13 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
                 fieldBits.set(dataPaletteBlocks, nmsBits);
                 fieldPalette.set(dataPaletteBlocks, palette);
                 fieldSize.set(dataPaletteBlocks, bitsPerEntry);
-                setCount(ticking_blocks.size(), 4096 - air, section);
-                if (!fastmode) {
-                    ticking_blocks.forEach((pos, ordinal) -> section
-                            .setType(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ(),
-                                    Block.getByCombinedId(ordinal)
-                            ));
-                }
             } catch (final IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
 
+            if (!fastmode) {
+                section.recalcBlockCounts();
+            }
             return section;
         } catch (final Throwable e) {
             Arrays.fill(blockToPalette, Integer.MAX_VALUE);
@@ -356,11 +342,11 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
         return new ChunkSection(layer << 4);
     }
 
-    public static void setCount(final int tickingBlockCount, final int nonEmptyBlockCount, final ChunkSection section) throws
-            IllegalAccessException {
-        fieldFluidCount.setShort(section, (short) 0); // TODO FIXME
-        fieldTickingBlockCount.setShort(section, (short) tickingBlockCount);
-        fieldNonEmptyBlockCount.setShort(section, (short) nonEmptyBlockCount);
+    public static void clearCounts(final ChunkSection section) throws IllegalAccessException {
+        fieldFluidCount.setShort(section, (short) 0);
+        fieldTickingBlockCount.setShort(section, (short) 0);
+        fieldNonEmptyBlockCount.setShort(section, (short) 0);
+        section.tickingList.clear();
     }
 
     public static BiomeBase[] getBiomeArray(BiomeStorage storage) {

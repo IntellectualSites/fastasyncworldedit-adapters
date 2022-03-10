@@ -25,6 +25,7 @@ import com.fastasyncworldedit.bukkit.adapter.NMSRelighterFactory;
 import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
+import com.fastasyncworldedit.core.queue.IBatchProcessor;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
@@ -679,6 +680,11 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
             init();
             return allBlockProperties;
         }
+    }
+
+    @Override
+    public IBatchProcessor getTickingPostProcessor() {
+        return new PostProcessor_1_16_5();
     }
 
 }

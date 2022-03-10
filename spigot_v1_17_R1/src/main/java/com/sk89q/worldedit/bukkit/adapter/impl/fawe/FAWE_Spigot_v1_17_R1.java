@@ -25,6 +25,7 @@ import com.fastasyncworldedit.bukkit.adapter.NMSRelighterFactory;
 import com.fastasyncworldedit.core.FaweCache;
 import com.fastasyncworldedit.core.entity.LazyBaseEntity;
 import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
+import com.fastasyncworldedit.core.queue.IBatchProcessor;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
 import com.google.common.base.Preconditions;
@@ -74,7 +75,6 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
@@ -700,6 +700,11 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
             init();
             return allBlockProperties;
         }
+    }
+
+    @Override
+    public IBatchProcessor getTickingPostProcessor() {
+        return new PostProcessor_1_17();
     }
 
 }
