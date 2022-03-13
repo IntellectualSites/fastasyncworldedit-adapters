@@ -38,7 +38,6 @@ subprojects {
 
 // Paper 1.16 and below has a different classpath
 mapOf(
-        "spigot_v1_15_R2" to "1_15_r1",
         "spigot_v1_16_R3" to "1_16_r3"
 ).forEach { (projectName, dep) ->
     project(":$projectName") {
