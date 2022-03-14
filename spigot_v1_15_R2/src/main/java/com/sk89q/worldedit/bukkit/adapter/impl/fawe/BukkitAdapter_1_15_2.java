@@ -85,8 +85,12 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
             fieldTickingBlockCount.setAccessible(true);
             fieldNonEmptyBlockCount = ChunkSection.class.getDeclaredField("nonEmptyBlockCount");
             fieldNonEmptyBlockCount.setAccessible(true);
-            fieldTickingList = ChunkSection.class.getDeclaredField("tickingList");
-            fieldTickingList.setAccessible(true);
+            if (PaperLib.isPaper()) {
+                fieldTickingList = ChunkSection.class.getDeclaredField("tickingList");
+                fieldTickingList.setAccessible(true);
+            } else {
+                fieldTickingList = null;
+            }
 
             fieldBiomeArray = BiomeStorage.class.getDeclaredField("g");
             fieldBiomeArray.setAccessible(true);
@@ -335,7 +339,9 @@ public final class BukkitAdapter_1_15_2 extends NMSAdapter {
         fieldFluidCount.setShort(section, (short) 0);
         fieldTickingBlockCount.setShort(section, (short) 0);
         fieldNonEmptyBlockCount.setShort(section, (short) 0);
-        ((IBlockDataList) fieldTickingList.get(section)).clear();
+        if (PaperLib.isPaper()) {
+            ((IBlockDataList) fieldTickingList.get(section)).clear();
+        }
     }
 
     public static BiomeBase[] getBiomeArray(BiomeStorage storage) {
