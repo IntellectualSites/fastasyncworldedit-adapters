@@ -350,7 +350,9 @@ public final class BukkitAdapter_1_16_5 extends NMSAdapter {
         fieldFluidCount.setShort(section, (short) 0);
         fieldTickingBlockCount.setShort(section, (short) 0);
         fieldNonEmptyBlockCount.setShort(section, (short) 0);
-        section.tickingList.clear();
+        if (PaperLib.isPaper()) {
+            section.tickingList.clear();
+        }
     }
 
     public static BiomeBase[] getBiomeArray(BiomeStorage storage) {
