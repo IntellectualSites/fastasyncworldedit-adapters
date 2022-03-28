@@ -292,8 +292,12 @@ public class Regen_v1_15_R2 extends Regenerator<IChunkAccess, ProtoChunk, Chunk,
         ) {
             // redirect to our protoChunks list
             @Override
-            public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean flag) {
-                return Regen_v1_15_R2.this.getChunkAt(x, z);
+            public IChunkAccess getChunkAt(int x, int z, ChunkStatus chunkstatus, boolean create) {
+                IChunkAccess chunkAccess = Regen_v1_15_R2.this.getChunkAt(x, z);
+                if (chunkAccess == null && create) {
+                    chunkAccess = createChunk(getProtoChunkAt(x, z));
+                }
+                return chunkAccess;
             }
         };
         chunkProviderField.set(freshNMSWorld, freshChunkProvider);
