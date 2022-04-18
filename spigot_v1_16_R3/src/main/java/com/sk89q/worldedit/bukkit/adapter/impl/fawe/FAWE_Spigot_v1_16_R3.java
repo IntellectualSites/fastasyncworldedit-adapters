@@ -265,7 +265,7 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         final WorldServer handle = craftWorld.getHandle();
         Chunk chunk = handle.getChunkAt(x >> 4, z >> 4);
         final BlockPosition blockPos = new BlockPosition(x, y, z);
-        IBlockData blockData = chunk.getBlockData(blockPos);
+        IBlockData blockData = chunk.getType(blockPos);
         BlockState state = adapt(blockData);
         if (state == null) {
             org.bukkit.block.Block bukkitBlock = location.getBlock();
