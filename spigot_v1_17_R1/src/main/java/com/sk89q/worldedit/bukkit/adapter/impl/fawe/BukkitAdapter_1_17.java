@@ -291,10 +291,20 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         final int[] blocksCopy = FaweCache.INSTANCE.SECTION_BLOCKS.get();
         try {
             int num_palette;
+            final short[] nonEmptyBlockCount = fastmode ? new short[1] : null;
             if (get == null) {
-                num_palette = createPalette(blockToPalette, paletteToBlock, blocksCopy, set, adapter);
+                num_palette = createPalette(blockToPalette, paletteToBlock, blocksCopy, set, adapter, nonEmptyBlockCount);
             } else {
-                num_palette = createPalette(layer, blockToPalette, paletteToBlock, blocksCopy, get, set, adapter);
+                num_palette = createPalette(
+                        layer,
+                        blockToPalette,
+                        paletteToBlock,
+                        blocksCopy,
+                        get,
+                        set,
+                        adapter,
+                        nonEmptyBlockCount
+                );
             }
             // BlockStates
             int bitsPerEntry = MathMan.log2nlz(num_palette - 1);
@@ -361,6 +371,12 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
 
             if (!fastmode) {
                 section.recalcBlockCounts();
+            } else {
+                try {
+                    fieldNonEmptyBlockCount.set(section, nonEmptyBlockCount[0]);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
             return section;
         } catch (final Throwable e) {
