@@ -28,6 +28,7 @@ import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
 import com.fastasyncworldedit.core.queue.IBatchProcessor;
 import com.fastasyncworldedit.core.queue.IChunkGet;
 import com.fastasyncworldedit.core.queue.implementation.packet.ChunkPacket;
+import com.fastasyncworldedit.core.util.TaskManager;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -572,27 +573,32 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
             pt = pt.add(0, 1, 0); // bukkit skips the feature gen which does this offset normally, so we have to add it back
         }
         WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
-        world.captureTreeGeneration = true;
-        world.captureBlockStates = true;
-        boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, pt), bukkitType);
-        world.captureBlockStates = false;
-        world.captureTreeGeneration = false;
-        if (!grownTree) {
-            world.capturedBlockStates.clear();
-            return false;
-        } else {
-            for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
-                if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
-                    continue;
-                }
-                editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
-                        BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData())
-                );
+        final BlockVector3 finalBlockVector = pt;
+        // Sync to main thread to ensure no clashes occur
+        Map<BlockPosition, CraftBlockState> placed = TaskManager.taskManager().sync(() -> {
+            world.captureTreeGeneration = true;
+            world.captureBlockStates = true;
+            boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, finalBlockVector), bukkitType);
+            world.captureBlockStates = false;
+            world.captureTreeGeneration = false;
+            if (!grownTree) {
+                world.capturedBlockStates.clear();
+                return null;
             }
-
-            world.capturedBlockStates.clear();
-            return true;
+            return ImmutableMap.copyOf(world.capturedBlockStates);
+        });
+        if (placed == null) {
+            return false;
         }
+        for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
+            if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
+                continue;
+            }
+            editSession.setBlock(craftBlockState.getX(), craftBlockState.getY(), craftBlockState.getZ(),
+                    BukkitAdapter.adapt(((org.bukkit.block.BlockState) craftBlockState).getBlockData())
+            );
+        }
+        return true;
     }
 
     @Override
