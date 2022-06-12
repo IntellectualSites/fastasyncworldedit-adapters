@@ -579,7 +579,9 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
             world.captureTreeGeneration = true;
             world.captureBlockStates = true;
             try {
-                bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, finalBlockVector), bukkitType);
+                if (!bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, finalBlockVector), bukkitType)) {
+                    return null;
+                }
                 return ImmutableMap.copyOf(world.capturedBlockStates);
             } finally {
                 world.captureBlockStates = false;
@@ -587,7 +589,7 @@ public final class FAWE_Spigot_v1_17_R1 extends CachedBukkitAdapter implements I
                 world.capturedBlockStates.clear();
             }
         });
-        if (placed == null) {
+        if (placed == null || placed.isEmpty()) {
             return false;
         }
         for (CraftBlockState craftBlockState : placed.values()) {
