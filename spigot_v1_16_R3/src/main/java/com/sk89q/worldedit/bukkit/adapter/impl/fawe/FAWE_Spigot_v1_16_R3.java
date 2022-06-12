@@ -578,19 +578,19 @@ public final class FAWE_Spigot_v1_16_R3 extends CachedBukkitAdapter implements I
         Map<BlockPosition, CraftBlockState> placed = TaskManager.taskManager().sync(() -> {
             world.captureTreeGeneration = true;
             world.captureBlockStates = true;
-            boolean grownTree = bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, finalBlockVector), bukkitType);
-            world.captureBlockStates = false;
-            world.captureTreeGeneration = false;
-            if (!grownTree) {
+            try {
+                bukkitWorld.generateTree(BukkitAdapter.adapt(bukkitWorld, finalBlockVector), bukkitType);
+                return ImmutableMap.copyOf(world.capturedBlockStates);
+            } finally {
+                world.captureBlockStates = false;
+                world.captureTreeGeneration = false;
                 world.capturedBlockStates.clear();
-                return null;
             }
-            return ImmutableMap.copyOf(world.capturedBlockStates);
         });
         if (placed == null) {
             return false;
         }
-        for (CraftBlockState craftBlockState : world.capturedBlockStates.values()) {
+        for (CraftBlockState craftBlockState : placed.values()) {
             if (craftBlockState == null || craftBlockState.getType() == Material.AIR) {
                 continue;
             }
