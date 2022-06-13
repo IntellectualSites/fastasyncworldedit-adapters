@@ -19,9 +19,11 @@ subprojects {
     }
 
     dependencies {
-        compileOnly(rootProject.project.libs.bundles.fawe)
-        compileOnly(rootProject.project.libs.paper)
-        compileOnly(rootProject.project.libs.paperlib) {
+        implementation(platform("com.intellectualsites.bom:bom-1.16.x:1.5"))
+        compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit")
+        compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+        compileOnly("com.destroystokyo.paper:paper-api")
+        compileOnly("io.papermc:paperlib") {
             because("Shading is done in FAWE")
         }
     }
