@@ -60,9 +60,7 @@ public class TuinityRelighter_1_16_5 implements Relighter {
                             IntConsumer.class
                     )
             );
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            LOGGER.error("Failed to locate relight method in LightEngineThreaded on Tuinity. " +
-                    "Is everything up to date?", e);
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
         }
         RELIGHT = tmp;
     }
