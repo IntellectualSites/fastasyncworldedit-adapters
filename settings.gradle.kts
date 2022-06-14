@@ -17,7 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "worldedit-adapters"
+rootProject.name = "fastasyncworldedit-adapters"
 
 data class Ver(val minor: Int, val rel: String)
 
