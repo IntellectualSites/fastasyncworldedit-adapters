@@ -69,6 +69,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -583,23 +584,31 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                     }
 
                     syncTasks[2] = () -> {
-                        final List<Entity>[] entities = /*nmsChunk.e()*/ new List[0];
+                        Set<UUID> entitiesRemoved = new HashSet<>();
+                        final List<Entity> entities = BukkitAdapter_1_17.getEntities(nmsChunk);
 
-                        for (final Collection<Entity> ents : entities) {
-                            if (!ents.isEmpty()) {
-                                final Iterator<Entity> iter = ents.iterator();
-                                while (iter.hasNext()) {
-                                    final Entity entity = iter.next();
-                                    if (entityRemoves.contains(entity.getUniqueID())) {
-                                        if (createCopy) {
-                                            copy.storeEntity(entity);
-                                        }
-                                        iter.remove();
-                                        removeEntity(entity);
-                                    }
+                        for (Entity entity : entities) {
+                            UUID uuid = entity.getUniqueID();
+                            if (entityRemoves.contains(uuid)) {
+                                if (createCopy) {
+                                    copy.storeEntity(entity);
+                                }
+                                removeEntity(entity);
+                                entitiesRemoved.add(uuid);
+                                entityRemoves.remove(uuid);
+                            }
+                        }
+                        if (Settings.settings().EXPERIMENTAL.REMOVE_ENTITY_FROM_WORLD_ON_CHUNK_FAIL) {
+                            for (UUID uuid : entityRemoves) {
+                                Entity entity = nmsWorld.getEntities().a(uuid);
+                                if (entity != null) {
+                                    removeEntity(entity);
                                 }
                             }
                         }
+                        // Only save entities that were actually removed to history
+                        set.getEntityRemoves().clear();
+                        set.getEntityRemoves().addAll(entitiesRemoved);
                     };
                 }
 
@@ -610,7 +619,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                     }
 
                     syncTasks[1] = () -> {
-                        for (final CompoundTag nativeTag : entities) {
+                        Iterator<CompoundTag> iterator = entities.iterator();
+                        while (iterator.hasNext()) {
+                            final CompoundTag nativeTag = iterator.next();
                             final Map<String, Tag> entityTagMap = nativeTag.getValue();
                             final StringTag idTag = (StringTag) entityTagMap.get("Id");
                             final ListTag posTag = (ListTag) entityTagMap.get("Pos");
@@ -636,12 +647,23 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
                                     }
                                     entity.load(tag);
                                     entity.setLocation(x, y, z, yaw, pitch);
-                                    nmsWorld.addEntity(entity, CreatureSpawnEvent.SpawnReason.CUSTOM);
+                                    entity.a_(nativeTag.getUUID());
+                                    if (!nmsWorld.addEntity(entity, CreatureSpawnEvent.SpawnReason.CUSTOM)) {
+                                        LOGGER.warn(
+                                                "Error creating entity of type `{}` in world `{}` at location `{},{},{}`",
+                                                id,
+                                                nmsWorld.getWorld().getName(),
+                                                x,
+                                                y,
+                                                z
+                                        );
+                                        // Unsuccessful create should not be saved to history
+                                        iterator.remove();
+                                    }
                                 }
                             }
                         }
                     };
-
                 }
 
                 // set tiles
