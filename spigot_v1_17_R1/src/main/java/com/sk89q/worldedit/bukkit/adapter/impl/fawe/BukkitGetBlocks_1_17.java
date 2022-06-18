@@ -80,6 +80,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBlocks {
 
@@ -304,14 +305,9 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             org.bukkit.entity.Entity bukkitEnt = entity.getBukkitEntity();
             return BukkitAdapter.adapt(bukkitEnt).getState().getNbtData();
         }
-        for (List<Entity> entry : /*getChunk().getEntitySlices()*/ new List[0]) {
-            if (entry != null) {
-                for (Entity ent : entry) {
-                    if (uuid.equals(ent.getUniqueID())) {
-                        org.bukkit.entity.Entity bukkitEnt = ent.getBukkitEntity();
-                        return BukkitAdapter.adapt(bukkitEnt).getState().getNbtData();
-                    }
-                }
+        for (CompoundTag tag : getEntities()) {
+            if (uuid.equals(tag.getUUID())) {
+                return tag;
             }
         }
         return null;
@@ -319,21 +315,15 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
     @Override
     public Set<CompoundTag> getEntities() {
-        List<Entity>[] slices = /*getChunk().getEntitySlices()*/ new List[0];
-        int size = 0;
-        for (List<Entity> slice : slices) {
-            if (slice != null) {
-                size += slice.size();
-            }
-        }
-        if (slices.length == 0) {
+        List<Entity> entities = BukkitAdapter_1_17.getEntities(getChunk());
+        if (entities.isEmpty()) {
             return Collections.emptySet();
         }
-        int finalSize = size;
-        return new AbstractSet<CompoundTag>() {
+        int size = entities.size();
+        return new AbstractSet<>() {
             @Override
             public int size() {
-                return finalSize;
+                return size;
             }
 
             @Override
@@ -343,21 +333,14 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
 
             @Override
             public boolean contains(Object get) {
-                if (!(get instanceof CompoundTag)) {
+                if (!(get instanceof CompoundTag getTag)) {
                     return false;
                 }
-                CompoundTag getTag = (CompoundTag) get;
-                Map<String, Tag> value = getTag.getValue();
-                CompoundTag getParts = (CompoundTag) value.get("UUID");
-                UUID getUUID = new UUID(getParts.getLong("Most"), getParts.getLong("Least"));
-                for (List<Entity> slice : slices) {
-                    if (slice != null) {
-                        for (Entity entity : slice) {
-                            UUID uuid = entity.getUniqueID();
-                            if (uuid.equals(getUUID)) {
-                                return true;
-                            }
-                        }
+                UUID getUUID = getTag.getUUID();
+                for (Entity entity : entities) {
+                    UUID uuid = entity.getUniqueID();
+                    if (uuid.equals(getUUID)) {
+                        return true;
                     }
                 }
                 return false;
@@ -366,17 +349,11 @@ public class BukkitGetBlocks_1_17 extends CharGetBlocks implements BukkitGetBloc
             @Nonnull
             @Override
             public Iterator<CompoundTag> iterator() {
-                Iterable<CompoundTag> result = Iterables.transform(
-                        Iterables.concat(slices),
-                        new com.google.common.base.Function<Entity, CompoundTag>() {
-                            @Nullable
-                            @Override
-                            public CompoundTag apply(@Nullable Entity input) {
-                                NBTTagCompound tag = new NBTTagCompound();
-                                return (CompoundTag) adapter.toNative(input.save(tag));
-                            }
-                        }
-                );
+                Iterable<CompoundTag> result = entities.stream().map(input -> {
+                    NBTTagCompound tag = new NBTTagCompound();
+                    input.save(tag);
+                    return (CompoundTag) adapter.toNative(tag);
+                }).collect(Collectors.toList());
                 return result.iterator();
             }
         };

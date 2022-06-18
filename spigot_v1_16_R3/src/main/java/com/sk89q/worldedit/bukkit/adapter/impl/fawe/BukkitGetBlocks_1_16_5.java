@@ -80,6 +80,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBlocks {
 
@@ -325,7 +327,7 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
             return Collections.emptySet();
         }
         int finalSize = size;
-        return new AbstractSet<CompoundTag>() {
+        return new AbstractSet<>() {
             @Override
             public int size() {
                 return finalSize;
@@ -338,13 +340,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
 
             @Override
             public boolean contains(Object get) {
-                if (!(get instanceof CompoundTag)) {
+                if (!(get instanceof CompoundTag getTag)) {
                     return false;
                 }
-                CompoundTag getTag = (CompoundTag) get;
-                Map<String, Tag> value = getTag.getValue();
-                CompoundTag getParts = (CompoundTag) value.get("UUID");
-                UUID getUUID = new UUID(getParts.getLong("Most"), getParts.getLong("Least"));
+                UUID getUUID = getTag.getUUID();
                 for (List<Entity> slice : slices) {
                     if (slice != null) {
                         for (Entity entity : slice) {
@@ -361,17 +360,10 @@ public class BukkitGetBlocks_1_16_5 extends CharGetBlocks implements BukkitGetBl
             @Nonnull
             @Override
             public Iterator<CompoundTag> iterator() {
-                Iterable<CompoundTag> result = Iterables.transform(
-                        Iterables.concat(slices),
-                        new com.google.common.base.Function<Entity, CompoundTag>() {
-                            @Nullable
-                            @Override
-                            public CompoundTag apply(@Nullable Entity input) {
-                                NBTTagCompound tag = new NBTTagCompound();
-                                return (CompoundTag) adapter.toNative(input.save(tag));
-                            }
-                        }
-                );
+                Iterable<CompoundTag> result = StreamSupport.stream(Iterables.concat(slices).spliterator(), false).map(input -> {
+                    NBTTagCompound tag = new NBTTagCompound();
+                    return (CompoundTag) adapter.toNative(input.save(tag));
+                }).collect(Collectors.toList());
                 return result.iterator();
             }
         };
