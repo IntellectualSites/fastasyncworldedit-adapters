@@ -30,6 +30,7 @@ import net.minecraft.server.level.PlayerChunk;
 import net.minecraft.server.level.PlayerChunkMap;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.util.DataBits;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkCoordIntPair;
 import net.minecraft.world.level.GeneratorAccess;
 import net.minecraft.world.level.biome.BiomeBase;
@@ -53,7 +54,9 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -451,6 +454,12 @@ public final class BukkitAdapter_1_17 extends NMSAdapter {
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
+    }
+
+    static List<Entity> getEntities(Chunk chunk) {
+        List<Entity> entities = new ArrayList<>();
+        chunk.level.G.a(new ChunkCoordIntPair(chunk.locX, chunk.locZ).pair(), entities::add);
+        return entities;
     }
 
 }
