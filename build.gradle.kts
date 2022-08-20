@@ -19,7 +19,7 @@ subprojects {
     }
 
     dependencies {
-        implementation(platform("com.intellectualsites.bom:bom-1.16.x:1.11"))
+        implementation(platform("com.intellectualsites.bom:bom-1.16.x:1.13"))
         compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit")
         compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
         compileOnly("com.destroystokyo.paper:paper-api")
